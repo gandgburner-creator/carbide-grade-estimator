@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Carbide Grade Estimator — EVERPADS</title>
+<title>Milling picks: carbide, physics and evidence — EVERPADS</title>
+<meta name="description" content="An interactive technical review of tungsten-carbide milling picks: grain size, binder mean free path, hardness and toughness, with the working model shown in full.">
 <link rel="icon" href="logo-mark.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#141414;--bg-elev:#191919;--surface:#1e1e1e;--surface-2:#242424;--surface-3:#2c2c2c;
@@ -15,46 +16,69 @@
   --ink:#f3f1ec;--ink-2:#cbc8c1;--slate:#98958d;--slate-2:#6d6a63;
   --orange:#F6AC1B;--orange-2:#EA8900;--orange-3:#c77400;
   --orange-tint:rgba(246,172,27,.12);--orange-tint2:rgba(246,172,27,.22);
-  --green:#43cf7d;--red:#f2694f;--r:4px;--r-lg:6px;
+  --green:#5BD08C;--blue:#7FB3F5;--red:#f2694f;
+  --green-tint:rgba(91,208,140,.13);--blue-tint:rgba(127,179,245,.13);--red-tint:rgba(242,105,79,.13);
+  --r:4px;--r-lg:6px;
   --display:"Oswald",-apple-system,BlinkMacSystemFont,sans-serif;
   --body:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
 }
 *{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;scroll-padding-top:84px}
 body{margin:0;background:var(--bg);color:var(--ink);
-  font-family:var(--body);font-size:15px;line-height:1.55;
+  font-family:var(--body);font-size:15px;line-height:1.6;
   font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
-.wrap{max-width:1060px;margin:0 auto;padding:28px 22px 60px}
+.wrap{max-width:1080px;margin:0 auto;padding:26px 22px 60px}
 
-.brandbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:30px;flex-wrap:wrap}
+/* ---- brand bar ---- */
+.brandbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px;flex-wrap:wrap}
 .brandbar .id{display:flex;align-items:center;gap:12px}
 .brandbar img{height:34px;width:auto;display:block}
-.brandbar .word{font-family:var(--display);font-weight:600;font-size:17px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink)}
+.brandbar .word{font-family:var(--display);font-weight:600;font-size:17px;letter-spacing:.06em;text-transform:uppercase}
 .brandbar .tag{font-family:var(--mono);font-size:11px;color:var(--slate);letter-spacing:.04em;padding-left:12px;border-left:1px solid var(--border)}
-.brandbar .meta{text-align:right;font-size:12px;line-height:1.5;color:var(--slate)}
+.brandbar .meta{text-align:right;font-size:12px;line-height:1.55;color:var(--slate)}
 .brandbar .meta b{color:var(--ink);font-weight:500}
 
-h1{font-family:var(--display);font-weight:600;font-size:clamp(24px,3.6vw,32px);line-height:1.16;margin:0 0 8px;letter-spacing:-.005em;text-transform:none}
-h2{font-family:var(--display);font-weight:500;font-size:17px;margin:0 0 14px;letter-spacing:.01em}
-p{margin:0 0 14px;max-width:68ch}
-.lede{color:var(--slate);max-width:60ch;margin-bottom:28px}
+/* ---- nav ---- */
+.nav{position:sticky;top:0;z-index:40;background:rgba(20,20,20,.93);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--border);margin:0 -22px 30px;padding:0 22px}
+.nav ol{display:flex;gap:2px;list-style:none;margin:0;padding:9px 0;overflow-x:auto;scrollbar-width:thin}
+.nav a{display:block;white-space:nowrap;font-size:12.5px;color:var(--slate);text-decoration:none;
+  padding:5px 10px;border-radius:999px;border:1px solid transparent}
+.nav a:hover{color:var(--ink);background:var(--surface)}
+.nav a.on{color:#1a1200;background:var(--orange);font-weight:600}
+.nav a:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
 
-.rig{background:var(--surface);color:var(--ink);border:1px solid var(--border);border-radius:var(--r-lg);padding:22px;
-  display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:28px;align-items:start}
-.scope{position:relative}
-canvas{width:100%;display:block;border-radius:var(--r);background:var(--bg-elev)}
-.bar{display:flex;align-items:center;gap:10px;margin-top:10px;color:var(--slate);font-size:12.5px}
-.bar i{display:block;height:3px;background:var(--ink);border-radius:2px}
-.cap{color:var(--slate);font-size:12.5px;margin-top:4px}
+/* ---- type ---- */
+h1{font-family:var(--display);font-weight:600;font-size:clamp(26px,4vw,38px);line-height:1.12;margin:0 0 10px;letter-spacing:-.005em}
+h2{font-family:var(--display);font-weight:500;font-size:clamp(19px,2.4vw,23px);margin:0 0 6px;letter-spacing:.01em}
+h3{font-family:var(--body);font-weight:600;font-size:15.5px;margin:22px 0 8px;letter-spacing:.005em}
+h4{font-family:var(--body);font-weight:600;font-size:13.5px;margin:0 0 6px;color:var(--ink-2)}
+p{margin:0 0 14px;max-width:70ch}
+.lede{color:var(--ink-2);font-size:16.5px;max-width:64ch;margin-bottom:10px}
+.sub{color:var(--slate);font-size:13px}
+.cap{color:var(--slate);font-size:12.5px;margin-top:8px;max-width:76ch}
+a{color:var(--orange)}
+a:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+ul,ol.body{padding-left:20px;max-width:70ch}
+li{margin-bottom:7px}
+strong{font-weight:600}
+.kick{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--orange-2);margin:0 0 6px}
+section{margin:0 0 56px;scroll-margin-top:84px}
+hr{border:0;border-top:1px solid var(--border);margin:44px 0}
 
-.grade{font-family:var(--display);font-weight:600;font-size:38px;line-height:1;margin:0 0 4px;
-  background:linear-gradient(135deg,var(--orange),var(--orange-2));-webkit-background-clip:text;background-clip:text;color:transparent}
-.cls{color:var(--slate);font-size:13.5px;margin-bottom:20px}
-.ctl{margin-bottom:18px}
-.ctl .top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:6px}
+/* ---- layout ---- */
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px}
+.card h4{margin-top:0}
+.card p:last-child,.card ul:last-child{margin-bottom:0}
+
+/* ---- controls ---- */
+.ctl{margin-bottom:16px}
+.ctl .top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:5px}
 .ctl label{font-size:13.5px;color:var(--slate)}
-.ctl .val{font-size:16px;font-weight:500;font-family:var(--mono)}
+.ctl .val{font-size:15.5px;font-weight:500;font-family:var(--mono);color:var(--ink)}
 input[type=range]{width:100%;height:22px;margin:0;background:transparent;-webkit-appearance:none;appearance:none}
 input[type=range]:focus-visible{outline:2px solid var(--orange);outline-offset:4px;border-radius:4px}
 input[type=range]::-webkit-slider-runnable-track{height:3px;background:var(--border-2);border-radius:2px}
@@ -62,42 +86,157 @@ input[type=range]::-moz-range-track{height:3px;background:var(--border-2);border
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:17px;height:17px;border-radius:50%;background:var(--orange);margin-top:-7px;cursor:pointer;border:0}
 input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;background:var(--orange);cursor:pointer;border:0}
 .picks{display:flex;flex-wrap:wrap;gap:7px}
-.picks button{font:inherit;font-size:12.5px;padding:5px 11px;border-radius:999px;cursor:pointer;
-  background:transparent;color:var(--ink);border:1px solid var(--border-2)}
-.picks button:hover{border-color:var(--slate)}
-.picks button[aria-pressed=true]{background:var(--orange);border-color:var(--orange);color:#1a1200;font-weight:600}
-.picks button:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
-.use{margin-top:18px;padding-top:14px;border-top:1px solid var(--border);font-size:13.5px;color:var(--slate)}
+.picks button,.chipbtn{font:inherit;font-size:12.5px;padding:5px 11px;border-radius:999px;cursor:pointer;
+  background:transparent;color:var(--ink);border:1px solid var(--border-2);line-height:1.5}
+.picks button:hover,.chipbtn:hover{border-color:var(--slate);background:var(--hover)}
+.picks button[aria-pressed=true],.chipbtn[aria-pressed=true]{background:var(--orange);border-color:var(--orange);color:#1a1200;font-weight:600}
+.picks button:focus-visible,.chipbtn:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+.togs{display:flex;flex-direction:column;gap:9px;margin:4px 0 0}
+.tog{display:flex;align-items:flex-start;gap:9px;font-size:13.5px;color:var(--ink-2);cursor:pointer}
+.tog input{margin:3px 0 0;accent-color:var(--orange);width:15px;height:15px;flex:none}
+.tog span small{display:block;color:var(--slate);font-size:12px;line-height:1.45}
+
+/* ---- readouts ---- */
+.rig{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;
+  display:grid;grid-template-columns:minmax(0,400px) minmax(0,1fr);gap:26px;align-items:start}
+.scope{position:relative}
+canvas{width:100%;display:block;border-radius:var(--r);background:var(--bg-elev);image-rendering:auto}
+.bar{display:flex;align-items:center;gap:10px;margin-top:9px;color:var(--slate);font-size:12.5px}
+.bar i{display:block;height:3px;background:var(--ink);border-radius:2px;flex:none}
+.grade{font-family:var(--display);font-weight:600;font-size:36px;line-height:1;margin:0 0 4px;
+  background:linear-gradient(135deg,var(--orange),var(--orange-2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.cls{color:var(--slate);font-size:13px;margin-bottom:18px}
+.use{margin-top:16px;padding-top:13px;border-top:1px solid var(--border);font-size:13.5px;color:var(--slate)}
 .use b{color:var(--ink);font-weight:500}
+.out{display:grid;grid-template-columns:repeat(auto-fit,minmax(172px,1fr));gap:0 26px;margin:26px 0 6px}
+.row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.row span{color:var(--slate);font-size:13px}
+.row b{font-weight:500;font-size:16px;font-family:var(--mono)}
+.row .u{font-size:12px;color:var(--slate);font-weight:400}
 
-.out{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:0 26px;margin:30px 0 10px}
-.row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:11px 0;border-bottom:1px solid var(--border)}
-.row span{color:var(--slate);font-size:13.5px}
-.row b{font-weight:500;font-size:16.5px;font-family:var(--mono)}
-.row .sub{font-size:12.5px;color:var(--slate);font-weight:400}
+/* ---- A/B panels ---- */
+.ab{display:grid;grid-template-columns:repeat(auto-fit,minmax(272px,1fr));gap:18px;margin-top:16px}
+.pan{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:15px}
+.pan.hi{border-color:var(--orange-3)}
+.pan .ph{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.pan .pn{font-family:var(--display);font-weight:500;font-size:15.5px;letter-spacing:.02em}
+.pan .pd{font-family:var(--mono);font-size:12.5px;color:var(--orange)}
+.mini{display:grid;grid-template-columns:1fr 1fr;gap:1px 14px;margin-top:11px}
+.mini div{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12.5px}
+.mini span{color:var(--slate)}
+.mini b{font-family:var(--mono);font-weight:500;font-size:13px}
 
-.chart{margin:34px 0 0}
-.legend{display:flex;gap:18px;font-size:12.5px;color:var(--slate);margin-bottom:6px}
-.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
-svg{display:block;width:100%;height:auto;overflow:visible}
+/* ---- equations ---- */
+.eq{background:var(--surface);border:1px solid var(--border);border-left:2px solid var(--orange-3);
+  border-radius:var(--r);padding:14px 16px;margin:0 0 14px}
+.eq .ex{font-family:var(--mono);font-size:14.5px;color:var(--ink);overflow-x:auto;padding:5px 0 8px;white-space:nowrap}
+.eq .why{font-size:13.5px;color:var(--slate);margin:0;max-width:66ch}
+.eq .live{font-family:var(--mono);font-size:12.5px;color:var(--orange);margin-top:8px;display:block}
+.frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;margin:0 4px}
+.frac .n{border-bottom:1px solid var(--slate);padding:0 6px 2px}
+.frac .d{padding:2px 6px 0}
+sub,sup{font-size:.72em}
 
-table{border-collapse:collapse;width:100%;font-size:14px;margin-bottom:10px}
-th,td{text-align:right;padding:9px 8px;border-bottom:1px solid var(--border);white-space:nowrap}
+/* ---- tables ---- */
+.scroll{overflow-x:auto;margin-bottom:10px}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{text-align:right;padding:9px 9px;border-bottom:1px solid var(--border);white-space:nowrap;vertical-align:top}
 th:first-child,td:first-child{text-align:left;white-space:normal}
-thead th{font-weight:500;color:var(--slate);font-size:12.5px}
-.scroll{overflow-x:auto}
+thead th{font-weight:500;color:var(--slate);font-size:12px;letter-spacing:.02em}
+tbody tr:hover{background:var(--surface)}
+td.hl{color:var(--orange);font-family:var(--mono)}
+td.mono,th.mono{font-family:var(--mono)}
 
-.solve{margin-top:22px;padding:16px 18px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);max-width:560px}
-.solve .in{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px}
-.solve input[type=number]{font:inherit;width:92px;padding:6px 9px;border-radius:var(--r);border:1px solid var(--border-2);
-  background:var(--bg);color:var(--ink)}
-.solve input[type=number]:focus-visible{outline:2px solid var(--orange);outline-offset:1px}
-.solve .res{font-size:16.5px;font-weight:600;font-family:var(--mono);color:var(--orange)}
-footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--border);color:var(--slate);font-size:13px}
-footer p{max-width:76ch}
+/* ---- status ---- */
+.verd{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;
+  padding:4px 10px;border-radius:999px;border:1px solid}
+.verd svg{flex:none}
+.v-ok{color:var(--green);border-color:rgba(91,208,140,.4);background:var(--green-tint)}
+.v-wn{color:var(--orange);border-color:rgba(246,172,27,.4);background:var(--orange-tint)}
+.v-no{color:var(--red);border-color:rgba(242,105,79,.4);background:var(--red-tint)}
+.flag{display:flex;gap:11px;align-items:flex-start;padding:13px 15px;border-radius:var(--r);
+  background:var(--surface);border:1px solid var(--border);border-left:2px solid var(--red);margin-bottom:12px}
+.flag .fi{flex:none;margin-top:2px}
+.flag h4{margin:0 0 3px}
+.flag p{margin:0;font-size:13.5px;color:var(--slate);max-width:66ch}
+.chk{list-style:none;padding:0;margin:0}
+.chk li{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border);margin:0}
+.chk .ci{flex:none;margin-top:2px}
+.chk b{display:block;font-weight:500;font-size:14px}
+.chk small{color:var(--slate);font-size:12.5px;line-height:1.5;display:block}
+
+/* ---- charts ---- */
+.chartbox{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 18px 10px;margin-bottom:16px}
+.chartbox h4{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.legend{display:flex;flex-wrap:wrap;gap:16px;font-size:12.5px;color:var(--slate);margin:2px 0 8px}
+.legend i{display:inline-block;width:15px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
+.legend i.dash{background:none!important;border-top:2px dashed var(--slate);height:0;border-radius:0}
+/* plot and diagram SVGs scale to their container; inline status icons must not */
+.chartwrap svg,.scope svg,#pickdia,#ch-case{display:block;width:100%;height:auto;overflow:visible}
+.verd svg,.flag svg,.chk svg{display:block;width:auto;height:auto;flex:none}
+.chartwrap svg text,.scope svg text,#pickdia text{font-family:var(--body)}
+.tipbox{position:absolute;pointer-events:none;background:var(--surface-3);border:1px solid var(--border-2);
+  border-radius:var(--r);padding:7px 10px;font-size:12px;line-height:1.5;color:var(--ink);
+  box-shadow:0 6px 20px rgba(0,0,0,.5);opacity:0;transition:opacity .1s;z-index:20;white-space:nowrap}
+.tipbox b{font-family:var(--mono);font-weight:500}
+.tipbox em{font-style:normal;color:var(--slate)}
+.chartwrap{position:relative}
+details{margin:6px 0 0;font-size:13px}
+summary{cursor:pointer;color:var(--slate);font-size:12.5px;padding:5px 0;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"▸ ";color:var(--orange-3)}
+details[open] summary::before{content:"▾ "}
+summary:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+
+/* ---- solve box ---- */
+.solve{padding:15px 17px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg)}
+.solve .in{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:9px}
+input[type=number],select{font:inherit;font-size:14px;padding:6px 9px;border-radius:var(--r);
+  border:1px solid var(--border-2);background:var(--bg);color:var(--ink)}
+input[type=number]{width:94px;font-family:var(--mono)}
+input[type=number]:focus-visible,select:focus-visible{outline:2px solid var(--orange);outline-offset:1px}
+.res{font-size:17px;font-weight:600;font-family:var(--mono);color:var(--orange)}
+
+/* ---- tiles ---- */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:18px 0}
+.tile{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 15px}
+.tile .tl{font-size:12px;color:var(--slate);margin-bottom:5px;line-height:1.4}
+.tile .tv{font-size:26px;font-weight:600;line-height:1.1;font-variant-numeric:normal}
+.tile .tu{font-size:13px;color:var(--slate);font-weight:400}
+.tile .td{font-size:12px;color:var(--slate);margin-top:4px}
+
+/* ---- hotspot diagram ---- */
+.hotwrap{display:grid;grid-template-columns:minmax(0,250px) minmax(0,1fr);gap:22px;align-items:start}
+.hot{cursor:pointer}
+.hot:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+.partbtns{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;max-width:560px}
+#partcard{max-width:560px}
+.partbtns button{font:inherit;font-size:13px;text-align:left;padding:8px 12px;border-radius:var(--r);
+  cursor:pointer;background:var(--surface);color:var(--ink-2);border:1px solid var(--border)}
+.partbtns button:hover{background:var(--hover);border-color:var(--slate-2)}
+.partbtns button[aria-pressed=true]{border-color:var(--orange);color:var(--ink);background:var(--orange-tint)}
+.partbtns button:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+
+/* ---- refs ---- */
+.refs{list-style:none;padding:0;margin:0;counter-reset:r}
+.refs li{counter-increment:r;padding:11px 0 11px 34px;border-bottom:1px solid var(--border);position:relative;font-size:13.5px;max-width:78ch}
+.refs li::before{content:"["counter(r)"]";position:absolute;left:0;top:11px;font-family:var(--mono);font-size:12px;color:var(--orange-3)}
+.refs b{font-weight:500}
+.refs small{display:block;color:var(--slate);font-size:12.5px;margin-top:3px}
+
+footer{margin-top:44px;padding-top:18px;border-top:1px solid var(--border);color:var(--slate);font-size:12.5px}
+footer p{max-width:80ch;margin-bottom:10px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-@media (max-width:820px){.rig{grid-template-columns:minmax(0,1fr);padding:18px}.grade{font-size:32px}}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+@media (max-width:860px){
+  .rig{grid-template-columns:minmax(0,1fr);padding:16px}
+  .hotwrap{grid-template-columns:minmax(0,1fr)}
+  .grade{font-size:30px}
+  .wrap{padding:20px 16px 48px}
+  .nav{margin:0 -16px 24px;padding:0 16px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+@media print{.nav{display:none}body{background:#fff;color:#000}}
 </style>
 </head>
 <body>
@@ -107,281 +246,1424 @@ footer p{max-width:76ch}
   <div class="id">
     <img src="logo-mark.png" alt="EVERPADS">
     <span class="word">EVERPADS</span>
-    <span class="tag">Materials Lab</span>
+    <span class="tag">Technical Review</span>
   </div>
-  <div class="meta">Prepared for <b>Mr. Hamad</b><br>Prepared by <b>Eng. Ghaith al elaiwi</b></div>
+  <div class="meta">
+    Prepared for <b>Mr. Hamad</b> — Mirzam Gulf Contracting Co., Kuwait<br>
+    Prepared by <b>Eng. Ghaith al elaiwi</b> — Sales Engineer, MEA &amp; India
+  </div>
 </div>
 
-<h1>Carbide grade estimator</h1>
-<p class="lede">Set the cobalt content and the WC grain size of a tungsten carbide grade, and this predicts the numbers a supplier would print on the grade sheet. Calibrated against the EVERPADS grade sheet.</p>
+<nav class="nav" aria-label="Sections">
+  <ol>
+    <li><a href="#summary">Summary</a></li>
+    <li><a href="#anatomy">The pick</a></li>
+    <li><a href="#rotation">Rotation</a></li>
+    <li><a href="#grains">Grains</a></li>
+    <li><a href="#physics">The physics</a></li>
+    <li><a href="#estimator">Estimator</a></li>
+    <li><a href="#tradeoff">Trade-off</a></li>
+    <li><a href="#duty">Which grain wins</a></li>
+    <li><a href="#sheets">The two sheets</a></li>
+    <li><a href="#verify">How to verify</a></li>
+    <li><a href="#sintering">Sintering</a></li>
+    <li><a href="#body">Steel body</a></li>
+    <li><a href="#ask">What to ask</a></li>
+    <li><a href="#position">Our position</a></li>
+    <li><a href="#refs">References</a></li>
+  </ol>
+</nav>
 
-<div class="rig">
+<h1>Milling picks: the carbide, the physics, and how to check either of us</h1>
+<p class="lede">Two suppliers, two data sheets, one 6% cobalt tungsten carbide on each. This report works out what those sheets imply, shows every equation it uses, and ends with six measurements that settle the question without trusting anybody.</p>
+<p class="sub" style="max-width:64ch;margin-bottom:26px">Every figure below is live: move a control and the microstructure, the charts and the numbers all recompute from the same model. Nothing is a picture of a result.</p>
+
+<!-- ============================================================ SUMMARY -->
+<section id="summary">
+<p class="kick">01 — Summary</p>
+<h2>What this comes down to</h2>
+<p>Both grade sheets describe a 6% cobalt tungsten carbide. Placed side by side, the difference is <strong>grain size</strong> — and the difference in what each supplier is willing to publish.</p>
+
+<div class="tiles">
+  <div class="tile"><div class="tl">EVERPADS WC grain size</div><div class="tv">4–6<span class="tu"> µm</span></div><div class="td">Coarse, measured per lot</div></div>
+  <div class="tile"><div class="tl">AOJI-6/20 as published</div><div class="tv">1.2–2.0<span class="tu"> µm</span></div><div class="td">Medium, catalogue value</div></div>
+  <div class="tile"><div class="tl">Hardness that grain size implies</div><div class="tv">89.9–90.9<span class="tu"> HRA</span></div><div class="td">Their sheet prints 87.9</div></div>
+  <div class="tile"><div class="tl">Grain size their hardness implies</div><div class="tv" id="sum-implied">6.5<span class="tu"> µm</span></div><div class="td">Coarser than they claim</div></div>
+</div>
+
+<p>A 6% cobalt carbide at 1.2–2.0 µm cannot be 87.9 HRA. The two numbers on that sheet describe different materials. That is not an accusation — it is arithmetic, and it is reproduced live in section&nbsp;09 where you can change the inputs yourself. The honest possibilities are that the sheet carries conservative catalogue minimums, or that the material is coarser than its description. <strong>Only a batch certificate separates the two</strong>, which is the whole of section&nbsp;13.</p>
+
+<div class="grid3" style="margin-top:22px">
+  <div class="card"><h4>What is measured</h4><p class="sub">Everything on the EVERPADS grade sheet: density, coercivity, magnetic saturation, porosity to ISO 4505, TRS and a ×1500 microstructure image — issued per production lot.</p></div>
+  <div class="card"><h4>What is calculated</h4><p class="sub">Every prediction on this page. The model is written out in full in section 05 and calibrated on one thing only — our own measured grade sheet. It then tracks the standard YG6X, YG6, YG8C and YG11C grades without further adjustment.</p></div>
+  <div class="card"><h4>What is neither</h4><p class="sub">Service life. No model settles it. Section 14 proposes running both brands on the same drum in alternating positions, with agreed measurement.</p></div>
+</div>
+</section>
+
+<!-- ============================================================ ANATOMY -->
+<section id="anatomy">
+<p class="kick">02 — Components</p>
+<h2>What a milling pick is made of</h2>
+<p>Four components, each with its own failure mode. Select one to see what it does and what makes a good one.</p>
+
+<div class="hotwrap" style="margin-top:18px">
+  <div>
+    <svg id="pickdia" viewBox="0 0 250 430" role="img" aria-label="Cross-section of a milling pick showing carbide tip, steel body, wear plate and sleeve"></svg>
+  </div>
+  <div>
+    <div class="partbtns" id="partbtns">
+      <button data-p="tip" aria-pressed="true">1 — Tungsten carbide tip</button>
+      <button data-p="body" aria-pressed="false">2 — Alloy steel body</button>
+      <button data-p="plate" aria-pressed="false">3 — Wear plate / washer</button>
+      <button data-p="sleeve" aria-pressed="false">4 — Retaining sleeve</button>
+    </div>
+    <div class="card" id="partcard"><h4 id="partname">—</h4><p id="partbody" class="sub" style="margin-bottom:10px">—</p>
+      <div style="border-top:1px solid var(--border);padding-top:10px"><h4 style="font-size:12px;color:var(--slate);margin-bottom:4px">Failure mode it owns</h4><p id="partfail" class="sub" style="margin:0">—</p></div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ============================================================ ROTATION -->
+<section id="rotation">
+<p class="kick">03 — The first performance indicator</p>
+<h2>Rotation is what makes the tip last</h2>
+<p>A milling pick that turns in its holder wears into a symmetric cone and keeps a point. A pick that stops turning wears flat on one face, loses its point, and then loads the holder instead of cutting. On asphalt this is the single largest difference between a pick that runs a shift and one that does not.</p>
+<p>The rotation is not incidental. The holder sets the pick axis at an angle to the cutting direction, so the material meets one side of the cone first. That asymmetric contact produces a moment about the pick's own axis and indexes it a few degrees per cut. The angle is a property of the drum and holder — not of the pick. <strong>The pick's only job is to not resist the turn.</strong></p>
+
+<div class="rig" style="margin-top:20px">
   <div class="scope">
-    <canvas id="cv" width="420" height="420" role="img" aria-label="Simulated microstructure: tungsten carbide grains separated by cobalt binder"></canvas>
+    <svg id="rotdia" viewBox="0 0 400 300" role="img" aria-label="Pick in holder showing attack angle and the forces driving or resisting rotation"></svg>
+    <p class="cap" id="rotcap">—</p>
+  </div>
+  <div>
+    <div style="margin-bottom:14px"><span class="verd" id="rotverd">—</span></div>
+    <div class="ctl">
+      <div class="top"><label for="r-ang">Holder attack angle α</label><span class="val" id="r-angv">38°</span></div>
+      <input type="range" id="r-ang" min="20" max="55" step="1" value="38">
+    </div>
+    <div class="ctl">
+      <div class="top"><label for="r-off">Tip offset from centreline <em>e</em></label><span class="val" id="r-offv">0.00 mm</span></div>
+      <input type="range" id="r-off" min="0" max="1.5" step="0.05" value="0">
+    </div>
+    <h4 style="margin:16px 0 8px">Shank condition</h4>
+    <div class="togs">
+      <label class="tog"><input type="checkbox" id="r-oxide"><span>Black-oxide finish instead of our proprietary coating<small>A conversion oxide layer is thin and rougher; friction in the shank bore rises.</small></span></label>
+      <label class="tog"><input type="checkbox" id="r-sand"><span>Sand and rust packed in the shank clearance<small>The classic field failure. Debris that cannot be expelled seizes the shank.</small></span></label>
+      <label class="tog"><input type="checkbox" id="r-sleeve"><span>Sleeve deformed under load<small>A sleeve that yields closes the clearance the pick needs to turn.</small></span></label>
+    </div>
+    <div class="out" style="margin:20px 0 0;grid-template-columns:1fr">
+      <div class="row"><span>Indexing moment / resisting moment</span><b id="r-ratio">—</b></div>
+      <div class="row"><span>Effective friction coefficient</span><b id="r-mu">—</b></div>
+      <div class="row"><span>Angle needed to keep turning</span><b id="r-need">—</b></div>
+    </div>
+  </div>
+</div>
+<p class="cap">A teaching model, not a measurement: a rigid-body moment balance about the pick axis with assumed friction coefficients (0.11 coated, 0.20 oxide; ×2.2 for debris ingress, ×1.7 for a deformed sleeve), tip contact radius 9.5&nbsp;mm and shank radius 9&nbsp;mm. It shows which way each variable pushes and roughly how hard — it does not predict a specific pick on a specific drum.</p>
+
+<h3>Why a tip that is not centred costs you rotation</h3>
+<p>When the carbide is brazed off the centreline of the steel body, the contact point migrates toward the axis on one half of every revolution, so the indexing moment falls and alternates. Three things follow, and all three are visible in the field: the tooth runs out of balance and vibrates, one flank takes a deeper cut than the other and wears first, and the misalignment feeds bending stress into the body and the holder. An offset tip is a rotation problem before it is a wear problem — which is why we set concentricity at the braze fixture rather than inspect for it afterwards.</p>
+</section>
+
+<!-- ============================================================ GRAINS -->
+<section id="grains">
+<p class="kick">04 — The microstructure</p>
+<h2>Seeing the difference the grain size makes</h2>
+<p>Tungsten carbide is not a solid. It is a skeleton of hard WC grains cemented by a tough cobalt binder — grey grains, amber binder below. Both panels hold <strong>the same 6% cobalt by weight</strong>, so the amber area is identical in both. Only the grain size changes. This is the whole argument in one picture.</p>
+
+<div class="picks" id="cmp-picks" style="margin:16px 0 4px">
+  <button data-a="6,5" data-b="6,1.6" aria-pressed="true">Sheet vs sheet — 5.0 vs 1.6 µm</button>
+  <button data-a="6,5" data-b="6,6.5" aria-pressed="false">Sheet vs what 87.9 HRA implies</button>
+  <button data-a="6,5" data-b="6,0.8" aria-pressed="false">Coarse vs submicron</button>
+  <button data-a="6,5" data-b="11,5" aria-pressed="false">Same grain, more cobalt</button>
+</div>
+<div class="ctl" style="max-width:340px;margin-top:14px">
+  <div class="top"><label for="cmp-fov">Field of view (both panels)</label><span class="val" id="cmp-fovv">30 µm</span></div>
+  <input type="range" id="cmp-fov" min="8" max="80" step="1" value="30">
+</div>
+
+<div class="ab" id="abwrap">
+  <div class="pan hi">
+    <div class="ph"><span class="pn" id="a-name">EVERPADS tip</span><span class="pd" id="a-spec">6.0% Co · 5.00 µm</span></div>
+    <canvas id="cv-a" width="360" height="360" role="img" aria-label="Simulated microstructure, panel A"></canvas>
+    <div class="bar"><i id="a-sbar" style="width:60px"></i><span id="a-sbarl">10 µm</span></div>
+    <div class="mini">
+      <div><span>Hardness</span><b id="a-hra">—</b></div>
+      <div><span>Toughness</span><b id="a-k">—</b></div>
+      <div><span>Binder path λ</span><b id="a-mfp">—</b></div>
+      <div><span>Coercivity</span><b id="a-hc">—</b></div>
+    </div>
+  </div>
+  <div class="pan">
+    <div class="ph"><span class="pn" id="b-name">AOJI-6/20 as published</span><span class="pd" id="b-spec">6.0% Co · 1.60 µm</span></div>
+    <canvas id="cv-b" width="360" height="360" role="img" aria-label="Simulated microstructure, panel B"></canvas>
+    <div class="bar"><i id="b-sbar" style="width:60px"></i><span id="b-sbarl">10 µm</span></div>
+    <div class="mini">
+      <div><span>Hardness</span><b id="b-hra">—</b></div>
+      <div><span>Toughness</span><b id="b-k">—</b></div>
+      <div><span>Binder path λ</span><b id="b-mfp">—</b></div>
+      <div><span>Coercivity</span><b id="b-hc">—</b></div>
+    </div>
+  </div>
+</div>
+<p class="cap">A generated structure, not a micrograph: a Voronoi tessellation at the selected mean grain size, with binder assigned to the grain boundaries and triple points until the amber area equals the true cobalt volume fraction. It is drawn to scale and to the correct binder fraction, so the geometry is right; it is not an image of any particular lot. A real ×1500 micrograph of the lot supplied ships with the certificate.</p>
+
+<div class="grid2" style="margin-top:20px">
+  <div class="card"><h4>Coarse grain — softer, tougher</h4><p class="sub">Longer cobalt ligaments between grains can stretch and absorb energy before a crack runs through them. The material abrades faster in a lab test and survives impact and heat cycling in the field. This is the milling-pick regime.</p></div>
+  <div class="card"><h4>Fine grain — harder, more brittle</h4><p class="sub">Grains packed tightly leave the cobalt short, disconnected runs. There is less room for the binder to stretch, so the material resists abrasion well and cracks easily. Good for finishing, nozzles, wear parts. On a milling drum it chips.</p></div>
+</div>
+<p style="margin-top:16px">Uniformity matters as much as the average. If grain sizes vary widely, some regions are hard and brittle while others are soft and wear quickly; the boundary between them is where a crack starts. That is a sintering-control question, and it is section&nbsp;11.</p>
+</section>
+
+<!-- ============================================================ PHYSICS -->
+<section id="physics">
+<p class="kick">05 — The model, in full</p>
+<h2>The seven equations this report runs on</h2>
+<p>Nothing here is proprietary and nothing is hidden. These are the standard relations for cemented carbide, with the constants fitted to our own measured grade sheet. Live values update with the estimator in section&nbsp;06.</p>
+
+<div class="eq">
+  <h4>1 — Weight percent is not volume percent</h4>
+  <div class="ex">V<sub>Co</sub> = <span class="frac"><span class="n">w<sub>Co</sub> / ρ<sub>Co</sub></span><span class="d">w<sub>Co</sub> / ρ<sub>Co</sub> + w<sub>WC</sub> / ρ<sub>WC</sub></span></span>&nbsp;&nbsp;&nbsp; ρ<sub>WC</sub> = 15.63, ρ<sub>Co</sub> = 8.90 g/cm³</div>
+  <p class="why">Cobalt is 43% lighter than tungsten carbide, so 6% by weight is about 10% by volume. The microstructure responds to volume, never to weight — which is why a grade sheet quoting only weight percent is telling you less than it appears to.</p>
+  <span class="live" id="eq1">—</span>
+</div>
+
+<div class="eq">
+  <h4>2 — Contiguity: how much grain touches grain</h4>
+  <div class="ex">C<sub>WC</sub> = 0.75 − 1.8 · V<sub>Co</sub>&nbsp;&nbsp;&nbsp;(bounded 0.15 … 0.80)</div>
+  <p class="why">The fraction of each grain's surface in contact with another grain rather than with binder. The carbide forms a continuous load-bearing skeleton; contiguity says how well-connected it is. Fitted to Gurland's measurements on WC–Co.</p>
+  <span class="live" id="eq2">—</span>
+</div>
+
+<div class="eq">
+  <h4>3 — Fullman's relation: the binder mean free path</h4>
+  <div class="ex">λ = <span class="frac"><span class="n">d · V<sub>Co</sub></span><span class="d">(1 − V<sub>Co</sub>) · (1 − C<sub>WC</sub>)</span></span></div>
+  <p class="why">The average uninterrupted run through cobalt between two carbide grains. This — not the grain size itself — is the length scale that sets almost everything. Two grades with different grain sizes and different cobalt contents but the same λ behave alike.</p>
+  <span class="live" id="eq3">—</span>
+</div>
+
+<div class="eq">
+  <h4>4 — Hall–Petch on the binder path: hardness</h4>
+  <div class="ex">HV = HV<sub>0</sub> + k · λ<sup>−1/2</sup> − m · (V<sub>Co</sub> − V<sub>ref</sub>)&nbsp;&nbsp;&nbsp;HV<sub>0</sub> = 999, k = 331, m = 810</div>
+  <p class="why">The carbide grains barely deform; the cobalt does. Plastic flow happens by dislocations running through binder pools and piling up at the carbide interfaces. A shorter free run means a shorter pile-up, which means more stress to keep it moving — the classic λ<sup>−1/2</sup> form. The constants are set so that 6% cobalt at 5 µm reproduces the 87.6–88.4 HRA measured on our sheet.</p>
+  <span class="live" id="eq4">—</span>
+</div>
+
+<div class="eq">
+  <h4>5 — Fracture toughness</h4>
+  <div class="ex">K<sub>Ic</sub> = K<sub>0</sub> + a · λ<sup>1/2</sup> + b · V<sub>Co</sub>&nbsp;&nbsp;&nbsp;K<sub>0</sub> = 4.96, a = 4.78, b = 21.0</div>
+  <p class="why">A crack running through carbide is arrested when it meets cobalt, which stretches plastically behind the crack tip and pulls the faces back together. A longer ligament absorbs more energy before it snaps, so toughness rises with λ exactly where hardness falls. This single fact is why you cannot have both.</p>
+  <span class="live" id="eq5">—</span>
+</div>
+
+<div class="eq">
+  <h4>6 — Critical flaw size: why toughness counts twice</h4>
+  <div class="ex">a<sub>c</sub> = <span class="frac"><span class="n">1</span><span class="d">π</span></span> · ( <span class="frac"><span class="n">K<sub>Ic</sub></span><span class="d">Y · σ</span></span> )<sup>2</sup></div>
+  <p class="why">Griffith. The largest defect a tip can carry before a crack runs scales with the <em>square</em> of toughness. A 20% loss of K<sub>Ic</sub> is a 36% loss in the size of pore, braze void or coarse grain the tip can survive. This is the term that decides chipping on impact, and it is why the life model in section 08 weights toughness quadratically.</p>
+  <span class="live" id="eq6">—</span>
+</div>
+
+<div class="eq">
+  <h4>7 — Coercivity: the binder path, measured in thirty seconds</h4>
+  <div class="ex">H<sub>c</sub> ≈ A · λ<sup>−0.8</sup>&nbsp;&nbsp;&nbsp;A = 90 (Oe · µm<sup>0.8</sup>)</div>
+  <p class="why">Cobalt is ferromagnetic; tungsten carbide is not. Magnetic domain walls moving through the binder are pinned by the same carbide interfaces that pin dislocations, so the field needed to demagnetise the part is set by the same λ. A magnetometer therefore reads the microstructure directly — non-destructively, in under a minute, on the finished part. <strong>This is the single most useful number a carbide supplier can give you, and it is the one AOJI does not publish.</strong></p>
+  <span class="live" id="eq7">—</span>
+</div>
+
+<p class="cap">Density is the inverse rule of mixtures, ρ = 100 / (w<sub>Co</sub>/ρ<sub>Co</sub> + w<sub>WC</sub>/ρ<sub>WC</sub>), which gives 14.95 g/cm³ for a 94/6 grade. Transverse rupture strength is modelled as TRS = 2400 · (1 + 0.045(w−6)) · (2/d)<sup>0.18</sup> and always shown as a band, because TRS depends more on sintering, hot isostatic pressing and carbon balance than on composition. See section 15 for what each constant is fitted to.</p>
+</section>
+
+<!-- ============================================================ ESTIMATOR -->
+<section id="estimator">
+<p class="kick">06 — Interactive</p>
+<h2>The grade estimator</h2>
+<p>Set a cobalt content and a grain size. Everything else is computed from the seven equations above — the numbers a supplier would print on a grade sheet, predicted from composition and structure alone.</p>
+
+<div class="rig" style="margin-top:18px">
+  <div class="scope">
+    <canvas id="cv" width="400" height="400" role="img" aria-label="Simulated microstructure at the selected composition and grain size"></canvas>
     <div class="bar"><i id="sbar" style="width:80px"></i><span id="sbarlab">20 µm</span></div>
-    <p class="cap" id="fov">Field of view 50 µm. Grains in grey, cobalt binder in amber; binder area equals the cobalt volume fraction.</p>
+    <p class="cap" id="fov">—</p>
   </div>
   <div>
     <p class="grade" id="grade">YG6C</p>
-    <p class="cls" id="cls">Coarse grain · WC 94.0 / Co 6.0 by weight</p>
-
+    <p class="cls" id="cls">—</p>
     <div class="ctl">
-      <div class="top"><label for="co">Cobalt content</label><span class="val" id="covi">6.0%</span></div>
+      <div class="top"><label for="co">Cobalt content, by weight</label><span class="val" id="covi">6.0%</span></div>
       <input type="range" id="co" min="3" max="15" step="0.1" value="6">
     </div>
     <div class="ctl">
       <div class="top"><label for="gs">WC grain size</label><span class="val" id="gsvi">5.00 µm</span></div>
       <input type="range" id="gs" min="0.4" max="8" step="0.05" value="5">
     </div>
-
     <div class="picks" id="picks">
       <button data-co="6" data-d="5" aria-pressed="true">EVERPADS tip</button>
-      <button data-co="6" data-d="1.6" aria-pressed="false">AOJI tip</button>
+      <button data-co="6" data-d="1.6" aria-pressed="false">AOJI as published</button>
       <button data-co="6" data-d="0.8" aria-pressed="false">YG6X</button>
       <button data-co="6" data-d="1.8" aria-pressed="false">YG6</button>
       <button data-co="8" data-d="3.5" aria-pressed="false">YG8C</button>
       <button data-co="11" data-d="4" aria-pressed="false">YG11C</button>
       <button data-co="15" data-d="2" aria-pressed="false">YG15</button>
     </div>
-
-    <p class="use"><b id="usetitle">Road planing and rock cutting tips</b><br><span id="usebody">Toughness-led: survives impact and heat cycling, gives up abrasion resistance.</span></p>
+    <p class="use"><b id="usetitle">—</b><br><span id="usebody">—</span></p>
   </div>
 </div>
 
 <h2 class="sr">Predicted properties</h2>
 <div class="out">
-  <div class="row"><span>Hardness</span><b id="o-hra">88.2 HRA</b></div>
-  <div class="row"><span>Hardness</span><b id="o-hv">1290 HV30</b></div>
-  <div class="row"><span>Fracture toughness</span><b id="o-k">12.2 <span class="sub">MPa·m½</span></b></div>
-  <div class="row"><span>Transverse rupture</span><b id="o-trs">1800–2300 <span class="sub">MPa</span></b></div>
-  <div class="row"><span>Density</span><b id="o-rho">14.95 <span class="sub">g/cm³</span></b></div>
-  <div class="row"><span>Cobalt by volume</span><b id="o-vol">10.1%</b></div>
-  <div class="row"><span>Cobalt layer thickness</span><b id="o-mfp">1.29 <span class="sub">µm</span></b></div>
-  <div class="row"><span>Coercivity</span><b id="o-hc">73 <span class="sub">Oe</span></b></div>
-  <div class="row"><span>Abrasion resistance</span><b id="o-wear">100 <span class="sub">index</span></b></div>
+  <div class="row"><span>Hardness</span><b id="o-hra">—</b></div>
+  <div class="row"><span>Hardness</span><b id="o-hv">—</b></div>
+  <div class="row"><span>Fracture toughness</span><b id="o-k">—</b></div>
+  <div class="row"><span>Transverse rupture</span><b id="o-trs">—</b></div>
+  <div class="row"><span>Density</span><b id="o-rho">—</b></div>
+  <div class="row"><span>Cobalt by volume</span><b id="o-vol">—</b></div>
+  <div class="row"><span>Binder mean free path</span><b id="o-mfp">—</b></div>
+  <div class="row"><span>Coercivity</span><b id="o-hc">—</b></div>
+  <div class="row"><span>Abrasion index</span><b id="o-wear">—</b></div>
+</div>
+<p class="cap">The abrasion index takes the EVERPADS tip as 100 and scales as HV<sup>2.5</sup>. It describes two-body abrasion in a laboratory sense only. Section 08 explains why it is the wrong number to buy a milling pick on.</p>
+</section>
+
+<!-- ============================================================ TRADEOFF -->
+<section id="tradeoff">
+<p class="kick">07 — The trade-off</p>
+<h2>Hardness and toughness pull in opposite directions</h2>
+<p>Both curves are drawn at the cobalt content selected in section 06, over the same grain-size axis. The shaded bands are the two grade sheets. Hover or focus either chart to read values.</p>
+
+<div class="chartbox">
+  <h4>Hardness against grain size <span class="sub" id="c1sub">at 6.0% cobalt</span></h4>
+  <div class="legend"><span><i style="background:var(--orange)"></i>Model, HRA</span><span><i class="dash"></i>Your selection</span><span><i style="background:var(--orange-tint2);height:9px;border-radius:2px"></i>EVERPADS 4–6 µm</span><span><i style="background:var(--blue-tint);height:9px;border-radius:2px"></i>AOJI claimed 1.2–2.0 µm</span></div>
+  <div class="chartwrap"><svg id="ch-hra" viewBox="0 0 700 220"></svg><div class="tipbox" id="tip-hra"></div></div>
+  <details><summary>Table view</summary><div class="scroll"><table id="tv-hra"></table></div></details>
 </div>
 
-<div class="chart">
-  <h2>How the two properties trade off</h2>
-  <div class="legend"><span><i style="background:var(--orange)"></i>Hardness, HRA</span><span><i style="background:var(--green)"></i>Fracture toughness, K₁c</span></div>
-  <svg id="chart" viewBox="0 0 700 230" aria-label="Hardness and fracture toughness against grain size"></svg>
-  <p class="cap" style="color:var(--slate)">Both curves are drawn at the cobalt content you selected. The two dots are the hardness each supplier states on its own sheet, plotted at its stated grain size.</p>
+<div class="chartbox">
+  <h4>Fracture toughness against grain size <span class="sub" id="c2sub">at 6.0% cobalt</span></h4>
+  <div class="legend"><span><i style="background:var(--green)"></i>Model, K<sub>Ic</sub> in MPa·m<sup>½</sup></span><span><i class="dash"></i>Your selection</span></div>
+  <div class="chartwrap"><svg id="ch-k" viewBox="0 0 700 220"></svg><div class="tipbox" id="tip-k"></div></div>
+  <details><summary>Table view</summary><div class="scroll"><table id="tv-k"></table></div></details>
+</div>
+<p class="cap">Two charts rather than one with two vertical scales: hardness in HRA and toughness in MPa·m<sup>½</sup> have no common zero and no meaningful alignment, so overlaying them on shared axes would invent a relationship the data does not contain. They share the horizontal axis, which is real.</p>
+</section>
+
+<!-- ============================================================ DUTY -->
+<section id="duty">
+<p class="kick">08 — The answer to the actual question</p>
+<h2>Which grain size wins on a milling drum</h2>
+<p>The abrasion index says finer is better. It is measuring the wrong thing. A milling pick on asphalt does not fail by polishing away in clean abrasion — it fails by chipping on joints, manhole rings, aggregate and reinforcement, and by thermal cycling between the cut and the air. The right question is not "which is harder" but <strong>"what fraction of this duty is impact?"</strong></p>
+
+<div class="eq" style="margin-top:18px">
+  <h4>Duty-weighted service index</h4>
+  <div class="ex">L = 100 · ( A / 100 )<sup>1−β</sup> · ( I / 100 )<sup>β</sup>&nbsp;&nbsp;&nbsp; A = 100 (HV/HV<sub>ref</sub>)<sup>2.5</sup>,&nbsp; I = 100 (K<sub>Ic</sub>/K<sub>ref</sub>)<sup>2</sup></div>
+  <p class="why">A geometric weighting of the abrasion index A and the impact index I, with β the impact share of the duty. I is quadratic in K<sub>Ic</sub> because that is how critical flaw size scales (equation 6). <strong>β is an engineering judgement, not a measurement</strong> — it is the one input here nobody can derive from a data sheet, and it is exactly what the field trial in section 14 is designed to pin down.</p>
+  <span class="live" id="eq8">—</span>
 </div>
 
-<h2 style="margin-top:36px">The two grade sheets, checked against the model</h2>
+<div class="picks" id="duty-picks" style="margin:16px 0 14px">
+  <button data-b="0.10" aria-pressed="false">Finishing, cast iron</button>
+  <button data-b="0.30" aria-pressed="false">General milling, dies</button>
+  <button data-b="0.55" aria-pressed="false">Fine asphalt planing</button>
+  <button data-b="0.65" aria-pressed="true">Full-depth asphalt</button>
+  <button data-b="0.78" aria-pressed="false">Concrete, reinforced</button>
+  <button data-b="0.88" aria-pressed="false">Rock, mining picks</button>
+</div>
+<div class="ctl" style="max-width:420px">
+  <div class="top"><label for="beta">Impact share of duty, β</label><span class="val" id="betav">0.65</span></div>
+  <input type="range" id="beta" min="0" max="0.95" step="0.01" value="0.65">
+</div>
+
+<div class="chartbox">
+  <h4>Service life index against grain size <span class="sub" id="c3sub">at 6.0% cobalt</span></h4>
+  <div class="legend"><span><i style="background:var(--orange)"></i>Duty-weighted life index L</span><span><i style="background:var(--blue)"></i>Abrasion index A alone</span><span><i class="dash"></i>Break-even, L = 100</span></div>
+  <div class="chartwrap"><svg id="ch-life" viewBox="0 0 700 250"></svg><div class="tipbox" id="tip-life"></div></div>
+  <details><summary>Table view</summary><div class="scroll"><table id="tv-life"></table></div></details>
+</div>
+
+<div class="tiles">
+  <div class="tile"><div class="tl">Cross-over impact share</div><div class="tv" id="d-cross">—</div><div class="td">Below this, finer grain wins. Above it, coarse.</div></div>
+  <div class="tile"><div class="tl">EVERPADS 5.0 µm at this duty</div><div class="tv" id="d-ever">—</div><div class="td">Reference, = 100 by definition</div></div>
+  <div class="tile"><div class="tl">AOJI 1.6 µm at this duty</div><div class="tv" id="d-aoji">—</div><div class="td">Relative service index</div></div>
+  <div class="tile"><div class="tl">Which way the model points</div><div class="tv" id="d-best" style="font-size:20px">—</div><div class="td">Direction of advantage, not an optimum</div></div>
+</div>
+
+<p><strong>The cross-over sits near an impact share of 0.49.</strong> Below it the harder, finer grade wins on life; above it the coarse grade does, and by a widening margin. Asphalt planing is not a close call — it sits well above the line. That is the entire reason our milling tip is specified at 4.0–6.0 µm and not at 1.2–2.0 µm, and it is why a pick chosen on hardness alone comes off the drum early.</p>
+
+<div class="flag" style="border-left-color:var(--orange)">
+  <span class="fi" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#F6AC1B" stroke-width="1.5"/><path d="M8 4.5v4.2M8 11.2v.6" stroke="#F6AC1B" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+  <div><h4>Where this model stops</h4><p>The fit is valid over 0.4–8 µm. It must not be read as "coarser is always better". Past roughly 8 µm, abnormal grain growth, falling transverse rupture strength and edge chipping reverse the trend, and the curve above has no term for any of them. 4.0–6.0 µm is a chosen balance, not the end of a slope.</p></div>
+</div>
+</section>
+
+<!-- ============================================================ SHEETS -->
+<section id="sheets">
+<p class="kick">09 — Reconciliation</p>
+<h2>The two grade sheets, checked against the model</h2>
+
 <div class="scroll">
 <table>
-  <thead><tr><th>Grade</th><th>Cobalt</th><th>Grain</th><th>Hardness stated</th><th>Hardness predicted</th><th>TRS stated</th><th>TRS typical</th></tr></thead>
+  <thead><tr><th>Property</th><th>EVERPADS tip</th><th>AOJI-6/20 as published</th></tr></thead>
   <tbody>
-    <tr><td>EVERPADS tip</td><td>5.5–6.5%</td><td>4.0–6.0 µm</td><td>87.6–88.4 HRA</td><td id="t-ever">—</td><td>≥2200 MPa</td><td id="t-evertrs">—</td></tr>
-    <tr><td>AOJI tip (ZCC-CT YG6)</td><td>6.0%</td><td>1.2–2.0 µm</td><td>87.9 HRA</td><td id="t-aoji">—</td><td>≥1700 MPa</td><td id="t-aojitrs">—</td></tr>
+    <tr><td>Cobalt</td><td>5.5 – 6.5%</td><td>6.0%</td></tr>
+    <tr><td>Tungsten carbide</td><td>93.5 – 94.5%</td><td>94.0%</td></tr>
+    <tr><td>WC grain size</td><td>4.0 – 6.0 µm (coarse)</td><td>1.2 – 2.0 µm (medium)</td></tr>
+    <tr><td>Hardness stated</td><td>87.6 – 88.4 HRA</td><td>87.9 HRA</td></tr>
+    <tr><td>Hardness the model predicts</td><td class="hl" id="t-ever">—</td><td class="hl" id="t-aoji">—</td></tr>
+    <tr><td>Transverse rupture stated</td><td>≥ 2,200 N/mm²</td><td>≥ 1,700 MPa</td></tr>
+    <tr><td>TRS the model expects</td><td class="hl" id="t-evertrs">—</td><td class="hl" id="t-aojitrs">—</td></tr>
+    <tr><td>Coercivity the model expects</td><td class="hl" id="t-everhc">—</td><td class="hl" id="t-aojihc">—</td></tr>
+    <tr><td>Density</td><td>14.85 – 15.05 g/cm³ per lot</td><td>14.6 – 15.0 g/cm³ catalogue</td></tr>
+    <tr><td>Coercivity published</td><td>66 – 80 Oe</td><td>not published</td></tr>
+    <tr><td>Magnetic saturation</td><td>88 – 98%</td><td>not published</td></tr>
+    <tr><td>Porosity, ISO 4505</td><td>A02 B00 C00</td><td>not published</td></tr>
+    <tr><td>Microstructure image</td><td>supplied at ×1500</td><td>not published</td></tr>
+    <tr><td>Carbide per tip</td><td>29 g</td><td>30 g</td></tr>
   </tbody>
 </table>
 </div>
-<p>The EVERPADS sheet lands where the model says it should. The AOJI sheet does not: the hardness they print is two to three points below what a 1.2–2.0 µm grade at 6% cobalt delivers. Either the number is a conservative catalogue floor, or the material is coarser than the sheet claims.</p>
+<p>The EVERPADS sheet and the model agree to within a few tenths of a point of HRA across the whole grain-size range, and on density, coercivity and TRS as well. The AOJI sheet does not agree with itself. Four observations, in the order a metallurgist makes them:</p>
 
-<div class="solve">
-  <label for="hrain">Work backwards: a measured hardness implies a grain size.</label>
+<div class="flag">
+  <span class="fi" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#f2694f" stroke-width="1.5"/><path d="M5.6 5.6l4.8 4.8M10.4 5.6l-4.8 4.8" stroke="#f2694f" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+  <div><h4>Hardness does not match the grain size</h4><p>A 6% cobalt carbide at 1.2–2.0 µm measures <b id="f1a">—</b>. The sheet states 87.9 HRA, two to three full points below. Read the other way, 87.9 HRA at 6% cobalt corresponds to a grain size of about <b id="f1b">—</b> — coarser than the sheet claims, and coarser than our own grade.</p></div>
+</div>
+<div class="flag">
+  <span class="fi" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#f2694f" stroke-width="1.5"/><path d="M5.6 5.6l4.8 4.8M10.4 5.6l-4.8 4.8" stroke="#f2694f" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+  <div><h4>Strength does not match the grain size either</h4><p>A well-made medium-grain 6% grade reaches <b id="f2a">—</b> transverse rupture strength. The sheet states ≥ 1,700 MPa, which is what a coarse structure — or a lower standard of sintering — produces. Our own coarse grade is specified at ≥ 2,200 MPa, at the top of what a 5 µm structure can deliver; theirs sits below the floor of what their own claimed structure should.</p></div>
+</div>
+<div class="flag">
+  <span class="fi" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#f2694f" stroke-width="1.5"/><path d="M5.6 5.6l4.8 4.8M10.4 5.6l-4.8 4.8" stroke="#f2694f" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+  <div><h4>Density is quoted as a catalogue range</h4><p>The theoretical density of a 94/6 carbide is 14.95 g/cm³ and a controlled production band sits tightly around it; ours is 14.85–15.05 g/cm³, measured per lot. The published 14.6–15.0 g/cm³ is the generic span printed in general carbide catalogues, and its lower end implies either more cobalt than stated or residual porosity.</p></div>
+</div>
+<div class="flag">
+  <span class="fi" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#f2694f" stroke-width="1.5"/><path d="M5.6 5.6l4.8 4.8M10.4 5.6l-4.8 4.8" stroke="#f2694f" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+  <div><h4>The verifying measurements are absent</h4><p>Coercivity, magnetic saturation, porosity rating and a microstructure image are the four checks that establish what grain size, carbon balance and soundness a sintered carbide actually has. None of them appear on the sheet.</p></div>
+</div>
+
+<p>Taken together, the sheet reads as a catalogue page rather than a production certificate, and its numbers do not describe one consistent material. That may be nothing worse than conservative minimum values copied from a general catalogue — it is a common and not dishonest practice. It may also mean the material differs from its description. <strong>Nothing on paper settles it. One measurement does.</strong></p>
+
+<div class="solve" style="margin-top:22px;max-width:620px">
+  <label for="hrain">Work it backwards yourself — a measured hardness implies a grain size</label>
   <div class="in">
     <input type="number" id="hrain" min="82" max="95" step="0.1" value="87.9" aria-label="Measured hardness in HRA">
-    <span style="color:var(--slate)">HRA at</span>
-    <span id="solveco" style="color:var(--slate)">6.0% cobalt</span>
-    <span style="color:var(--slate)">→</span>
-    <span class="res" id="solveout">6.3 µm</span>
+    <span class="sub">HRA at</span>
+    <span class="sub" id="solveco">6.0% cobalt</span>
+    <span class="sub">→</span>
+    <span class="res" id="solveout">—</span>
+  </div>
+  <p class="cap" style="margin-top:9px">Cobalt content follows the estimator in section 06. Equation 4, solved for λ, then equation 3 solved for d.</p>
+</div>
+</section>
+
+<!-- ============================================================ VERIFY -->
+<section id="verify">
+<p class="kick">10 — The measurement that settles it</p>
+<h2>Coercivity separates the two claims in under a minute</h2>
+<p>Hardness testing needs a prepared flat and reads the surface. Grain size needs a polished, etched section and a microscope. <strong>Coercivity needs neither.</strong> It is a non-destructive magnetic measurement on the finished tip, it takes well under a minute, and by equation 7 it reads the binder mean free path directly — which is to say, it reads the grain size.</p>
+<p>The two claims are not close on this axis. They are far apart, and the gap is far larger than any measurement uncertainty:</p>
+
+<div class="chartbox">
+  <h4>Coercivity against grain size <span class="sub">at 6.0% cobalt</span></h4>
+  <div class="legend"><span><i style="background:var(--orange)"></i>Model, H<sub>c</sub> in Oe</span><span><i style="background:var(--orange-tint2);height:9px;border-radius:2px"></i>EVERPADS measured, 66–80 Oe</span><span><i style="background:var(--blue-tint);height:9px;border-radius:2px"></i>Implied by AOJI's claimed grain size</span></div>
+  <div class="chartwrap"><svg id="ch-hc" viewBox="0 0 700 250"></svg><div class="tipbox" id="tip-hc"></div></div>
+  <details><summary>Table view</summary><div class="scroll"><table id="tv-hc"></table></div></details>
+</div>
+
+<div class="grid3">
+  <div class="card"><h4 style="color:var(--orange)">If it reads 150–230 Oe</h4><p class="sub">The material really is 1.2–2.0 µm as published, and their stated 87.9 HRA is a conservative catalogue floor rather than a measurement. You are buying a genuine medium-grain grade — harder than ours, and by section 08 shorter-lived on this duty.</p></div>
+  <div class="card"><h4 style="color:var(--red)">If it reads roughly 60–90 Oe</h4><p class="sub">The material is coarse-grained, near 6 µm, and the published 1.2–2.0 µm does not describe what is in the box. The hardness figure was right and the grain size was not.</p></div>
+  <div class="card"><h4>Either way you have gained</h4><p class="sub">One number, taken on arrival, tells you which material you actually bought. Ask for it from us in the same breath — ours is on every lot certificate at 66–80 Oe, and you are entitled to hold us to it.</p></div>
+</div>
+<p class="cap" style="margin-top:14px">Magnetic saturation is the natural companion measurement: it scales with the amount of free cobalt, so it reads the carbon balance. Low saturation means carbon-deficient eta phase, which is brittle; high saturation means free graphite, which is porous and weak. Coercivity and saturation together bracket both structure and chemistry, and neither requires cutting up a tip.</p>
+</section>
+
+<!-- ============================================================ SINTERING -->
+<section id="sintering">
+<p class="kick">11 — Where grain size is actually decided</p>
+<h2>Grain size is not chosen in the powder. It is chosen in the furnace.</h2>
+<p>Sintering runs in four stages — powder preparation, blending, compacting, sintering. Tungsten, cobalt and carbon powders are brought to size and purity, blended to a homogeneous mixture, pressed to shape, then heated in vacuum or controlled atmosphere until the cobalt melts and the compact densifies. During that liquid phase, small WC grains dissolve and re-deposit on large ones. The grains grow, and how much they grow is set by temperature and time:</p>
+
+<div class="eq">
+  <h4>8 — Ostwald ripening during liquid-phase sintering</h4>
+  <div class="ex">d³ − d<sub>0</sub>³ = K<sub>0</sub> · exp( −Q / RT ) · t&nbsp;&nbsp;&nbsp;Q ≈ 400 kJ/mol</div>
+  <p class="why">Growth is cubic in time and exponential in temperature. The exponential is the problem: because Q/RT is around 28 at sintering temperature, a <strong>2% error in absolute temperature changes the growth rate by roughly 60%</strong>. Powder specification does not protect you from this. Furnace control does.</p>
+  <span class="live" id="eq9">—</span>
+</div>
+
+<div class="rig" style="margin-top:18px">
+  <div class="scope">
+    <canvas id="cv-sint" width="320" height="320" role="img" aria-label="Simulated microstructure resulting from the selected sintering schedule"></canvas>
+    <div class="bar"><i id="s-sbar" style="width:60px"></i><span id="s-sbarl">10 µm</span></div>
+    <p class="cap">Drawn at a fixed 40 µm field of view so successive schedules can be compared directly.</p>
+  </div>
+  <div>
+    <div style="margin-bottom:15px"><span class="verd" id="s-verd">—</span></div>
+    <div class="ctl">
+      <div class="top"><label for="s-temp">Sintering temperature</label><span class="val" id="s-tempv">1410 °C</span></div>
+      <input type="range" id="s-temp" min="1340" max="1500" step="5" value="1410">
+    </div>
+    <div class="ctl">
+      <div class="top"><label for="s-time">Time at temperature</label><span class="val" id="s-timev">60 min</span></div>
+      <input type="range" id="s-time" min="20" max="150" step="5" value="60">
+    </div>
+    <p class="sub" style="margin:4px 0 0">Starting powder 1.2 µm. Target window: 4.0–6.0 µm and 87.6–88.4 HRA — the EVERPADS specification.</p>
+    <div class="out" style="margin:18px 0 0;grid-template-columns:1fr">
+      <div class="row"><span>Resulting grain size</span><b id="s-d">—</b></div>
+      <div class="row"><span>Resulting hardness</span><b id="s-hra">—</b></div>
+      <div class="row"><span>Growth rate vs nominal</span><b id="s-rate">—</b></div>
+    </div>
+    <p class="sub" id="s-note" style="margin:14px 0 0;max-width:48ch">—</p>
+    <div class="picks" style="margin-top:14px">
+      <button class="chipbtn" id="s-reset" aria-pressed="false">Reset to nominal schedule</button>
+    </div>
   </div>
 </div>
+<p class="cap">Q = 400 kJ/mol is a mid-range literature value for WC coarsening in liquid cobalt; K<sub>0</sub> is back-fitted so that the nominal schedule — 1410 °C for 60 minutes from 1.2 µm powder — lands at 5.0 µm. The purpose of this figure is the sensitivity, not the absolute calibration of any particular furnace.</p>
 
-<footer>
-<p>Estimates from composition and grain size, not measurements. Hardness uses a Hall–Petch fit on binder mean free path, calibrated so that 6% cobalt at 5 µm reproduces the 87.6–88.4 HRA measured on the EVERPADS sheet; mean free path comes from Fullman's relation with contiguity estimated from cobalt volume. Fracture toughness and coercivity are fitted to published WC–Co ranges, with coercivity anchored to the 66–80 Oe on the same sheet. Transverse rupture strength depends heavily on sintering, HIP and carbon control, so it is shown as a band rather than a number. The abrasion index scales with hardness and takes the EVERPADS tip as 100; it indicates direction, not tooth life. Quote certificate values to customers, never these.</p>
-</footer>
+<h3>Why we sinter in vacuum</h3>
+<div class="grid3" style="margin-top:12px">
+  <div class="card"><h4>Purity</h4><p class="sub">The vacuum removes oxygen before it can oxidise the powder surface. Oxide films block the cobalt from wetting the carbide, and what does not wet does not densify.</p></div>
+  <div class="card"><h4>Density and porosity</h4><p class="sub">Gas trapped between particles has nowhere to go once the surface closes. Evacuating first is what makes an A02 B00 C00 porosity rating reachable at all.</p></div>
+  <div class="card"><h4>Grain control</h4><p class="sub">Precise, uniform temperature is the only lever on the exponential above. A furnace that holds ±10 °C across the load holds the grade; one that holds ±60 °C does not.</p></div>
+</div>
+<p style="margin-top:16px">This is also the honest answer to why a certificate matters more than a sample. Sample quantities are made with care, often from the best material on the floor. The risk is the fifth production lot eighteen months later, when the same part number arrives from a furnace that has drifted — and nobody notices until the drum comes off the job early. Coercivity, magnetic saturation and porosity catch that drift because they are quick, non-destructive and repeatable. A supplier who measures them per lot can prove the fifth lot matches the first. A supplier who publishes a catalogue page cannot, and neither can you.</p>
+</section>
+
+<!-- ============================================================ BODY -->
+<section id="body">
+<p class="kick">12 — Beyond the tip</p>
+<h2>The same trade-off, decided twice</h2>
+<p>The carbide decides most of the life, but not all of it. The steel body faces the identical problem from section 04 — hard wears well, hard breaks — and solves it a different way. Instead of picking one grain size for the whole part, induction hardening puts fine, hard structure at the surface and leaves coarse, tough structure in the core.</p>
+
+<div class="rig" style="margin-top:18px">
+  <div class="scope">
+    <svg id="ch-case" viewBox="0 0 420 300" role="img" aria-label="Hardness against depth below the surface for an induction-hardened steel body"></svg>
+    <p class="cap">Hardness against depth below the surface. A hardened case resists body wash-out and holder wear; the untransformed core keeps the bending toughness that stops the shank snapping.</p>
+  </div>
+  <div>
+    <div class="ctl">
+      <div class="top"><label for="cd">Case depth</label><span class="val" id="cdv">2.0 mm</span></div>
+      <input type="range" id="cd" min="0.5" max="4" step="0.1" value="2">
+    </div>
+    <div class="ctl">
+      <div class="top"><label for="cs">Surface hardness</label><span class="val" id="csv">50 HRC</span></div>
+      <input type="range" id="cs" min="42" max="60" step="1" value="50">
+    </div>
+    <p class="sub">Our body is 37MnB alloy steel specified at 50 HRC with a vacuum-brazed tip. The AOJI body is 42CrMo at 45–48 HRC, also vacuum brazed. Both are proven body materials and we would not ask you to choose between them on paper.</p>
+    <div class="out" style="margin:16px 0 0;grid-template-columns:1fr">
+      <div class="row"><span>Hardness at 1 mm depth</span><b id="c-1mm">—</b></div>
+      <div class="row"><span>Hardness at core</span><b id="c-core">—</b></div>
+      <div class="row"><span>Case fraction of a 17 mm shank</span><b id="c-frac">—</b></div>
+    </div>
+  </div>
+</div>
+<p class="cap">Modelled as a logistic transition between case and core hardness, H(x) = H<sub>core</sub> + (H<sub>surf</sub> − H<sub>core</sub>) / (1 + e<sup>(x−CD)/w</sup>), which is the usual shape of an induction profile. Core taken as 30 HRC for 37MnB in the as-tempered condition.</p>
+
+<h3>Why medium-frequency induction rather than a furnace</h3>
+<p>A furnace heats the whole part and the whole part transforms. Induction drives eddy currents into the surface layer only, so the case forms where wear happens and the core is left alone. It is also fast, which matters more than it sounds: short cycles mean less time at temperature, less scaling and oxidation, and less opportunity for the result to drift between the first part and the thousandth. Precise, repeatable, selective — the same three words that matter in the carbide furnace.</p>
+
+<h3>The three remaining components</h3>
+<div class="grid3" style="margin-top:12px">
+  <div class="card"><h4>Proprietary shank coating</h4><p class="sub">A water-based zinc–aluminium flake coating rather than a black-oxide conversion layer. It does two things: it resists corrosion far better in humid and coastal service, and it leaves a smoother bore so sand and rust cannot embed and seize the shank. Section 03 shows what that friction difference does to rotation. Black oxide is a thin conversion layer — effective to a degree, but not the same protection and not the same surface.</p></div>
+  <div class="card"><h4>Wear plate, 48 mm forged</h4><p class="sub">Larger than most standard plates, which is the point: more of the tool holder is covered and protected. Forged from a single piece rather than cast, so the grain flow follows the shape, porosity is low and there is no joint to start a crack. Forging also holds the taper between body and plate consistent, and that taper is what centres the pick in the holder.</p></div>
+  <div class="card"><h4>Sleeve</h4><p class="sub">Its whole job is to hold a clearance. A sleeve that deforms under load closes that clearance, and a pick that cannot turn is a pick that wears on one face. Same alloy and same heat treatment as the body, chosen for resistance to permanent deformation rather than for outright hardness.</p></div>
+</div>
+<p style="margin-top:16px">What decides these in service is body wash-out, tip retention and whether the pick rotates — all three measurable on site rather than arguable in a document. They are part of what we propose to measure in section 14.</p>
+</section>
+
+<!-- ============================================================ ASK -->
+<section id="ask">
+<p class="kick">13 — The standard we propose</p>
+<h2>What to ask for, from both of us</h2>
+<p>We are content to be held to the standard we are proposing. For any carbide-tipped pick, from any supplier, ask for these six:</p>
+
+<ul class="chk" id="checklist"></ul>
+
+<p style="margin-top:18px">Our grade sheet already carries all six, and we will issue them for the lots supplied to you. If the same set arrives from the other side and matches the published description, you will have bought with full information and we will have lost fairly. <strong>That is the outcome we want either way</strong> — because the alternative is a decision made on a catalogue page, and neither of us can stand behind one of those.</p>
+</section>
+
+<!-- ============================================================ POSITION -->
+<section id="position">
+<p class="kick">14 — Commercial</p>
+<h2>Our position, stated plainly</h2>
+<p>We will not match the price you have been quoted. At current tungsten prices that figure sits below what this pick costs us to produce, and we would rather explain our price now than explain a material change later. What we will do:</p>
+
+<div class="grid3" style="margin-top:16px">
+  <div class="card"><h4>Delivery</h4><p class="sub">We will better the quoted lead time on the remaining quantity — <strong>50,000 pieces delivered by 10/10/2026</strong>, against their four to five weeks for the total quantity.</p></div>
+  <div class="card"><h4>Price</h4><p class="sub">Revised to <strong>USD 5.55 per piece for 50,000 pcs</strong>.</p></div>
+  <div class="card"><h4>A controlled comparison</h4><p class="sub">Both brands will be on your site in any case. Run them on the same drum in alternating positions, with agreed measurement of milled volume, holder condition and rotation, using a tip grade matched to the abrasion duty.</p></div>
 </div>
 
+<p style="margin-top:18px">The third point is the one we would ask you to weigh most, and section 08 is why. Everything on this page is a calculation. <strong>β — the impact share of your duty — is the one number nobody can take off a data sheet</strong>, and it is the number that decides which carbide is right for Kuwait. A field result can only be answered by another field result, and we are willing to carry the risk of ours.</p>
+
+<h3>Beyond one part number</h3>
+<p>EVERPADS manufactures milling picks and holders, milling drums, rubber track pads, scraper blades, buffer rubbers and conveyor components, and supplies original equipment manufacturers as a qualified supplier, with production in Taiwan and in China. For a business supplying contractors across Kuwait and the GCC, the questions that decide profitability in year two are different from the ones that decide this order: who can supply the whole wear package on a single order and a single shipment; who can keep the same part consistent as the fleet grows; who can still supply that part number in five years, and stand behind a claim when a batch disappoints.</p>
+
+<h3>Own-brand production</h3>
+<p>You raised the possibility of building your own brand for the Gulf market. We would rather supply it than compete with it, and we are open to producing under your brand across the range, not only picks.</p>
+<ul>
+  <li>Your branding and packaging, on picks, holders, track pads and scraper blades.</li>
+  <li>Batch certificates issued for your lots, so the quality claim behind your brand is documented.</li>
+  <li>An annual volume and price structure rather than order-by-order pricing, excluding bits.</li>
+  <li>Agreed territory and a lead-time commitment on the core range.</li>
+</ul>
+<p>A brand is a promise about repeatability, and repeatability is a quality-system question before it is a marketing one. Your brand will inherit whatever consistency your manufacturer has, which is worth weighing when choosing who makes it. Consistency, a wide range and trust are the pillars of starting a brand; we hold our own patents, run a mature production line, and give constant feedback, and we are confident that across these we are the better option.</p>
+</section>
+
+<!-- ============================================================ REFS -->
+<section id="refs">
+<p class="kick">15 — Method and sources</p>
+<h2>References, constants, and what this page cannot tell you</h2>
+
+<h3>Cited reference</h3>
+<ul class="refs">
+  <li><b>United States Patent US 6,375,272</b> — full text and drawings, USPTO.
+    <small>Cited as supplied. <a href="https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/6375272" rel="noopener">Read the patent PDF at USPTO →</a></small></li>
+</ul>
+
+<h3>Relations used</h3>
+<ul class="refs">
+  <li><b>Fullman, R. L.</b> — Measurement of particle sizes in opaque bodies. <i>Trans. AIME</i> 197 (1953) 447.<small>Source of the mean free path relation in equation 3, the backbone of the whole model.</small></li>
+  <li><b>Gurland, J.</b> — The measurement of grain contiguity in two-phase alloys. <i>Trans. AIME</i> 212 (1958) 452.<small>Contiguity of the carbide skeleton, equation 2.</small></li>
+  <li><b>Hall, E. O.</b> (1951) and <b>Petch, N. J.</b> (1953) — the grain-size dependence of yield stress.<small>The λ<sup>−1/2</sup> form in equation 4, applied here to the binder path rather than to a grain diameter.</small></li>
+  <li><b>Griffith, A. A.</b> — The phenomena of rupture and flow in solids. <i>Phil. Trans. R. Soc. A</i> 221 (1921) 163.<small>Critical flaw size, equation 6, and the reason toughness enters the life model squared.</small></li>
+  <li><b>Roebuck, B. &amp; Almond, E. A.</b> — Deformation and fracture processes and the physical metallurgy of WC–Co hardmetals. <i>International Materials Reviews</i> 33 (1988) 90.<small>Property ranges against which the toughness and coercivity constants are fitted.</small></li>
+  <li><b>Exner, H. E.</b> — Physical and chemical nature of cemented carbides. <i>International Metals Reviews</i> 24 (1979) 149.<small>Liquid-phase sintering and WC grain coarsening, equation 8.</small></li>
+  <li><b>ISO 4505</b> — Hardmetals, metallographic determination of porosity and uncombined carbon.<small>The A / B / C porosity rating requested in section 13.</small></li>
+  <li><b>ISO 3878</b> — Hardmetals, Vickers hardness test. <b>ISO 3327</b> — determination of transverse rupture strength. <b>ISO 3326</b> — determination of magnetic saturation. <b>ISO 3312</b> — determination of coercivity.<small>The test standards behind the six certificate items.</small></li>
+</ul>
+
+<h3>What is fitted, and to what</h3>
+<div class="scroll" style="margin-top:12px">
+<table>
+  <thead><tr><th>Quantity</th><th class="mono">Constants</th><th>Anchored to</th></tr></thead>
+  <tbody>
+    <tr><td>Hardness, eq. 4</td><td class="mono">999, 331, 810</td><td>6% Co at 5 µm reproduces the measured 87.6–88.4 HRA on the EVERPADS sheet</td></tr>
+    <tr><td>Toughness, eq. 5</td><td class="mono">4.96, 4.78, 21.0</td><td>Published K<sub>Ic</sub> ranges for WC–Co, 6 to 15% cobalt</td></tr>
+    <tr><td>Coercivity, eq. 7</td><td class="mono">90, −0.8</td><td>The 66–80 Oe measured on the same EVERPADS sheet</td></tr>
+    <tr><td>Contiguity, eq. 2</td><td class="mono">0.75, −1.8</td><td>Gurland's measurements on WC–Co</td></tr>
+    <tr><td>TRS band</td><td class="mono">2400, 0.045, 0.18</td><td>2,200–2,800 MPa for a well-made medium-grain 6% grade</td></tr>
+    <tr><td>Grain growth, eq. 8</td><td class="mono">Q = 400 kJ/mol</td><td>Back-fitted so 1410 °C / 60 min / 1.2 µm powder gives 5.0 µm</td></tr>
+  </tbody>
+</table>
+</div>
+<p class="cap">Cross-check: the constants are fitted to the EVERPADS measured sheet alone. The same fit then tracks the standard YG6X, YG6, YG8C and YG11C grades without further adjustment — none of them were used to set it. Binder-rich grades above about 12% cobalt drift further, which is a known limitation of a single Hall–Petch fit across a wide binder range and does not affect the 6% comparison this report is about.</p>
+
+<h3>Carbide mass per tip</h3>
+<p>The AOJI tip profile was integrated as a solid of revolution from their published drawing, scaled on their own φ19 mm base and 18 mm height dimensions. The result is approximately 1,970 mm³, or 29.4 g at 14.95 g/cm³ — consistent with the 30 g printed on their sheet, and with the 29 g on ours. On carbide mass the two picks are equivalent; the difference is entirely in what that carbide is.</p>
+
+<h3>What this page cannot tell you</h3>
+<ul>
+  <li><strong>Service life.</strong> No model gives it. β in section 08 is judgement, and the life index is relative, not hours.</li>
+  <li><strong>Any specific lot.</strong> Every prediction here comes from composition and structure. A certificate comes from a measurement. Quote certificate values to your customers, never these.</li>
+  <li><strong>Whether the AOJI material matches its sheet.</strong> This page shows that the sheet is internally inconsistent. It cannot show which of the two numbers is the wrong one. Section 10 is how you find out.</li>
+  <li><strong>The braze.</strong> Tip retention depends on the braze alloy, joint clearance and heating cycle, none of which appear on either grade sheet. It is on the site-measurement list in section 14 for that reason.</li>
+</ul>
+</section>
+
+<footer>
+<p><b>Estimates from composition and grain size, not measurements.</b> Hardness uses a Hall–Petch fit on binder mean free path, calibrated so that 6% cobalt at 5 µm reproduces the 87.6–88.4 HRA measured on the EVERPADS grade sheet; mean free path comes from Fullman's relation with contiguity estimated from cobalt volume. Fracture toughness and coercivity are fitted to published WC–Co ranges, with coercivity anchored to the 66–80 Oe on the same sheet. Transverse rupture strength depends heavily on sintering, hot isostatic pressing and carbon control, so it is shown as a band rather than a number. The abrasion and service indices are relative and take the EVERPADS tip as 100; they indicate direction, not tooth life. Figures described as estimates are calculated, not measured. Everything presented as a specification comes from one of the two grade sheets and can be checked against the certificates requested in section 13.</p>
+<p>EVERPADS CO., LTD. — Taichung, Taiwan. Wear parts for road construction and earthmoving machinery.<br>
+Prepared for Mirzam Gulf Contracting Co., Kuwait · Attn. Mr. Hamad · by Eng. Ghaith al elaiwi, Sales Engineer — MEA &amp; India.</p>
+</footer>
+
+</div>
 <script>
 (function(){
-var RHO_WC=15.63, RHO_CO=8.90;
-var S={co:6.0,d:5.0};
-var REF={ever:{co:6,d:5,hra:88.0},aoji:{co:6,d:1.6,hra:87.9}};
+'use strict';
+var $=function(id){return document.getElementById(id);};
+var SVGNS='http://www.w3.org/2000/svg';
+function el(t,at,txt){var e=document.createElementNS(SVGNS,t);
+  for(var k in at)if(at[k]!=null)e.setAttribute(k,at[k]);
+  if(txt!=null)e.textContent=txt;return e;}
+function clear(n){while(n.firstChild)n.removeChild(n.firstChild);}
+function css(v){return getComputedStyle(document.body).getPropertyValue(v).trim();}
 
-function volCo(w){var a=w/RHO_CO,b=(100-w)/RHO_WC;return a/(a+b);}
-function density(w){return 100/(w/RHO_CO+(100-w)/RHO_WC);}
-function contig(v){var c=0.75-1.8*v;return Math.max(0.15,Math.min(0.80,c));}
-function mfp(d,w){var v=volCo(w);return d*v/((1-v)*(1-contig(v)));}
-function hv(d,w){return 999+331/Math.sqrt(mfp(d,w))-810*(volCo(w)-0.1008);}
-function k1c(d,w){var v=volCo(w);return 4.96+4.78*Math.sqrt(mfp(d,w))+21.0*v;}
-function trs(d,w){return 2400*(1+0.045*(w-6))*Math.pow(2/d,0.18);}
-function hc(d,w){return 90.0/Math.pow(mfp(d,w),0.8);}
+/* ======================================================= MODEL */
+var RHO_WC=15.63, RHO_CO=8.90;
+var M={};
+M.volCo=function(w){var a=w/RHO_CO,b=(100-w)/RHO_WC;return a/(a+b);};
+M.density=function(w){return 100/(w/RHO_CO+(100-w)/RHO_WC);};
+M.contig=function(v){return Math.max(0.15,Math.min(0.80,0.75-1.8*v));};
+M.mfp=function(d,w){var v=M.volCo(w);return d*v/((1-v)*(1-M.contig(v)));};
+M.hv=function(d,w){return 999+331/Math.sqrt(M.mfp(d,w))-810*(M.volCo(w)-0.1008);};
+M.k1c=function(d,w){var v=M.volCo(w);return 4.96+4.78*Math.sqrt(M.mfp(d,w))+21.0*v;};
+M.trs=function(d,w){return 2400*(1+0.045*(w-6))*Math.pow(2/d,0.18);};
+M.hc=function(d,w){return 90.0/Math.pow(M.mfp(d,w),0.8);};
 
 var HT=[[900,82.9],[1000,84.5],[1100,86.0],[1200,87.3],[1300,88.4],[1400,89.4],[1500,90.2],
         [1600,91.0],[1700,91.7],[1800,92.4],[1900,93.0],[2000,93.5],[2200,94.3],[2400,95.0]];
-function toHRA(h){
-  if(h<=HT[0][0]) return HT[0][1]-(HT[0][0]-h)*0.0016;
-  for(var i=1;i<HT.length;i++){ if(h<=HT[i][0]){
+M.toHRA=function(h){
+  if(h<=HT[0][0])return HT[0][1]-(HT[0][0]-h)*0.0016;
+  for(var i=1;i<HT.length;i++){if(h<=HT[i][0]){
     var t=(h-HT[i-1][0])/(HT[i][0]-HT[i-1][0]);
     return HT[i-1][1]+t*(HT[i][1]-HT[i-1][1]);}}
-  return HT[HT.length-1][1]+(h-HT[HT.length-1][0])*0.0004;
-}
-function fromHRA(a){
-  if(a<=HT[0][1]) return HT[0][0];
-  for(var i=1;i<HT.length;i++){ if(a<=HT[i][1]){
+  return HT[HT.length-1][1]+(h-HT[HT.length-1][0])*0.0004;};
+M.fromHRA=function(a){
+  if(a<=HT[0][1])return HT[0][0];
+  for(var i=1;i<HT.length;i++){if(a<=HT[i][1]){
     var t=(a-HT[i-1][1])/(HT[i][1]-HT[i-1][1]);
     return HT[i-1][0]+t*(HT[i][0]-HT[i-1][0]);}}
-  return HT[HT.length-1][0];
-}
+  return HT[HT.length-1][0];};
+M.hraOf=function(d,w){return M.toHRA(M.hv(d,w));};
+
+/* grain size implied by a hardness reading, inverting eq.4 then eq.3 */
+M.dFromHRA=function(a,w){
+  var H=M.fromHRA(a), v=M.volCo(w), den=H-999+810*(v-0.1008);
+  if(den<=40)return null;
+  var lam=Math.pow(331/den,2);
+  return lam*(1-v)*(1-M.contig(v))/v;};
+
+/* duty-weighted life */
+var REF={co:6,d:5};
+REF.hv=M.hv(REF.d,REF.co); REF.k=M.k1c(REF.d,REF.co);
+M.abr=function(d,w){return 100*Math.pow(M.hv(d,w)/REF.hv,2.5);};
+M.imp=function(d,w){return 100*Math.pow(M.k1c(d,w)/REF.k,2);};
+M.life=function(d,w,b){return 100*Math.pow(M.abr(d,w)/100,1-b)*Math.pow(M.imp(d,w)/100,b);};
+M.crossBeta=function(d,w){
+  var la=Math.log(M.abr(d,w)/100), li=Math.log(M.imp(d,w)/100);
+  if(la-li===0)return null;
+  return la/(la-li);};
+/* Within the fitted range the life index is monotonic in d, so reporting an
+   "optimum" would just report whichever end of the axis the scan stopped at.
+   Report the direction and its strength instead. */
+M.direction=function(w,b){
+  var lo=M.life(0.8,w,b), hi=M.life(6,w,b);
+  var pct=Math.round((hi/lo-1)*100);
+  if(Math.abs(pct)<4)return{word:'Neither',pct:pct};
+  return {word:pct>0?'Coarser':'Finer',pct:pct};};
+
+/* Ostwald ripening, eq.8 — K0 back-fitted so 1410C/60min/1.2um -> 5.0um */
+var SINT={d0:1.2,Q:400000,R:8.314,Tn:1410+273.15,tn:60,dn:5.0};
+SINT.Kn=(Math.pow(SINT.dn,3)-Math.pow(SINT.d0,3))/SINT.tn;
+SINT.K0=SINT.Kn/Math.exp(-SINT.Q/(SINT.R*SINT.Tn));
+M.grainFromSinter=function(tC,tmin){
+  var K=SINT.K0*Math.exp(-SINT.Q/(SINT.R*(tC+273.15)));
+  return Math.pow(Math.pow(SINT.d0,3)+K*tmin,1/3);};
+M.sinterRate=function(tC){
+  return Math.exp(-SINT.Q/(SINT.R*(tC+273.15)))/Math.exp(-SINT.Q/(SINT.R*SINT.Tn));};
+
 function grainClass(d){
   if(d<0.2)return'Nano grain';if(d<0.5)return'Ultrafine grain';if(d<0.8)return'Submicron grain';
-  if(d<1.3)return'Fine grain';if(d<2.5)return'Medium grain';if(d<6)return'Coarse grain';return'Extra coarse grain';
-}
-function gbName(w,d){
-  var n=Math.round(w), s = d<1.3?'X' : (d<2.5?'' : 'C');
-  return 'YG'+n+s;
-}
+  if(d<1.3)return'Fine grain';if(d<2.5)return'Medium grain';if(d<6)return'Coarse grain';
+  return'Extra coarse grain';}
+function gbName(w,d){return'YG'+Math.round(w)+(d<1.3?'X':(d<2.5?'':'C'));}
 function useText(w,d){
-  if(w>=13) return['Cold heading and stamping dies','Binder-rich and forgiving under shock, wears quickly in abrasion.'];
-  if(d>=2.5&&w>=9) return['Heavy impact: mining picks, breakers','Maximum crack resistance, at a real cost in wear life.'];
-  if(d>=2.5&&w>=5) return['Road planing and rock cutting tips','Toughness-led: survives impact and heat cycling, gives up abrasion resistance.'];
-  if(d>=2.5) return['Rock drilling buttons','Low binder with a coarse structure: thermal fatigue resistance without losing hardness.'];
-  if(d>=1.3&&w<8) return['Abrasive milling, cutting cast iron, dies','Balanced: harder than a coarse grade, still tolerant of moderate impact.'];
-  if(d>=1.3) return['Interrupted cutting, impact-loaded tooling','Extra binder buys shock resistance at medium grain.'];
-  if(w>=8) return['Solid carbide drills and end mills','Fine and binder-rich: strong edges for small tools.'];
-  return['Finishing tools, nozzles, wear parts','Hardest and most wear resistant, most likely to chip under impact.'];
-}
+  if(w>=13)return['Cold heading and stamping dies','Binder-rich and forgiving under shock, wears quickly in abrasion.'];
+  if(d>=2.5&&w>=9)return['Heavy impact: mining picks, breakers','Maximum crack resistance, at a real cost in wear life.'];
+  if(d>=2.5&&w>=5)return['Road planing and rock cutting tips','Toughness-led: survives impact and heat cycling, gives up abrasion resistance.'];
+  if(d>=2.5)return['Rock drilling buttons','Low binder with a coarse structure: thermal fatigue resistance without losing hardness.'];
+  if(d>=1.3&&w<8)return['Abrasive milling, cutting cast iron, dies','Balanced: harder than a coarse grade, still tolerant of moderate impact.'];
+  if(d>=1.3)return['Interrupted cutting, impact-loaded tooling','Extra binder buys shock resistance at medium grain.'];
+  if(w>=8)return['Solid carbide drills and end mills','Fine and binder-rich: strong edges for small tools.'];
+  return['Finishing tools, nozzles, wear parts','Hardest and most wear resistant, most likely to chip under impact.'];}
 
-/* ---------- microstructure ---------- */
-var cv=document.getElementById('cv'), ctx=cv.getContext('2d'), N=cv.width, NP=N*N;
-var G=[[203,209,196],[176,183,170],[221,225,212],[159,168,157]], B=[246,172,27];
-var cache={d:null,diff:null,own:null,shade:null,sorted:null};
-function rnd(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
-function fov(d){ return d>=2 ? 50 : Math.max(8,50*Math.pow(d/2,0.6)); }
-function build(d){
-  if(cache.d===d) return;
-  var F=fov(d), C=Math.max(5,d*(N/F)), n=Math.ceil(N/C)+5, r=rnd(97);
-  var sx=new Float32Array(n*n), sy=new Float32Array(n*n), sh=new Uint8Array(n*n);
-  for(var j=0;j<n;j++)for(var i=0;i<n;i++){var k=i+j*n;
-    sx[k]=(i-2+0.5+(r()-0.5)*0.75)*C; sy[k]=(j-2+0.5+(r()-0.5)*0.75)*C; sh[k]=(r()*G.length)|0;}
-  var diff=new Float32Array(NP), own=new Int32Array(NP);
-  for(var py=0;py<N;py++){var cj=((py/C)|0)+2;
-    for(var px=0;px<N;px++){var ci=((px/C)|0)+2,d1=1e12,d2=1e12,o=0;
-      for(var dj=-2;dj<=2;dj++){var jj=cj+dj; if(jj<0||jj>=n)continue;
-        for(var di=-2;di<=2;di++){var ii=ci+di; if(ii<0||ii>=n)continue;
-          var k2=ii+jj*n, ax=px-sx[k2], ay=py-sy[k2], dd=ax*ax+ay*ay;
-          if(dd<d1){d2=d1;d1=dd;o=k2;} else if(dd<d2){d2=dd;}}}
-      var p=px+py*N; diff[p]=Math.sqrt(d2)-Math.sqrt(d1); own[p]=o;}}
-  var sorted=Float32Array.from(diff); sorted.sort();
-  cache={d:d,diff:diff,own:own,shade:sh,sorted:sorted};
-}
-var img=null;
-function paint(){
-  build(S.d);
-  var v=volCo(S.co), t=cache.sorted[Math.min(NP-1,Math.floor(v*NP))];
-  if(!img) img=ctx.createImageData(N,N);
-  var data=img.data;
-  for(var p=0;p<NP;p++){var q=p<<2, c = cache.diff[p]<t ? B : G[cache.shade[cache.own[p]]];
-    data[q]=c[0];data[q+1]=c[1];data[q+2]=c[2];data[q+3]=255;}
-  ctx.putImageData(img,0,0);
-  var F=fov(S.d), opts=[1,2,5,10,20,50], pick=opts[0];
-  for(var i=0;i<opts.length;i++){ if(opts[i]<=F/2.2) pick=opts[i]; }
-  document.getElementById('sbar').style.width=(pick/F*100)+'%';
-  document.getElementById('sbarlab').textContent=pick+' µm';
-  document.getElementById('fov').textContent='Field of view '+F.toFixed(0)+' µm. Grains in grey, cobalt binder in amber; binder area equals the cobalt volume fraction.';
-}
+var f1=function(x){return x.toFixed(1);}, f2=function(x){return x.toFixed(2);};
+var r0=function(x){return Math.round(x);};
+function band(t){return (Math.round(t*0.88/50)*50)+'–'+(Math.round(t*1.12/50)*50);}
 
-/* ---------- chart ---------- */
-var svg=document.getElementById('chart'), X0=46,X1=660,Y0=18,Y1=186;
-var DMIN=0.4,DMAX=8, HRAMIN=85,HRAMAX=95, KMIN=6,KMAX=18;
-function xs(d){return X0+(Math.log(d)-Math.log(DMIN))/(Math.log(DMAX)-Math.log(DMIN))*(X1-X0);}
-function yh(a){return Y1-(a-HRAMIN)/(HRAMAX-HRAMIN)*(Y1-Y0);}
-function yk(k){return Y1-(k-KMIN)/(KMAX-KMIN)*(Y1-Y0);}
-function el(t,at,txt){var e=document.createElementNS('http://www.w3.org/2000/svg',t);
-  for(var k in at)e.setAttribute(k,at[k]); if(txt!=null)e.textContent=txt; return e;}
-function drawChart(){
-  while(svg.firstChild)svg.removeChild(svg.firstChild);
-  var muted=getComputedStyle(document.body).getPropertyValue('--slate');
-  var line=getComputedStyle(document.body).getPropertyValue('--border');
-  [86,88,90,92,94].forEach(function(a){
-    svg.appendChild(el('line',{x1:X0,x2:X1,y1:yh(a),y2:yh(a),stroke:line,'stroke-width':1}));
-    svg.appendChild(el('text',{x:X0-9,y:yh(a)+4,fill:muted,'font-size':11,'text-anchor':'end'},a.toFixed(0)));
-  });
-  [8,12,16].forEach(function(k){
-    svg.appendChild(el('text',{x:X1+9,y:yk(k)+4,fill:muted,'font-size':11},k.toFixed(0)));
-  });
-  [0.5,1,2,4,8].forEach(function(d){
-    svg.appendChild(el('text',{x:xs(d),y:Y1+20,fill:muted,'font-size':11,'text-anchor':'middle'},d+' µm'));
-  });
-  svg.appendChild(el('text',{x:X0-9,y:Y0-4,fill:muted,'font-size':11,'text-anchor':'end'},'HRA'));
-  svg.appendChild(el('text',{x:X1+9,y:Y0-4,fill:muted,'font-size':11},'K₁c'));
-  var ph='',pk='';
-  for(var i=0;i<=80;i++){
-    var d=DMIN*Math.pow(DMAX/DMIN,i/80);
-    ph+=(i?'L':'M')+xs(d).toFixed(1)+' '+yh(toHRA(hv(d,S.co))).toFixed(1);
-    pk+=(i?'L':'M')+xs(d).toFixed(1)+' '+yk(k1c(d,S.co)).toFixed(1);
+/* ======================================================= MICROSTRUCTURE */
+var GREY=[[203,209,196],[176,183,170],[221,225,212],[159,168,157]], AMBER=[246,172,27];
+function Grain(canvas){
+  var ctx=canvas.getContext('2d'), N=canvas.width, NP=N*N;
+  var cache={key:null}, img=null;
+  function rnd(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);
+    t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+  function build(d,F){
+    var key=d.toFixed(3)+'|'+F.toFixed(2);
+    if(cache.key===key)return;
+    var C=Math.max(1.2,d*(N/F)), n=Math.ceil(N/C)+5, r=rnd(97);
+    var sx=new Float32Array(n*n), sy=new Float32Array(n*n), sh=new Uint8Array(n*n), k;
+    for(var j=0;j<n;j++)for(var i=0;i<n;i++){k=i+j*n;
+      sx[k]=(i-2+0.5+(r()-0.5)*0.75)*C; sy[k]=(j-2+0.5+(r()-0.5)*0.75)*C;
+      sh[k]=(r()*GREY.length)|0;}
+    var diff=new Float32Array(NP), own=new Int32Array(NP);
+    for(var py=0;py<N;py++){var cj=((py/C)|0)+2;
+      for(var px=0;px<N;px++){var ci=((px/C)|0)+2,d1=1e12,d2=1e12,o=0;
+        for(var dj=-2;dj<=2;dj++){var jj=cj+dj; if(jj<0||jj>=n)continue;
+          for(var di=-2;di<=2;di++){var ii=ci+di; if(ii<0||ii>=n)continue;
+            var k2=ii+jj*n, ax=px-sx[k2], ay=py-sy[k2], dd=ax*ax+ay*ay;
+            if(dd<d1){d2=d1;d1=dd;o=k2;}else if(dd<d2){d2=dd;}}}
+        var p=px+py*N; diff[p]=Math.sqrt(d2)-Math.sqrt(d1); own[p]=o;}}
+    var sorted=Float32Array.from(diff); sorted.sort();
+    cache={key:key,diff:diff,own:own,shade:sh,sorted:sorted};
   }
-  svg.appendChild(el('path',{d:pk,fill:'none',stroke:'var(--green)','stroke-width':2}));
-  svg.appendChild(el('path',{d:ph,fill:'none',stroke:'var(--orange)','stroke-width':2}));
-  svg.appendChild(el('line',{x1:xs(S.d),x2:xs(S.d),y1:Y0,y2:Y1,stroke:muted,'stroke-width':1,'stroke-dasharray':'3 3'}));
-  svg.appendChild(el('circle',{cx:xs(S.d),cy:yh(toHRA(hv(S.d,S.co))),r:4.5,fill:'var(--orange)'}));
-  svg.appendChild(el('circle',{cx:xs(S.d),cy:yk(k1c(S.d,S.co)),r:4.5,fill:'var(--green)'}));
-  [['EVERPADS',REF.ever],['AOJI',REF.aoji]].forEach(function(pair){
-    var r=pair[1], x=xs(r.d), y=yh(r.hra);
-    svg.appendChild(el('circle',{cx:x,cy:y,r:4,fill:'none',stroke:'currentColor','stroke-width':1.5}));
-    svg.appendChild(el('text',{x:x,y:y+17,'font-size':11,'text-anchor':'middle',fill:'currentColor'},pair[0]));
+  return {draw:function(d,w,F){
+    build(d,F);
+    var v=M.volCo(w), t=cache.sorted[Math.min(NP-1,Math.floor(v*NP))];
+    if(!img)img=ctx.createImageData(N,N);
+    var data=img.data, dif=cache.diff, ow=cache.own, sh=cache.shade;
+    for(var p=0;p<NP;p++){var q=p<<2, c=dif[p]<t?AMBER:GREY[sh[ow[p]]];
+      data[q]=c[0];data[q+1]=c[1];data[q+2]=c[2];data[q+3]=255;}
+    ctx.putImageData(img,0,0);
+  }};
+}
+function scaleBar(F,barEl,labEl){
+  var opts=[0.5,1,2,5,10,20,50,100], pick=opts[0];
+  for(var i=0;i<opts.length;i++)if(opts[i]<=F/2.2)pick=opts[i];
+  barEl.style.width=(pick/F*100)+'%';
+  labEl.textContent=(pick<1?pick:r0(pick))+' µm';
+}
+
+/* ======================================================= CHART ENGINE */
+function mkChart(cfg){
+  var svg=cfg.svg, vb=svg.getAttribute('viewBox').split(' ').map(Number);
+  var W=vb[2], H=vb[3];
+  var X0=cfg.padL||52, X1=W-(cfg.padR||44), Y0=14, Y1=H-34;
+  var st={};
+  function sx(x){return cfg.xlog
+    ? X0+(Math.log(x)-Math.log(cfg.xmin))/(Math.log(cfg.xmax)-Math.log(cfg.xmin))*(X1-X0)
+    : X0+(x-cfg.xmin)/(cfg.xmax-cfg.xmin)*(X1-X0);}
+  function ix(px){return cfg.xlog
+    ? Math.exp(Math.log(cfg.xmin)+(px-X0)/(X1-X0)*(Math.log(cfg.xmax)-Math.log(cfg.xmin)))
+    : cfg.xmin+(px-X0)/(X1-X0)*(cfg.xmax-cfg.xmin);}
+  function sy(y){return Y1-(y-st.ymin)/(st.ymax-st.ymin)*(Y1-Y0);}
+
+  function render(){
+    var s=cfg.state(); st.ymin=s.ymin; st.ymax=s.ymax;
+    clear(svg);
+    var muted=css('--slate'), line=css('--border');
+    (s.bands||[]).forEach(function(b){
+      var x0=sx(Math.max(b.x0,cfg.xmin)), x1=sx(Math.min(b.x1,cfg.xmax));
+      svg.appendChild(el('rect',{x:x0,y:Y0,width:Math.max(0,x1-x0),height:Y1-Y0,fill:b.fill}));
+      if(b.label)svg.appendChild(el('text',{x:(x0+x1)/2,y:Y1-8,fill:muted,'font-size':10,
+        'text-anchor':'middle'},b.label));
+    });
+    (s.yticks||[]).forEach(function(v){
+      svg.appendChild(el('line',{x1:X0,x2:X1,y1:sy(v),y2:sy(v),stroke:line,'stroke-width':1}));
+      svg.appendChild(el('text',{x:X0-9,y:sy(v)+4,fill:muted,'font-size':11,'text-anchor':'end'},
+        cfg.yfmt?cfg.yfmt(v):String(v)));
+    });
+    (cfg.xticks||[]).forEach(function(v){
+      svg.appendChild(el('text',{x:sx(v),y:Y1+19,fill:muted,'font-size':11,'text-anchor':'middle'},
+        (cfg.xfmt?cfg.xfmt(v):String(v))));
+    });
+    svg.appendChild(el('line',{x1:X0,x2:X1,y1:Y1,y2:Y1,stroke:line,'stroke-width':1}));
+    svg.appendChild(el('text',{x:X0-9,y:Y0-2,fill:muted,'font-size':11,'text-anchor':'end'},cfg.ylabel||''));
+
+    if(s.hline!=null){
+      svg.appendChild(el('line',{x1:X0,x2:X1,y1:sy(s.hline),y2:sy(s.hline),stroke:muted,
+        'stroke-width':1,'stroke-dasharray':'4 4'}));
+    }
+    if(s.vline!=null&&s.vline>=cfg.xmin&&s.vline<=cfg.xmax){
+      svg.appendChild(el('line',{x1:sx(s.vline),x2:sx(s.vline),y1:Y0,y2:Y1,stroke:muted,
+        'stroke-width':1,'stroke-dasharray':'3 3'}));
+    }
+    st.series=s.series;
+    s.series.forEach(function(se){
+      /* break the path where the curve leaves the plot rather than clamping it —
+         a clamped line draws a flat top that reads as a real plateau */
+      var p='', pen=false;
+      for(var i=0;i<=110;i++){
+        var x=cfg.xlog?cfg.xmin*Math.pow(cfg.xmax/cfg.xmin,i/110)
+                      :cfg.xmin+(cfg.xmax-cfg.xmin)*i/110;
+        var y=se.fn(x);
+        if(!isFinite(y)||y<st.ymin||y>st.ymax){pen=false;continue;}
+        p+=(pen?'L':'M')+sx(x).toFixed(1)+' '+sy(y).toFixed(1);
+        pen=true;
+      }
+      svg.appendChild(el('path',{d:p,fill:'none',stroke:se.color,'stroke-width':se.width||2,
+        'stroke-linejoin':'round','stroke-linecap':'round','stroke-dasharray':se.dash||null}));
+    });
+    (s.markers||[]).forEach(function(m){
+      var x=sx(m.x), y=sy(Math.max(st.ymin,Math.min(st.ymax,m.y)));
+      svg.appendChild(el('circle',{cx:x,cy:y,r:6.5,fill:css('--surface')}));
+      svg.appendChild(el('circle',{cx:x,cy:y,r:4.5,fill:m.hollow?'none':m.color,
+        stroke:m.hollow?m.color:'none','stroke-width':m.hollow?2:0}));
+      if(m.label)svg.appendChild(el('text',{x:x,y:y+(m.below?18:-12),'font-size':10.5,
+        'text-anchor':'middle',fill:css('--ink-2')},m.label));
+    });
+    st.X0=X0;st.X1=X1;st.Y0=Y0;st.Y1=Y1;
+  }
+
+  /* hover layer */
+  if(cfg.tip){
+    var tip=cfg.tip, hov=null;
+    var move=function(ev){
+      var r=svg.getBoundingClientRect(), px=(ev.clientX-r.left)/r.width*W;
+      if(px<X0-4||px>X1+4){tip.style.opacity=0;if(hov){hov.remove();hov=null;}return;}
+      var x=Math.max(cfg.xmin,Math.min(cfg.xmax,ix(px)));
+      if(hov)hov.remove();
+      hov=el('g',{});
+      hov.appendChild(el('line',{x1:sx(x),x2:sx(x),y1:Y0,y2:Y1,stroke:css('--slate-2'),'stroke-width':1}));
+      st.series.forEach(function(se){
+        if(se.noTip)return;
+        var y=se.fn(x); if(!isFinite(y)||y<st.ymin||y>st.ymax)return;
+        hov.appendChild(el('circle',{cx:sx(x),cy:sy(y),r:6,fill:css('--surface')}));
+        hov.appendChild(el('circle',{cx:sx(x),cy:sy(y),r:4,fill:se.color}));
+      });
+      svg.appendChild(hov);
+      tip.innerHTML=cfg.tipHtml(x);
+      tip.style.opacity=1;
+      var wr=svg.parentNode.getBoundingClientRect();
+      var lx=(sx(x)/W)*wr.width;
+      tip.style.left=Math.max(4,Math.min(wr.width-tip.offsetWidth-4,lx+14))+'px';
+      tip.style.top='10px';
+    };
+    var leave=function(){tip.style.opacity=0;if(hov){hov.remove();hov=null;}};
+    svg.addEventListener('pointermove',move);
+    svg.addEventListener('pointerleave',leave);
+    svg.addEventListener('pointerdown',move);
+  }
+  return {render:render};
+}
+
+function buildTable(tbl,cols,rows){
+  clear(tbl);
+  var th=el('thead'),tr=document.createElement('tr');
+  cols.forEach(function(c){var e=document.createElement('th');e.textContent=c;tr.appendChild(e);});
+  th.appendChild(tr);tbl.appendChild(th);
+  var tb=document.createElement('tbody');
+  rows.forEach(function(r){var t=document.createElement('tr');
+    r.forEach(function(c,i){var e=document.createElement('td');
+      if(i)e.className='mono';e.textContent=c;t.appendChild(e);});
+    tb.appendChild(t);});
+  tbl.appendChild(tb);
+}
+
+/* ======================================================= STATE */
+var S={co:6.0,d:5.0,beta:0.65,fov:30};
+
+/* ======================================================= 02 PICK ANATOMY */
+var PARTS={
+  tip:{n:'Tungsten carbide tip',
+    b:'The cutting element. A conical, vacuum-brazed WC–Co insert, 29 g of carbide, set concentric with the body axis. Grade choice here decides most of the pick’s life, and sections 04 to 08 are entirely about that choice.',
+    f:'Chipping and fracture if the grade is too hard for the duty; polishing and loss of point if too soft. Brazed off-centre, it costs rotation before it costs wear.'},
+  body:{n:'Alloy steel body',
+    b:'37MnB alloy steel, induction hardened to 50 HRC at the surface with a tough core, and finished with a proprietary zinc–aluminium flake coating on the shank.',
+    f:'Body wash-out — the steel behind the tip erodes away until the carbide is unsupported and snaps off. A hard case is the only defence.'},
+  plate:{n:'Wear plate / washer',
+    b:'A 48 mm one-piece forged disc between body and holder. Larger than most standard plates, so it covers and protects more of the holder face, and forged rather than cast so the grain flow follows the shape.',
+    f:'Holder face wear. Once the holder is dished, the pick no longer seats square, and you are replacing a welded holder instead of a consumable.'},
+  sleeve:{n:'Retaining sleeve',
+    b:'Holds the pick in the bore while leaving the clearance it needs to turn. Same alloy and heat treatment as the body, chosen for resistance to permanent deformation.',
+    f:'Deformation under load closes the running clearance and the pick stops rotating — after which it wears on one face and fails early.'}
+};
+var PICKPATHS={
+  tip:'M125 22 C133 38 141 62 144 92 L106 92 C109 62 117 38 125 22 Z',
+  body:'M104 92 L146 92 C150 118 160 148 168 176 L168 206 L82 206 L82 176 C90 148 100 118 104 92 Z',
+  plate:'M125 214 m-62 0 a62 12 0 1 0 124 0 a62 12 0 1 0 -124 0',
+  sleeve:'M101 250 L149 250 L149 374 L101 374 Z'
+};
+function drawPick(active){
+  var svg=$('pickdia'); if(!svg)return; clear(svg);
+  var bd=css('--border'), sl=css('--slate-2'), or=css('--orange'), ink=css('--slate');
+  var shank='M108 206 L142 206 L142 396 L108 396 Z';
+  svg.appendChild(el('path',{d:shank,fill:'#2a2a2a',stroke:bd,'stroke-width':1}));
+  var order=[['sleeve','#232323'],['plate','#262626'],['body','#2e2e2e'],['tip','#8e948a']];
+  order.forEach(function(o){
+    var k=o[0], on=(k===active);
+    svg.appendChild(el('path',{d:PICKPATHS[k],fill:on?(k==='tip'?'#c9cfc4':'#3a3733'):o[1],
+      stroke:on?or:sl,'stroke-width':on?2:1,'stroke-linejoin':'round',
+      'class':'hot','tabindex':'0','role':'button','aria-label':PARTS[k].n,'data-p':k}));
+  });
+  var lab=[['tip',125,58,'1'],['body',125,150,'2'],['plate',125,216,'3'],['sleeve',125,312,'4']];
+  lab.forEach(function(l){
+    var on=(l[0]===active);
+    svg.appendChild(el('circle',{cx:l[1]+62,cy:l[2],r:10,fill:on?or:css('--surface-3'),
+      stroke:on?or:sl,'stroke-width':1}));
+    svg.appendChild(el('text',{x:l[1]+62,y:l[2]+4,'font-size':11,'font-weight':600,
+      'text-anchor':'middle',fill:on?'#1a1200':ink},l[3]));
+    svg.appendChild(el('line',{x1:l[1]+52,x2:l[1]+(l[0]==='plate'?38:20),y1:l[2],y2:l[2],
+      stroke:on?or:sl,'stroke-width':1}));
+  });
+  Array.prototype.forEach.call(svg.querySelectorAll('.hot'),function(p){
+    var k=p.getAttribute('data-p');
+    p.addEventListener('click',function(){setPart(k);});
+    p.addEventListener('keydown',function(e){
+      if(e.key==='Enter'||e.key===' '){e.preventDefault();setPart(k);}});
+  });
+}
+function setPart(k){
+  var p=PARTS[k];
+  $('partname').textContent=p.n; $('partbody').textContent=p.b; $('partfail').textContent=p.f;
+  Array.prototype.forEach.call($('partbtns').children,function(b){
+    b.setAttribute('aria-pressed',b.dataset.p===k?'true':'false');});
+  drawPick(k);
+}
+
+/* ======================================================= 03 ROTATION */
+var ROT={rTip:9.5,rShank:9.0,muCoat:0.11,muOxide:0.20,kSand:2.2,kSleeve:1.7};
+function rotState(){
+  var a=+$('r-ang').value, e=+$('r-off').value;
+  var mu=($('r-oxide').checked?ROT.muOxide:ROT.muCoat)
+        *($('r-sand').checked?ROT.kSand:1)
+        *($('r-sleeve').checked?ROT.kSleeve:1);
+  var rad=a*Math.PI/180;
+  var drive=ROT.rTip*Math.sin(rad)*(1-e/ROT.rTip);
+  var resist=mu*ROT.rShank*Math.cos(rad);
+  var ratio=resist>0?drive/resist:99;
+  var needTan=mu*ROT.rShank/(ROT.rTip*(1-e/ROT.rTip));
+  return {a:a,e:e,mu:mu,ratio:ratio,need:Math.atan(needTan)*180/Math.PI};
+}
+function drawRot(r){
+  var svg=$('rotdia'); if(!svg)return; clear(svg);
+  var bd=css('--border'), sl=css('--slate'), or=css('--orange'),
+      gr=css('--green'), rd=css('--red'), ink=css('--ink-2');
+  var ok=r.ratio>=1.5, marg=r.ratio>=1&&r.ratio<1.5;
+  var col=ok?gr:(marg?or:rd);
+  var a=r.a*Math.PI/180, T=[140,250];
+  var u=[Math.sin(a),-Math.cos(a)], p=[Math.cos(a),Math.sin(a)];
+  var SC=1.12;
+  function pt(t,o){t*=SC;o*=SC;return [T[0]+u[0]*t+p[0]*o, T[1]+u[1]*t+p[1]*o];}
+  function poly(pts){return 'M'+pts.map(function(q){return q[0].toFixed(1)+' '+q[1].toFixed(1);}).join('L')+'Z';}
+
+  /* asphalt and the cut it is making */
+  svg.appendChild(el('rect',{x:0,y:243,width:400,height:57,fill:'#181818'}));
+  svg.appendChild(el('path',{d:'M0 243 L120 243 L138 262 L196 262 L214 243 L400 243',
+    fill:'none',stroke:bd,'stroke-width':1.5}));
+  svg.appendChild(el('text',{x:16,y:284,'font-size':10.5,fill:sl},'asphalt'));
+
+  /* drum surface behind the holder */
+  var dEnd=pt(186,0);
+  svg.appendChild(el('path',{d:'M'+(dEnd[0]-74)+' '+(dEnd[1]+46)+' Q'+dEnd[0]+' '+(dEnd[1]-16)+' '
+    +(dEnd[0]+74)+' '+(dEnd[1]+46),fill:'none',stroke:bd,'stroke-width':2}));
+  svg.appendChild(el('text',{x:Math.min(384,dEnd[0]+78),y:dEnd[1]+52,'font-size':10.5,fill:sl,
+    'text-anchor':'end'},'drum'));
+
+  /* holder */
+  svg.appendChild(el('path',{d:poly([pt(104,-27),pt(178,-27),pt(178,27),pt(104,27)]),
+    fill:'#242424',stroke:bd,'stroke-width':1.5,'stroke-linejoin':'round'}));
+  svg.appendChild(el('text',{x:pt(141,44)[0],y:pt(141,44)[1],'font-size':10.5,fill:sl,
+    'text-anchor':'middle'},'holder'));
+
+  /* shank, wear plate, body, carbide tip */
+  svg.appendChild(el('path',{d:poly([pt(88,-11),pt(180,-11),pt(180,11),pt(88,11)]),
+    fill:'#2a2a2a',stroke:'#3a3a3a','stroke-width':1}));
+  svg.appendChild(el('path',{d:poly([pt(84,-25),pt(90,-25),pt(90,25),pt(84,25)]),
+    fill:'#343434',stroke:'#444','stroke-width':1}));
+  svg.appendChild(el('path',{d:poly([pt(46,-16),pt(84,-20),pt(84,20),pt(46,16)]),
+    fill:'#333',stroke:'#454545','stroke-width':1,'stroke-linejoin':'round'}));
+  var off=r.e*6.5;
+  svg.appendChild(el('path',{d:poly([pt(0,off),pt(46,-16),pt(46,16)]),
+    fill:'#c9cfc4',stroke:'#e6ebe1','stroke-width':1,'stroke-linejoin':'round'}));
+
+  /* vertical reference and the attack angle */
+  svg.appendChild(el('line',{x1:T[0],y1:T[1],x2:T[0],y2:T[1]-118,stroke:sl,'stroke-width':1,
+    'stroke-dasharray':'4 4'}));
+  svg.appendChild(el('text',{x:T[0]-5,y:T[1]-122,'font-size':10.5,fill:sl,'text-anchor':'end'},'vertical'));
+  svg.appendChild(el('line',{x1:T[0],y1:T[1],x2:pt(196,0)[0],y2:pt(196,0)[1],stroke:or,
+    'stroke-width':1,'stroke-dasharray':'2 4'}));
+  var R=86, av=[T[0],T[1]-R], au=pt(R,0);
+  svg.appendChild(el('path',{d:'M'+av[0]+' '+av[1]+' A '+R+' '+R+' 0 0 1 '+au[0]+' '+au[1],
+    fill:'none',stroke:or,'stroke-width':1.5}));
+  var mid=pt(R+17,0);
+  svg.appendChild(el('text',{x:(T[0]+mid[0])/2+4,y:T[1]-R-9,'font-size':12,fill:or},'α = '+r.a+'°'));
+
+  /* tip offset callout */
+  if(r.e>0.01){
+    svg.appendChild(el('circle',{cx:pt(0,off)[0],cy:pt(0,off)[1],r:3,fill:rd}));
+    svg.appendChild(el('text',{x:pt(-6,off+30)[0],y:pt(-6,off+30)[1],'font-size':10.5,fill:rd,
+      'text-anchor':'middle'},'e = '+f2(r.e)+' mm off axis'));
+  }
+
+  /* self-rotation about the pick axis, drawn in the plane normal to it */
+  var C=pt(132,0), rx=30, ry=11, pts=[];
+  for(var th=200;th<=505;th+=6){
+    var t2=th*Math.PI/180;
+    pts.push([C[0]+p[0]*rx*Math.cos(t2)+u[0]*ry*Math.sin(t2),
+              C[1]+p[1]*rx*Math.cos(t2)+u[1]*ry*Math.sin(t2)]);
+  }
+  svg.appendChild(el('path',{d:'M'+pts.map(function(q){return q[0].toFixed(1)+' '+q[1].toFixed(1);}).join('L'),
+    fill:'none',stroke:col,'stroke-width':2,'stroke-linecap':'round',
+    'stroke-dasharray':ok?null:(marg?'8 5':'3 6')}));
+  var e1=pts[pts.length-1], e0=pts[pts.length-2];
+  var vx=e1[0]-e0[0], vy=e1[1]-e0[1], vl=Math.hypot(vx,vy)||1;
+  vx/=vl; vy/=vl;
+  svg.appendChild(el('path',{d:'M'+e1[0]+' '+e1[1]
+    +'L'+(e1[0]-vx*11-vy*5.5)+' '+(e1[1]-vy*11+vx*5.5)
+    +'L'+(e1[0]-vx*11+vy*5.5)+' '+(e1[1]-vy*11-vx*5.5)+'Z',fill:col}));
+}
+function updRot(){
+  var r=rotState();
+  $('r-angv').textContent=r.a+'°';
+  $('r-offv').textContent=f2(r.e)+' mm';
+  $('r-ratio').textContent=f2(r.ratio)+'×';
+  $('r-mu').textContent=f2(r.mu);
+  $('r-need').textContent=f1(r.need)+'°';
+  var ok=r.ratio>=1.5, marg=r.ratio>=1&&r.ratio<1.5;
+  var v=$('rotverd');
+  v.className='verd '+(ok?'v-ok':(marg?'v-wn':'v-no'));
+  v.innerHTML=(ok
+    ? '<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3.2 3.2L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Rotates freely'
+    : marg
+    ? '<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 2.5l6 11H2z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 6.6v3M8 11.7v.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Marginal — rotation will stall as it wears'
+    : '<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.4" stroke="currentColor" stroke-width="1.6"/><path d="M4 12L12 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Locked — one-sided wear, early failure');
+  $('rotcap').textContent = ok
+    ? 'The indexing moment clears the resisting moment with margin. The tip wears into a symmetric cone and keeps its point.'
+    : marg
+    ? 'The pick still turns, but with almost no reserve. Any further wear, debris or sleeve movement stops it.'
+    : 'Resistance exceeds the indexing moment. The pick is dragged rather than turned: it wears flat on one face and then loads the holder.';
+  drawRot(r);
+}
+
+/* ======================================================= 04 A/B COMPARE */
+var gA=null,gB=null;
+var CMP={a:{co:6,d:5,name:'EVERPADS tip'},b:{co:6,d:1.6,name:'AOJI-6/20 as published'}};
+var CMPNAMES={'6,5':'EVERPADS tip','6,1.6':'AOJI-6/20 as published','6,6.5':'What 87.9 HRA implies',
+  '6,0.8':'YG6X submicron','11,5':'YG11C — 11% cobalt'};
+function updCmp(){
+  var F=S.fov;
+  [['a',CMP.a,gA],['b',CMP.b,gB]].forEach(function(t){
+    var k=t[0], c=t[1], g=t[2];
+    g.draw(c.d,c.co,F);
+    scaleBar(F,$(k+'-sbar'),$(k+'-sbarl'));
+    $(k+'-name').textContent=c.name;
+    $(k+'-spec').textContent=f1(c.co)+'% Co · '+f2(c.d)+' µm';
+    $(k+'-hra').textContent=f1(M.hraOf(c.d,c.co))+' HRA';
+    $(k+'-k').textContent=f1(M.k1c(c.d,c.co))+' MPa·m½';
+    $(k+'-mfp').textContent=f2(M.mfp(c.d,c.co))+' µm';
+    $(k+'-hc').textContent=r0(M.hc(c.d,c.co))+' Oe';
   });
 }
 
-/* ---------- readouts ---------- */
-function setTxt(id,v){document.getElementById(id).innerHTML=v;}
+/* ======================================================= 06 ESTIMATOR */
+var gMain=null;
+function fovFor(d){return d>=2?50:Math.max(8,50*Math.pow(d/2,0.6));}
+
+/* ======================================================= CHARTS */
+var chHra,chK,chLife,chHc;
+var EVBAND={x0:4,x1:6}, AOBAND={x0:1.2,x1:2.0};
+function xfmtUm(v){return v+' µm';}
+
+function initCharts(){
+  chHra=mkChart({svg:$('ch-hra'),tip:$('tip-hra'),xmin:0.4,xmax:8,xlog:true,
+    xticks:[0.5,1,2,4,8],xfmt:xfmtUm,xlabel:'WC grain size',ylabel:'HRA',
+    state:function(){
+      return {ymin:85,ymax:95,yticks:[86,88,90,92,94],vline:S.d,
+        bands:[{x0:EVBAND.x0,x1:EVBAND.x1,fill:'rgba(246,172,27,.10)',label:'EVERPADS'},
+               {x0:AOBAND.x0,x1:AOBAND.x1,fill:'rgba(127,179,245,.10)',label:'AOJI claimed'}],
+        series:[{color:css('--orange'),fn:function(d){return M.hraOf(d,S.co);}}],
+        markers:[{x:S.d,y:M.hraOf(S.d,S.co),color:css('--orange'),
+                  label:f1(M.hraOf(S.d,S.co))+' HRA'},
+                 {x:1.6,y:87.9,color:css('--blue'),hollow:true,label:'AOJI states 87.9',below:true}]};},
+    tipHtml:function(d){return '<em>grain</em> <b>'+f2(d)+' µm</b><br><em>hardness</em> <b>'
+      +f1(M.hraOf(d,S.co))+' HRA</b> · <b>'+r0(M.hv(d,S.co))+' HV</b>';}});
+
+  chK=mkChart({svg:$('ch-k'),tip:$('tip-k'),xmin:0.4,xmax:8,xlog:true,
+    xticks:[0.5,1,2,4,8],xfmt:xfmtUm,xlabel:'WC grain size',ylabel:'MPa·m½',
+    state:function(){
+      return {ymin:6,ymax:18,yticks:[8,10,12,14,16],vline:S.d,
+        bands:[{x0:EVBAND.x0,x1:EVBAND.x1,fill:'rgba(246,172,27,.10)'},
+               {x0:AOBAND.x0,x1:AOBAND.x1,fill:'rgba(127,179,245,.10)'}],
+        series:[{color:css('--green'),fn:function(d){return M.k1c(d,S.co);}}],
+        markers:[{x:S.d,y:M.k1c(S.d,S.co),color:css('--green'),
+                  label:f1(M.k1c(S.d,S.co))}]};},
+    tipHtml:function(d){return '<em>grain</em> <b>'+f2(d)+' µm</b><br><em>toughness</em> <b>'
+      +f1(M.k1c(d,S.co))+' MPa·m½</b>';}});
+
+  chLife=mkChart({svg:$('ch-life'),tip:$('tip-life'),xmin:0.4,xmax:8,xlog:true,
+    xticks:[0.5,1,2,4,8],xfmt:xfmtUm,xlabel:'WC grain size',ylabel:'index',
+    state:function(){
+      return {ymin:40,ymax:190,yticks:[60,80,100,120,140,160,180],hline:100,vline:S.d,
+        bands:[{x0:EVBAND.x0,x1:EVBAND.x1,fill:'rgba(246,172,27,.10)',label:'EVERPADS'},
+               {x0:AOBAND.x0,x1:AOBAND.x1,fill:'rgba(127,179,245,.10)',label:'AOJI claimed'}],
+        series:[{color:css('--blue'),fn:function(d){return M.abr(d,S.co);},width:2,dash:'5 4'},
+                {color:css('--orange'),fn:function(d){return M.life(d,S.co,S.beta);},width:2.5}],
+        markers:[{x:5,y:M.life(5,S.co,S.beta),color:css('--orange'),label:'5.0 µm'},
+                 {x:1.6,y:M.life(1.6,S.co,S.beta),color:css('--orange'),hollow:true,
+                  label:'1.6 µm',below:true}]};},
+    tipHtml:function(d){return '<em>grain</em> <b>'+f2(d)+' µm</b><br><em>life index</em> <b>'
+      +r0(M.life(d,S.co,S.beta))+'</b><br><em>abrasion only</em> <b>'+r0(M.abr(d,S.co))+'</b>';}});
+
+  chHc=mkChart({svg:$('ch-hc'),tip:$('tip-hc'),xmin:0.4,xmax:8,xlog:true,
+    xticks:[0.5,1,2,4,8],xfmt:xfmtUm,xlabel:'WC grain size',ylabel:'Oe',
+    state:function(){
+      return {ymin:0,ymax:420,yticks:[100,200,300,400],vline:null,
+        bands:[{x0:EVBAND.x0,x1:EVBAND.x1,fill:'rgba(246,172,27,.10)',label:'EVERPADS 4–6 µm'},
+               {x0:AOBAND.x0,x1:AOBAND.x1,fill:'rgba(127,179,245,.10)',label:'AOJI claimed'}],
+        series:[{color:css('--orange'),fn:function(d){return M.hc(d,6);}}],
+        markers:[{x:5,y:M.hc(5,6),color:css('--orange'),label:r0(M.hc(5,6))+' Oe'},
+                 {x:1.6,y:M.hc(1.6,6),color:css('--blue'),hollow:true,
+                  label:r0(M.hc(1.6,6))+' Oe if truly 1.6 µm'}]};},
+    tipHtml:function(d){return '<em>grain</em> <b>'+f2(d)+' µm</b><br><em>coercivity</em> <b>'
+      +r0(M.hc(d,6))+' Oe</b>';}});
+}
+var TVD=[0.5,0.8,1.2,1.6,2,3,4,5,6,8];
+function renderTables(){
+  buildTable($('tv-hra'),['Grain size','Binder path λ','Hardness','Hardness'],
+    TVD.map(function(d){return [f1(d)+' µm',f2(M.mfp(d,S.co))+' µm',
+      f1(M.hraOf(d,S.co))+' HRA',r0(M.hv(d,S.co))+' HV'];}));
+  buildTable($('tv-k'),['Grain size','Binder path λ','Fracture toughness'],
+    TVD.map(function(d){return [f1(d)+' µm',f2(M.mfp(d,S.co))+' µm',
+      f1(M.k1c(d,S.co))+' MPa·m½'];}));
+  buildTable($('tv-life'),['Grain size','Abrasion A','Impact I','Life index L'],
+    TVD.map(function(d){return [f1(d)+' µm',r0(M.abr(d,S.co)),r0(M.imp(d,S.co)),
+      r0(M.life(d,S.co,S.beta))];}));
+  buildTable($('tv-hc'),['Grain size','Binder path λ','Coercivity'],
+    TVD.map(function(d){return [f1(d)+' µm',f2(M.mfp(d,6))+' µm',r0(M.hc(d,6))+' Oe'];}));
+}
+
+/* ======================================================= 11 SINTERING */
+var gSint=null, sintRaf=null, sintPending=null;
+function queueSintDraw(d){
+  sintPending=d;
+  if(sintRaf)return;
+  sintRaf=requestAnimationFrame(function(){
+    sintRaf=null;
+    /* quantise so a slider drag reuses the cached tessellation */
+    gSint.draw(Math.round(Math.min(sintPending,20)*20)/20,6,40);
+    scaleBar(40,$('s-sbar'),$('s-sbarl'));
+  });
+}
+function updSint(){
+  var T=+$('s-temp').value, t=+$('s-time').value;
+  var d=M.grainFromSinter(T,t), hra=M.hraOf(d,6), rate=M.sinterRate(T);
+  $('s-tempv').textContent=T+' °C';
+  $('s-timev').textContent=t+' min';
+  $('s-d').textContent=f2(d)+' µm';
+  $('s-hra').textContent=f1(hra)+' HRA';
+  $('s-rate').textContent=(rate>=1?'+':'')+r0((rate-1)*100)+'%';
+  var inD=d>=4&&d<=6, inH=hra>=87.6&&hra<=88.4;
+  var v=$('s-verd'), tick='<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3.2 3.2L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+      warn='<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 2.5l6 11H2z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 6.6v3M8 11.7v.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+      cross='<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.4" stroke="currentColor" stroke-width="1.6"/><path d="M5.6 5.6l4.8 4.8M10.4 5.6l-4.8 4.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+  var note=$('s-note');
+  if(inD&&inH){v.className='verd v-ok'; v.innerHTML=tick+'Inside the EVERPADS specification';
+    note.textContent='Both the grain size and the hardness land inside the sheet. This lot ships.';}
+  else if(inH&&!inD){v.className='verd v-wn'; v.innerHTML=warn+'Hardness passes — grain size does not';
+    note.textContent='This is the case worth understanding. A hardness test alone would release this lot, '
+      +'because hardness changes only slowly with grain size out here. The structure is already out of '
+      +'specification and the toughness has moved with it. Coercivity would have caught it immediately — '
+      +'which is exactly the argument in section 10.';}
+  else if(inD&&!inH){v.className='verd v-wn'; v.innerHTML=warn+'On the edge of specification';
+    note.textContent='Grain size is in the window but hardness has drifted off it. Check carbon balance '
+      +'and binder content before releasing.';}
+  else{v.className='verd v-no'; v.innerHTML=cross+'Out of specification — this lot would be rejected';
+    note.textContent='Neither grain size nor hardness is inside the sheet. At this schedule the furnace, '
+      +'not the powder, is what produced the grade.';}
+  queueSintDraw(d);
+  $('eq9').textContent='At '+T+' °C for '+t+' min from 1.2 µm powder → d = '+f2(d)
+    +' µm. Growth rate is '+(rate>=1?'+':'')+r0((rate-1)*100)+'% of nominal.';
+}
+
+/* ======================================================= 12 CASE DEPTH */
+function drawCase(){
+  var svg=$('ch-case'); if(!svg)return; clear(svg);
+  var CD=+$('cd').value, HS=+$('cs').value, HC=30, w=CD*0.22+0.12;
+  var X0=48,X1=396,Y0=16,Y1=248, XMAX=8, YMIN=20,YMAX=64;
+  var muted=css('--slate'), line=css('--border'), or=css('--orange');
+  function sx(x){return X0+x/XMAX*(X1-X0);}
+  function sy(y){return Y1-(y-YMIN)/(YMAX-YMIN)*(Y1-Y0);}
+  function H(x){return HC+(HS-HC)/(1+Math.exp((x-CD)/w));}
+  [30,40,50,60].forEach(function(v){
+    svg.appendChild(el('line',{x1:X0,x2:X1,y1:sy(v),y2:sy(v),stroke:line,'stroke-width':1}));
+    svg.appendChild(el('text',{x:X0-9,y:sy(v)+4,fill:muted,'font-size':11,'text-anchor':'end'},v));
+  });
+  [0,2,4,6,8].forEach(function(v){
+    svg.appendChild(el('text',{x:sx(v),y:Y1+19,fill:muted,'font-size':11,'text-anchor':'middle'},v+' mm'));
+  });
+  svg.appendChild(el('line',{x1:X0,x2:X1,y1:Y1,y2:Y1,stroke:line,'stroke-width':1}));
+  svg.appendChild(el('text',{x:X0-9,y:Y0-2,fill:muted,'font-size':11,'text-anchor':'end'},'HRC'));
+  svg.appendChild(el('text',{x:X1,y:Y1+19,fill:muted,'font-size':11,'text-anchor':'end'},'depth below surface'));
+  svg.appendChild(el('rect',{x:X0,y:Y0,width:sx(CD)-X0,height:Y1-Y0,fill:'rgba(246,172,27,.09)'}));
+  svg.appendChild(el('text',{x:(X0+sx(CD))/2,y:Y0+13,fill:muted,'font-size':10,'text-anchor':'middle'},'case'));
+  svg.appendChild(el('text',{x:(sx(CD)+X1)/2,y:Y0+13,fill:muted,'font-size':10,'text-anchor':'middle'},'core'));
+  var p='';
+  for(var i=0;i<=120;i++){var x=XMAX*i/120;p+=(i?'L':'M')+sx(x).toFixed(1)+' '+sy(H(x)).toFixed(1);}
+  svg.appendChild(el('path',{d:p,fill:'none',stroke:or,'stroke-width':2.5,'stroke-linecap':'round'}));
+  svg.appendChild(el('line',{x1:sx(CD),x2:sx(CD),y1:Y0,y2:Y1,stroke:muted,'stroke-width':1,'stroke-dasharray':'3 3'}));
+  svg.appendChild(el('circle',{cx:sx(0),cy:sy(H(0)),r:6,fill:css('--surface')}));
+  svg.appendChild(el('circle',{cx:sx(0),cy:sy(H(0)),r:4,fill:or}));
+  svg.appendChild(el('text',{x:sx(0)+10,y:sy(H(0))-8,'font-size':11,fill:css('--ink-2')},HS+' HRC at surface'));
+  svg.appendChild(el('text',{x:sx(CD)+6,y:Y1-8,'font-size':10.5,fill:muted},'case depth '+f1(CD)+' mm'));
+  $('cdv').textContent=f1(CD)+' mm';
+  $('csv').textContent=HS+' HRC';
+  $('c-1mm').textContent=f1(H(1))+' HRC';
+  $('c-core').textContent=HC+' HRC';
+  $('c-frac').textContent=r0(Math.min(100,CD/8.5*100))+'%';
+}
+
+/* ======================================================= 13 CHECKLIST */
+var CHECKS=[
+  ['The material certificate for the specific production lot','Not a catalogue page. A lot number that matches the box you received.'],
+  ['Measured density for that lot','A 94/6 grade is 14.95 g/cm³ in theory. A measured figure below it means cobalt or porosity — a catalogue range means nothing was measured.'],
+  ['Coercivity and magnetic saturation','Together these establish grain size and carbon balance, non-destructively, in about a minute. Section 10 is entirely about why this pair settles the question.'],
+  ['Porosity rating to ISO 4505, reported as A, B and C','A-type pores, B-type pores and uncombined carbon, rated separately. Ours is A02 B00 C00.'],
+  ['A transverse rupture strength test report','TRS is where sintering quality shows up. It is the number a catalogue floor hides behind.'],
+  ['A microstructure image at ×1500','The one check that needs no interpretation: you can see the grain size and the uniformity yourself.']
+];
+function buildChecklist(){
+  var ul=$('checklist'); if(!ul)return;
+  CHECKS.forEach(function(c){
+    var li=document.createElement('li');
+    li.innerHTML='<span class="ci" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 16 16" fill="none">'
+      +'<circle cx="8" cy="8" r="7" stroke="#5BD08C" stroke-width="1.4"/>'
+      +'<path d="M4.6 8.2l2.3 2.3L11.4 6" stroke="#5BD08C" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>'
+      +'<span><b></b><small></small></span>';
+    li.querySelector('b').textContent=c[0];
+    li.querySelector('small').textContent=c[1];
+    ul.appendChild(li);
+  });
+}
+
+/* ======================================================= MASTER UPDATE */
+function setTxt(id,v){var e=$(id);if(e)e.innerHTML=v;}
 function update(){
-  var w=S.co,d=S.d,H=hv(d,w),A=toHRA(H),v=volCo(w),T=trs(d,w);
-  document.getElementById('grade').textContent=gbName(w,d);
-  document.getElementById('cls').textContent=grainClass(d)+' · WC '+(100-w).toFixed(1)+' / Co '+w.toFixed(1)+' by weight';
-  document.getElementById('covi').textContent=w.toFixed(1)+'%';
-  document.getElementById('gsvi').textContent=d.toFixed(2)+' µm';
-  setTxt('o-hra',A.toFixed(1)+' HRA');
+  var w=S.co,d=S.d,H=M.hv(d,w),A=M.hraOf(d,w),v=M.volCo(w),T=M.trs(d,w),lam=M.mfp(d,w);
+
+  $('grade').textContent=gbName(w,d);
+  $('cls').textContent=grainClass(d)+' · WC '+f1(100-w)+' / Co '+f1(w)+' by weight';
+  $('covi').textContent=f1(w)+'%';
+  $('gsvi').textContent=f2(d)+' µm';
+
+  setTxt('o-hra',f1(A)+' HRA');
   setTxt('o-hv',(Math.round(H/10)*10)+' HV30');
-  setTxt('o-k',k1c(d,w).toFixed(1)+' <span class="sub">MPa·m½</span>');
-  setTxt('o-trs',(Math.round(T*0.88/50)*50)+'–'+(Math.round(T*1.12/50)*50)+' <span class="sub">MPa</span>');
-  setTxt('o-rho',density(w).toFixed(2)+' <span class="sub">g/cm³</span>');
-  setTxt('o-vol',(v*100).toFixed(1)+'%');
-  setTxt('o-mfp',mfp(d,w).toFixed(2)+' <span class="sub">µm</span>');
-  setTxt('o-hc',Math.round(hc(d,w))+' <span class="sub">Oe</span>');
-  setTxt('o-wear',Math.round(100*Math.pow(H/hv(REF.ever.d,REF.ever.co),2.5))+' <span class="sub">index</span>');
+  setTxt('o-k',f1(M.k1c(d,w))+' <span class="u">MPa·m½</span>');
+  setTxt('o-trs',band(T)+' <span class="u">MPa</span>');
+  setTxt('o-rho',f2(M.density(w))+' <span class="u">g/cm³</span>');
+  setTxt('o-vol',f1(v*100)+'%');
+  setTxt('o-mfp',f2(lam)+' <span class="u">µm</span>');
+  setTxt('o-hc',r0(M.hc(d,w))+' <span class="u">Oe</span>');
+  setTxt('o-wear',r0(M.abr(d,w))+' <span class="u">index</span>');
+
   var u=useText(w,d);
-  document.getElementById('usetitle').textContent=u[0];
-  document.getElementById('usebody').textContent=u[1];
-  var pk=document.querySelectorAll('#picks button');
-  for(var i=0;i<pk.length;i++){
-    var on=Math.abs(+pk[i].dataset.co-w)<0.05&&Math.abs(+pk[i].dataset.d-d)<0.03;
-    pk[i].setAttribute('aria-pressed',on?'true':'false');
-  }
-  setTxt('t-ever',toHRA(hv(6,6)).toFixed(1)+'–'+toHRA(hv(4,6)).toFixed(1)+' HRA');
-  setTxt('t-aoji',toHRA(hv(2.0,6)).toFixed(1)+'–'+toHRA(hv(1.2,6)).toFixed(1)+' HRA');
-  setTxt('t-evertrs',(Math.round(trs(5,6)*0.88/50)*50)+'–'+(Math.round(trs(5,6)*1.12/50)*50));
-  setTxt('t-aojitrs',(Math.round(trs(1.6,6)*0.88/50)*50)+'–'+(Math.round(trs(1.6,6)*1.12/50)*50));
-  document.getElementById('solveco').textContent=w.toFixed(1)+'% cobalt';
+  $('usetitle').textContent=u[0]; $('usebody').textContent=u[1];
+  Array.prototype.forEach.call(document.querySelectorAll('#picks button'),function(b){
+    b.setAttribute('aria-pressed',
+      (Math.abs(+b.dataset.co-w)<0.05&&Math.abs(+b.dataset.d-d)<0.03)?'true':'false');});
+
+  /* live equation values */
+  var C=M.contig(v);
+  $('eq1').textContent='At '+f1(w)+'% by weight → V_Co = '+f1(v*100)+'% by volume. Density '+f2(M.density(w))+' g/cm³.';
+  $('eq2').textContent='At V_Co = '+f1(v*100)+'% → C_WC = '+f2(C)+'. '+r0(C*100)+'% of the carbide surface is grain-to-grain contact.';
+  $('eq3').textContent='At d = '+f2(d)+' µm → λ = '+f2(lam)+' µm.';
+  $('eq4').textContent='λ = '+f2(lam)+' µm → HV = '+r0(H)+' → '+f1(A)+' HRA.';
+  $('eq5').textContent='λ = '+f2(lam)+' µm → K_Ic = '+f1(M.k1c(d,w))+' MPa·m½.';
+  var kr=M.k1c(d,w)/REF.k;
+  $('eq6').textContent='K_Ic is '+r0(kr*100)+'% of the EVERPADS reference → tolerable flaw size '
+    +r0(kr*kr*100)+'% of it.';
+  $('eq7').textContent='λ = '+f2(lam)+' µm → H_c = '+r0(M.hc(d,w))+' Oe.';
+
+  /* section 09 table + flags */
+  setTxt('t-ever',f1(M.hraOf(6,6))+'–'+f1(M.hraOf(4,6))+' HRA');
+  setTxt('t-aoji',f1(M.hraOf(2.0,6))+'–'+f1(M.hraOf(1.2,6))+' HRA');
+  setTxt('t-evertrs',band(M.trs(5,6))+' MPa');
+  setTxt('t-aojitrs',band(M.trs(1.6,6))+' MPa');
+  setTxt('t-everhc',r0(M.hc(6,6))+'–'+r0(M.hc(4,6))+' Oe');
+  setTxt('t-aojihc',r0(M.hc(2.0,6))+'–'+r0(M.hc(1.2,6))+' Oe');
+  setTxt('f1a',f1(M.hraOf(2.0,6))+'–'+f1(M.hraOf(1.2,6))+' HRA');
+  var imp=M.dFromHRA(87.9,6);
+  setTxt('f1b',imp?f1(imp)+' µm':'—');
+  setTxt('sum-implied',(imp?f1(imp):'—')+'<span class="tu"> µm</span>');
+  var lo=Math.round(M.trs(2.0,6)*0.88/50)*50, hi=Math.round(M.trs(1.2,6)*1.12/50)*50;
+  setTxt('f2a',lo.toLocaleString()+'–'+hi.toLocaleString()+' MPa');
+
+  $('solveco').textContent=f1(w)+'% cobalt';
   solve();
-  paint(); drawChart();
+
+  /* duty section */
+  $('betav').textContent=f2(S.beta);
+  var cross=M.crossBeta(1.6,S.co);
+  $('d-cross').textContent=cross?f2(cross):'—';
+  $('d-ever').textContent=r0(M.life(5,S.co,S.beta));
+  $('d-aoji').textContent=r0(M.life(1.6,S.co,S.beta));
+  var dir=M.direction(S.co,S.beta);
+  $('d-best').textContent=dir.word==='Neither'?'Balanced'
+    :dir.word+' — '+(dir.pct>0?'+':'')+dir.pct+'%';
+  $('eq8').textContent='At β = '+f2(S.beta)+': 5.0 µm scores '+r0(M.life(5,S.co,S.beta))
+    +', 1.6 µm scores '+r0(M.life(1.6,S.co,S.beta))+'. Cross-over at β = '+(cross?f2(cross):'—')+'.';
+  Array.prototype.forEach.call(document.querySelectorAll('#duty-picks button'),function(b){
+    b.setAttribute('aria-pressed',Math.abs(+b.dataset.b-S.beta)<0.005?'true':'false');});
+
+  $('c1sub').textContent='at '+f1(w)+'% cobalt';
+  $('c2sub').textContent='at '+f1(w)+'% cobalt';
+  $('c3sub').textContent='at '+f1(w)+'% cobalt, β = '+f2(S.beta);
+
+  /* microstructure + charts */
+  var F=fovFor(d);
+  gMain.draw(d,w,F);
+  scaleBar(F,$('sbar'),$('sbarlab'));
+  $('fov').textContent='Field of view '+r0(F)+' µm. Grains in grey, cobalt binder in amber; '
+    +'binder area equals the cobalt volume fraction, '+f1(v*100)+'%.';
+  chHra.render(); chK.render(); chLife.render(); chHc.render();
+  renderTables();
 }
 function solve(){
-  var a=parseFloat(document.getElementById('hrain').value), out=document.getElementById('solveout');
+  var a=parseFloat($('hrain').value), out=$('solveout');
   if(isNaN(a)){out.textContent='—';return;}
-  var H=fromHRA(a);
-  var v=volCo(S.co), den=H-999+810*(v-0.1008);
-  if(den<=40){out.textContent='below range';return;}
-  var lam=Math.pow(331/den,2);
-  var d=lam*(1-v)*(1-contig(v))/v;
-  out.textContent = d>20 ? 'over 20 µm' : d.toFixed(1)+' µm';
+  var d=M.dFromHRA(a,S.co);
+  out.textContent = d==null?'below range':(d>20?'over 20 µm':f1(d)+' µm');
 }
+
+/* ======================================================= WIRING */
 var raf=null;
-function queue(){ if(raf)return; raf=requestAnimationFrame(function(){raf=null;update();}); }
-document.getElementById('co').addEventListener('input',function(e){S.co=+e.target.value;queue();});
-document.getElementById('gs').addEventListener('input',function(e){S.d=+e.target.value;queue();});
-document.getElementById('hrain').addEventListener('input',solve);
-document.querySelectorAll('#picks button').forEach(function(b){
-  b.addEventListener('click',function(){
-    S.co=+b.dataset.co; S.d=+b.dataset.d;
-    document.getElementById('co').value=S.co; document.getElementById('gs').value=S.d; update();
+function queue(){if(raf)return;raf=requestAnimationFrame(function(){raf=null;update();});}
+
+function init(){
+  gMain=Grain($('cv')); gA=Grain($('cv-a')); gB=Grain($('cv-b')); gSint=Grain($('cv-sint'));
+
+  $('co').addEventListener('input',function(e){S.co=+e.target.value;queue();});
+  $('gs').addEventListener('input',function(e){S.d=+e.target.value;queue();});
+  $('hrain').addEventListener('input',solve);
+  Array.prototype.forEach.call(document.querySelectorAll('#picks button'),function(b){
+    b.addEventListener('click',function(){
+      S.co=+b.dataset.co;S.d=+b.dataset.d;
+      $('co').value=S.co;$('gs').value=S.d;update();});
   });
-});
-update();
+
+  $('beta').addEventListener('input',function(e){S.beta=+e.target.value;queue();});
+  Array.prototype.forEach.call(document.querySelectorAll('#duty-picks button'),function(b){
+    b.addEventListener('click',function(){
+      S.beta=+b.dataset.b;$('beta').value=S.beta;update();});
+  });
+
+  /* A/B compare */
+  var cmpRaf=null;
+  function queueCmp(){if(cmpRaf)return;cmpRaf=requestAnimationFrame(function(){cmpRaf=null;updCmp();});}
+  $('cmp-fov').addEventListener('input',function(e){
+    S.fov=+e.target.value;$('cmp-fovv').textContent=S.fov+' µm';queueCmp();});
+  Array.prototype.forEach.call(document.querySelectorAll('#cmp-picks button'),function(b){
+    b.addEventListener('click',function(){
+      var a=b.dataset.a.split(','), bb=b.dataset.b.split(',');
+      CMP.a={co:+a[0],d:+a[1],name:CMPNAMES[b.dataset.a]||'Panel A'};
+      CMP.b={co:+bb[0],d:+bb[1],name:CMPNAMES[b.dataset.b]||'Panel B'};
+      Array.prototype.forEach.call(document.querySelectorAll('#cmp-picks button'),function(o){
+        o.setAttribute('aria-pressed',o===b?'true':'false');});
+      updCmp();});
+  });
+
+  /* rotation */
+  ['r-ang','r-off'].forEach(function(id){$(id).addEventListener('input',updRot);});
+  ['r-oxide','r-sand','r-sleeve'].forEach(function(id){$(id).addEventListener('change',updRot);});
+
+  /* sintering */
+  ['s-temp','s-time'].forEach(function(id){$(id).addEventListener('input',updSint);});
+  $('s-reset').addEventListener('click',function(){
+    $('s-temp').value=1410;$('s-time').value=60;updSint();});
+
+  /* case depth */
+  ['cd','cs'].forEach(function(id){$(id).addEventListener('input',drawCase);});
+
+  /* anatomy */
+  Array.prototype.forEach.call($('partbtns').children,function(b){
+    b.addEventListener('click',function(){setPart(b.dataset.p);});});
+
+  buildChecklist();
+  initCharts();
+  setPart('tip');
+  updRot();
+  updSint();
+  drawCase();
+  updCmp();
+  update();
+
+  /* nav scroll-spy */
+  var links={};
+  Array.prototype.forEach.call(document.querySelectorAll('.nav a'),function(a){
+    links[a.getAttribute('href').slice(1)]=a;});
+  if('IntersectionObserver' in window){
+    var obs=new IntersectionObserver(function(es){
+      es.forEach(function(en){
+        if(en.isIntersecting){
+          for(var k in links)links[k].classList.remove('on');
+          if(links[en.target.id])links[en.target.id].classList.add('on');
+        }});
+    },{rootMargin:'-70px 0px -65% 0px',threshold:0});
+    Array.prototype.forEach.call(document.querySelectorAll('section[id]'),function(s){obs.observe(s);});
+  }
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);
+else init();
 })();
 </script>
 </body>
