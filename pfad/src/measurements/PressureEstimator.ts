@@ -21,6 +21,8 @@ export interface PressureSample {
   wallPressure: number[];
   /** shear stress on each wall: tangential impulse / (Δt · L) */
   wallShear: number[];
+  /** energy flux from the gas INTO each wall: energy exchanged / (Δt · L) */
+  wallEnergyFlux: number[];
   /** wall hits in the window, all walls */
   hits: number;
   /** kT proxy = KE/N at window end (see ThermalStatistics for the definition) */
@@ -36,6 +38,7 @@ export class WallPressureSampler {
   private cStart: number;
   private normal0: number[];
   private tangential0: number[];
+  private energy0: number[];
   private hits0: number;
 
   constructor(sim: Simulation, windowCollisions: number, maxWindowTime = Number.POSITIVE_INFINITY) {
@@ -47,6 +50,7 @@ export class WallPressureSampler {
     this.cStart = this.collisionsPerParticle();
     this.normal0 = sim.walls.map((w) => w.totals().normalImpulse);
     this.tangential0 = sim.walls.map((w) => w.totals().tangentialImpulse);
+    this.energy0 = sim.walls.map((w) => w.totals().energyIn);
     this.hits0 = this.totalHits();
   }
 
@@ -92,6 +96,8 @@ export class WallPressureSampler {
     if (!(dtw > 0)) return null;
     const wallPressure: number[] = [];
     const wallShear: number[] = [];
+    const wallEnergyFlux: number[] = [];
+    const energyNow: number[] = [];
     let sumImpulse = 0;
     let sumLength = 0;
     const normalNow: number[] = [];
@@ -100,6 +106,8 @@ export class WallPressureSampler {
       const t = w.totals();
       normalNow.push(t.normalImpulse);
       tangentialNow.push(t.tangentialImpulse);
+      energyNow.push(t.energyIn);
+      wallEnergyFlux.push((t.energyIn - this.energy0[k]) / (dtw * w.length));
       const dJ = t.normalImpulse - this.normal0[k];
       const dT = t.tangentialImpulse - this.tangential0[k];
       wallPressure.push(dJ / (dtw * w.length));
@@ -116,6 +124,7 @@ export class WallPressureSampler {
       pressure: sumImpulse / (dtw * sumLength),
       wallPressure,
       wallShear,
+      wallEnergyFlux,
       hits: hits - this.hits0,
       kT: sim.store.kineticEnergy() / sim.store.count,
     };
@@ -124,6 +133,7 @@ export class WallPressureSampler {
     this.cStart = c;
     this.normal0 = normalNow;
     this.tangential0 = tangentialNow;
+    this.energy0 = energyNow;
     this.hits0 = hits;
     return sample;
   }

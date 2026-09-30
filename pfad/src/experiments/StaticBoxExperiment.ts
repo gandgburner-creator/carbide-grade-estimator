@@ -366,14 +366,18 @@ export class StaticBoxExperiment extends SequentialExperiment<Spec, StaticBoxRun
             'INCONCLUSIVE',
           ),
         );
-        const reliable = elasticRuns.every((r) => r.equilibrium?.pressure.reliable);
+        // The uncertainty that is REPORTED must be valid. With ≥ 3 seeds it comes from the
+        // spread of independent seeds (valid without block-averaging assumptions); with
+        // fewer it comes from block averaging, which is only trustworthy on a plateau.
+        const plateaus = elasticRuns.filter((r) => r.equilibrium?.pressure.reliable).length;
+        const ensembleBased = perSeed.length >= 3;
         checks.push(
           check(
             'uncertainty-reliable',
-            'Block averaging reached a plateau (correlation time resolved)',
-            'plateau in every elastic run',
-            reliable ? 'yes' : 'no',
-            reliable,
+            'The reported pressure uncertainty is statistically valid',
+            'ensemble of ≥ 3 independent seeds, or block-averaging plateau in every run',
+            `${ensembleBased ? `ensemble of ${perSeed.length} seeds` : 'block averaging'}; plateau in ${plateaus}/${elasticRuns.length} runs`,
+            ensembleBased || plateaus === elasticRuns.length,
             'INCONCLUSIVE',
           ),
         );

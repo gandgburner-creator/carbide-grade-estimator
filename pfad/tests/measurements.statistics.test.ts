@@ -91,3 +91,30 @@ describe('isotonic regression', () => {
     expect(Math.abs(k - 69)).toBeLessThan(20);
   });
 });
+
+describe('distribution functions and ANOVA', () => {
+  it('incomplete beta / t / F match reference values', async () => {
+    const S = await import('../src/measurements/Statistics');
+    expect(S.incompleteBeta(0.5, 2, 2)).toBeCloseTo(0.5, 10);
+    expect(S.incompleteBeta(0.3, 1, 1)).toBeCloseTo(0.3, 10);
+    expect(S.tTwoSidedP(2.228, 10)).toBeCloseTo(0.05, 3);
+    expect(S.tTwoSidedP(12.706, 1)).toBeCloseTo(0.05, 3);
+    expect(S.fUpperP(3.49, 3, 20)).toBeCloseTo(0.035, 2); // F(3,20) 0.965 quantile ≈ 3.49 → p ≈ 0.035
+    expect(S.fUpperP(4.35, 1, 20)).toBeCloseTo(0.05, 2);
+  });
+
+  it('ANOVA accepts equal means and rejects shifted ones', async () => {
+    const { oneWayAnova } = await import('../src/measurements/Statistics');
+    const rng = new Rng(9);
+    const same = [0, 1, 2, 3].map(() => Array.from({ length: 5 }, () => rng.gaussian()));
+    let accept = 0;
+    for (let t = 0; t < 200; t++) {
+      const g = [0, 1, 2, 3].map(() => Array.from({ length: 5 }, () => rng.gaussian()));
+      if (oneWayAnova(g).pValue > 0.05) accept++;
+    }
+    expect(accept / 200).toBeGreaterThan(0.9);
+    expect(oneWayAnova(same).df2).toBe(16);
+    const shifted = [0, 1, 2, 3].map((k) => Array.from({ length: 5 }, () => rng.gaussian() + (k === 3 ? 3 : 0)));
+    expect(oneWayAnova(shifted).pValue).toBeLessThan(1e-3);
+  });
+});

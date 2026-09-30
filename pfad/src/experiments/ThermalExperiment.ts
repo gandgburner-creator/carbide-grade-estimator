@@ -3,12 +3,13 @@ import type { ContactResolution } from '../core/CollisionModel';
 import type { TimestepPolicy } from '../core/Integrator';
 import type { VelocityDistribution } from '../gas/InitialConditions';
 import {
-  consistency,
+  blockAverage,
   ensembleEstimate,
   linearRegression,
   mean,
+  oneWayAnova,
+  pooled,
   std,
-  type Estimate,
 } from '../measurements/Statistics';
 import { check, combineStatus, type AcceptanceCheck } from '../validation/Status';
 import { BoxGasRun, type BoxGasRunParams, type BoxGasRunResult } from './BoxGasRun';
@@ -53,8 +54,8 @@ export const THERMAL_REFERENCE: ThermalParams = {
   kT: 1,
   contact: 'rewind-to-contact',
   timestep: { kind: 'adaptive', courant: 0.025, dtMax: 1, dtMin: 1e-7 },
-  seeds: [21, 22, 23],
-  temperatures: [0.5, 1, 2, 4],
+  seeds: [21, 22, 23, 24, 25],
+  temperatures: [0.25, 0.5, 1, 2, 4],
   areaFractions: [0.02, 0.05, 0.1, 0.2],
   distributions: ['maxwell', 'uniform-speed', 'uniform-box', 'two-beam'],
   equilibrationCollisions: 10,
@@ -75,6 +76,19 @@ interface Spec {
 }
 
 type ThermalRunResult = BoxGasRunResult & { study: Study; distribution: VelocityDistribution };
+
+/**
+ * Temperatures whose ratio is a power of 4 scale velocities by a power of 2,
+ * which is exact in binary floating point: same-seed runs are then bit-for-bit
+ * the same trajectory in rescaled time. Other ratios differ by rounding and,
+ * through chaos, become independent realisations. Key ∈ [1, 4).
+ */
+export function temperatureClass(kT: number): number {
+  let k = kT;
+  while (k >= 4) k /= 4;
+  while (k < 1) k *= 4;
+  return k;
+}
 
 /**
  * Model-free relaxation time: the collision count of the last window at which
@@ -183,6 +197,7 @@ export class ThermalExperiment extends SequentialExperiment<Spec, ThermalRunResu
     const benchmarks: Record<string, unknown> = {};
     const uncertainty: Record<string, unknown> = {};
 
+    // Per-run Z = P/(n kT) with its block-averaged SE (≈ 200 windows per run: reliable).
     const Z = (r: ThermalRunResult) => {
       const e = r.equilibrium!;
       const nkT = r.geometry.numberDensity * e.kTMean;
@@ -197,7 +212,20 @@ export class ThermalExperiment extends SequentialExperiment<Spec, ThermalRunResu
       }
       return m;
     };
-    const zEnsemble = (rs: ThermalRunResult[]): Estimate => ensembleEstimate(rs.map((r) => Z(r).mean));
+    /** pooled over runs (inverse variance of per-run block SEs) + seed ensemble as a cross-check */
+    const zSummary = (rs: ThermalRunResult[]) => {
+      const pz = pooled(rs.map(Z));
+      const ens = ensembleEstimate(rs.map((r) => Z(r).mean));
+      return {
+        mean: pz.mean,
+        se: pz.se,
+        ci95: [pz.mean - 1.96 * pz.se, pz.mean + 1.96 * pz.se] as [number, number],
+        relHalfWidth: (1.96 * pz.se) / pz.mean,
+        runs: pz.runs,
+        runConsistencyP: pz.chi2p,
+        seedEnsemble: { mean: ens.mean, se: ens.se, n: ens.n },
+      };
+    };
 
     // ---- safety / conservation
     const halted = runs.filter((r) => r.halted);
@@ -218,42 +246,49 @@ export class ThermalExperiment extends SequentialExperiment<Spec, ThermalRunResu
       const byT = group(tRuns, (r) => r.params.kT);
       const table = [...byT.entries()].sort((a, b) => a[0] - b[0]).map(([kT, rs]) => ({
         kT,
-        pressure: ensembleEstimate(rs.map((r) => r.equilibrium!.pressure.mean)),
-        dimensionlessPressure: zEnsemble(rs),
+        temperatureClass: temperatureClass(kT),
+        pressure: pooled(rs.map((r) => r.equilibrium!.pressure)),
+        dimensionlessPressure: zSummary(rs),
         seeds: rs.length,
       }));
+      // exact symmetry: same seed, same temperature class → identical Z
+      let maxClassSpread = 0;
+      let classPairs = 0;
+      for (const rs of group(tRuns, (r) => `${r.seed}|${temperatureClass(r.params.kT)}`).values()) {
+        if (rs.length < 2) continue;
+        classPairs += rs.length - 1;
+        const zs = rs.map((r) => Z(r).mean);
+        maxClassSpread = Math.max(maxClassSpread, (Math.max(...zs) - Math.min(...zs)) / mean(zs));
+      }
+      // statistics: one representative temperature per class, so no run is counted twice
+      const reps = [...group(tRuns, (r) => temperatureClass(r.params.kT)).values()].map((rs) => {
+        const kTs = [...new Set(rs.map((r) => r.params.kT))].sort((a, b) => a - b);
+        return rs.filter((r) => r.params.kT === kTs[0]);
+      });
+      const repZ = reps.map(zSummary);
+      // one-way ANOVA over independent runs (run-to-run scatter pooled across classes)
+      const cons = oneWayAnova(reps.map((rs) => rs.map((r) => Z(r).mean)));
       const x = tRuns.map((r) => r.equilibrium!.kTMean);
       const y = tRuns.map((r) => r.equilibrium!.pressure.mean);
       const reg = linearRegression(x, y);
-      const cons = consistency(table.map((t) => t.dimensionlessPressure.mean), table.map((t) => t.dimensionlessPressure.se));
       results.temperatureDependence = {
         table,
-        fit: { model: 'P = a + b·kT (per-run means)', ...reg },
-        zConsistencyAcrossTemperatures: cons,
+        fit: { model: 'P = a + b·kT (per-run means, all runs)', ...reg },
+        zConsistencyAcrossTemperatureClasses: cons,
+        sameSeedSameClassRelativeSpread: maxClassSpread,
+        interpretation:
+          'Rigid-contact model: kT is not an independent parameter (time-rescaling symmetry). Runs whose kT differ by a power of 4 are the same trajectory in rescaled time (bit-for-bit); other ratios are independent chaotic realisations. Non-trivial temperature dependence needs a model with an energy scale (soft contact K, occupancy ks, wall temperature).',
       };
-      // Rigid disks have no energy scale: with an adaptive (C·d/v_max) timestep a run at
-      // kT' is the kT run in rescaled time, so same-seed Z values must agree exactly.
-      const bySeed = group(tRuns, (r) => r.seed);
-      let maxSeedSpread = 0;
-      for (const rs of bySeed.values()) {
-        const zs = rs.map((r) => Z(r).mean);
-        maxSeedSpread = Math.max(maxSeedSpread, (Math.max(...zs) - Math.min(...zs)) / mean(zs));
-      }
-      const adaptive = p.timestep.kind === 'adaptive';
-      (results.temperatureDependence as Record<string, unknown>).sameSeedRelativeSpread = maxSeedSpread;
-      (results.temperatureDependence as Record<string, unknown>).interpretation = adaptive
-        ? 'Rigid-contact model: kT is not an independent parameter (time-rescaling symmetry). Same-seed runs at different kT are the same trajectory in rescaled time, so P ∝ kT holds exactly; this sub-study tests for hidden energy scales, not for thermal physics. Non-trivial temperature dependence needs a model with an energy scale (soft contact K, occupancy ks, wall temperature).'
-        : 'Fixed dt introduces a numerical time scale, so same-seed runs at different kT differ.';
-      if (adaptive && bySeed.size > 0 && [...bySeed.values()].some((rs) => rs.length > 1)) {
+      if (p.timestep.kind === 'adaptive' && classPairs > 0) {
         checks.push(check('no-hidden-energy-scale',
-          'Same-seed runs at different kT give identical P/(nkT) (exact time-rescaling symmetry of rigid disks)',
-          'relative spread < 1e-9', maxSeedSpread.toExponential(2), maxSeedSpread < 1e-9));
+          'Same-seed runs at kT differing by a power of 4 give identical P/(nkT) (exact time-rescaling symmetry, exact in binary floating point)',
+          'relative spread < 1e-12', `${maxClassSpread.toExponential(2)} over ${classPairs} pair(s)`, maxClassSpread < 1e-12));
       }
-      const interceptOk = Math.abs(reg.intercept) < 3 * reg.seIntercept;
-      checks.push(check('temperature-scaling', 'Pressure scales linearly with kT through the origin, with the same P/(nkT) at every temperature',
-        'fit intercept within 3σ of 0 and χ² consistency of P/(nkT) across kT with p > 0.001',
-        `intercept ${reg.intercept.toExponential(2)} ± ${reg.seIntercept.toExponential(2)}, p = ${cons.pValue.toPrecision(3)}`,
-        interceptOk && cons.pValue > 0.001));
+      if (repZ.length >= 2) {
+        checks.push(check('temperature-scaling', 'P/(nkT) is the same at every temperature class (independent realisations)',
+          'one-way ANOVA over independent runs (one kT per class) p > 0.001',
+          `p = ${cons.pValue.toPrecision(3)} over ${repZ.length} classes`, cons.pValue > 0.001));
+      }
     }
 
     // ---- density study
@@ -262,7 +297,7 @@ export class ThermalExperiment extends SequentialExperiment<Spec, ThermalRunResu
       const byPhi = group(dRuns, (r) => r.params.areaFraction);
       const table = [...byPhi.entries()].sort((a, b) => a[0] - b[0]).map(([phi, rs]) => ({
         areaFraction: phi,
-        dimensionlessPressure: zEnsemble(rs),
+        dimensionlessPressure: zSummary(rs),
         seeds: rs.length,
       }));
       // measured "virial-like" coefficients: Z − 1 = B φ + C φ² (unweighted per-run LS)
@@ -309,7 +344,14 @@ export class ThermalExperiment extends SequentialExperiment<Spec, ThermalRunResu
           equilibrium_a2: ensembleEstimate(relaxA2.map((x) => x.equilibriumValue)),
           equilibrium_kurtosis: ensembleEstimate(rs.map((r) => mean(r.series.kurtosis!.slice(Math.floor(r.series.kurtosis!.length / 2))))),
           settled: relaxA2.every((x) => x.settled) && relaxAn.every((x) => x.settled),
-          equilibriumZ: withEq.length ? zEnsemble(withEq) : null,
+          equilibriumZ: withEq.length ? zSummary(withEq) : null,
+          equilibrium_a2_pooled: pooled(
+            rs.map((r) => {
+              const a2 = r.series.a2!;
+              const b = blockAverage(a2.slice(Math.floor(a2.length / 2)));
+              return { mean: b.mean, se: b.se };
+            }),
+          ),
         };
       });
       results.distributionDependence = {
@@ -319,11 +361,17 @@ export class ThermalExperiment extends SequentialExperiment<Spec, ThermalRunResu
       };
       const zRows = rows.filter((r) => r.equilibriumZ);
       if (zRows.length >= 2) {
-        const cz = consistency(zRows.map((r) => r.equilibriumZ!.mean), zRows.map((r) => r.equilibriumZ!.se));
-        const ca = consistency(rows.map((r) => r.equilibrium_a2.mean), rows.map((r) => r.equilibrium_a2.se));
+        // one-way ANOVA over independent runs: robust to unreliable per-run or per-group SEs
+        const groupsZ = [...byD.values()].map((rs) => rs.filter((r) => r.equilibrium).map((r) => Z(r).mean));
+        const groupsA2 = [...byD.values()].map((rs) =>
+          rs.map((r) => mean(r.series.a2!.slice(Math.floor(r.series.a2!.length / 2)))),
+        );
+        const cz = oneWayAnova(groupsZ);
+        const ca = oneWayAnova(groupsA2);
+        (results.distributionDependence as Record<string, unknown>).anova = { Z: cz, a2: ca };
         checks.push(check('equilibrium-independent-of-initial-distribution',
           'Every initial distribution reaches the same equilibrium pressure and velocity-distribution shape',
-          'χ² consistency p > 0.001 for P/(nkT) and for late-time a2 across distributions',
+          'one-way ANOVA over independent runs, p > 0.001, for P/(nkT) and for late-time a2 across distributions',
           `p(Z) = ${cz.pValue.toPrecision(3)}, p(a2) = ${ca.pValue.toPrecision(3)}`,
           cz.pValue > 0.001 && ca.pValue > 0.001));
       }

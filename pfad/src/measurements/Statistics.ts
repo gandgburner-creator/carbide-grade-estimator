@@ -265,3 +265,110 @@ export function isotonicNonIncreasing(y: ArrayLike<number>, w?: ArrayLike<number
   for (let k = 0; k < vals.length; k++) for (let j = 0; j < lens[k]; j++) out.push(vals[k]);
   return out;
 }
+
+/**
+ * Is an estimate consistent with a reference value? Threshold = k·t₀.₉₇₅(dof)·SE
+ * with k = 2, i.e. about 4σ for many samples and correspondingly wider for few
+ * (a 2- or 3-seed SE is itself very uncertain). Returns the ratio |x − ref|/threshold.
+ */
+export function tScaledDeviation(e: Estimate, reference: number, k = 2): number {
+  const dof = e.method === 'block-average' || e.method === 'independent' || e.method === 'ensemble' ? Math.max(1, e.n - 1) : 1;
+  return Math.abs(e.mean - reference) / (k * tCritical95(dof) * e.se);
+}
+
+/** Inverse-variance pooled estimate of per-run estimates (each with a reliable SE). */
+export function pooled(es: { mean: number; se: number }[]) {
+  const ok = es.filter((e) => Number.isFinite(e.mean) && e.se > 0);
+  const c = consistency(
+    ok.map((e) => e.mean),
+    ok.map((e) => e.se),
+  );
+  return { mean: c.weightedMean, se: c.weightedSe, z: c.weightedMean / c.weightedSe, runs: ok.length, chi2p: c.pValue };
+}
+
+/** ln Γ(x), Lanczos approximation (|rel. error| < 2e-10 for x > 0). */
+export function logGamma(x: number): number {
+  const c = [76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5];
+  let y = x;
+  const tmp = x + 5.5 - (x + 0.5) * Math.log(x + 5.5);
+  let ser = 1.000000000190015;
+  for (const ci of c) ser += ci / ++y;
+  return -tmp + Math.log((2.5066282746310005 * ser) / x);
+}
+
+/** Regularised incomplete beta I_x(a, b) (continued fraction, Numerical Recipes betacf). */
+export function incompleteBeta(x: number, a: number, b: number): number {
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+  const front = Math.exp(logGamma(a + b) - logGamma(a) - logGamma(b) + a * Math.log(x) + b * Math.log(1 - x));
+  const cf = (xx: number, aa: number, bb: number) => {
+    const tiny = 1e-300;
+    let c = 1;
+    let d = 1 - ((aa + bb) * xx) / (aa + 1);
+    if (Math.abs(d) < tiny) d = tiny;
+    d = 1 / d;
+    let h = d;
+    for (let m = 1; m <= 300; m++) {
+      const m2 = 2 * m;
+      let aa1 = (m * (bb - m) * xx) / ((aa - 1 + m2) * (aa + m2));
+      d = 1 + aa1 * d;
+      if (Math.abs(d) < tiny) d = tiny;
+      c = 1 + aa1 / c;
+      if (Math.abs(c) < tiny) c = tiny;
+      d = 1 / d;
+      h *= d * c;
+      aa1 = (-(aa + m) * (aa + bb + m) * xx) / ((aa + m2) * (aa + 1 + m2));
+      d = 1 + aa1 * d;
+      if (Math.abs(d) < tiny) d = tiny;
+      c = 1 + aa1 / c;
+      if (Math.abs(c) < tiny) c = tiny;
+      d = 1 / d;
+      const del = d * c;
+      h *= del;
+      if (Math.abs(del - 1) < 3e-14) break;
+    }
+    return h;
+  };
+  return x < (a + 1) / (a + b + 2) ? (front * cf(x, a, b)) / a : 1 - (front * cf(1 - x, b, a)) / b;
+}
+
+/** Upper-tail p-value of the F distribution with (d1, d2) degrees of freedom. */
+export function fUpperP(F: number, d1: number, d2: number): number {
+  if (!(F > 0)) return 1;
+  return incompleteBeta(d2 / (d2 + d1 * F), d2 / 2, d1 / 2);
+}
+
+/** Two-sided p-value of Student's t with ν degrees of freedom. */
+export function tTwoSidedP(t: number, nu: number): number {
+  return incompleteBeta(nu / (nu + t * t), nu / 2, 0.5);
+}
+
+/**
+ * One-way ANOVA: do several groups of INDEPENDENT runs share one mean?
+ * Uses the run-to-run scatter pooled over all groups (df = N − G), which is far
+ * more reliable than per-group standard errors from 2–5 seeds.
+ */
+export function oneWayAnova(groups: number[][]) {
+  const gs = groups.filter((g) => g.length > 0);
+  const N = gs.reduce((a, g) => a + g.length, 0);
+  const G = gs.length;
+  const grand = gs.reduce((a, g) => a + g.reduce((x, y) => x + y, 0), 0) / N;
+  let ssb = 0;
+  let ssw = 0;
+  for (const g of gs) {
+    const m = mean(g);
+    ssb += g.length * (m - grand) ** 2;
+    for (const x of g) ssw += (x - m) ** 2;
+  }
+  const df1 = G - 1;
+  const df2 = N - G;
+  const F = df2 > 0 && ssw > 0 ? ssb / df1 / (ssw / df2) : Number.NaN;
+  return {
+    F,
+    df1,
+    df2,
+    pValue: df1 > 0 && df2 > 0 ? fUpperP(F, df1, df2) : Number.NaN,
+    grandMean: grand,
+    withinSd: df2 > 0 ? Math.sqrt(ssw / df2) : Number.NaN,
+  };
+}

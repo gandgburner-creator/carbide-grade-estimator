@@ -1,6 +1,11 @@
 import type { ExperimentRecord, ExperimentType, SequentialExperiment } from './Experiment';
 import { STATIC_BOX_REFERENCE, StaticBoxExperiment, type StaticBoxParams } from './StaticBoxExperiment';
 import { THERMAL_REFERENCE, ThermalExperiment, type ThermalParams } from './ThermalExperiment';
+import {
+  WALL_ACCOMMODATION_REFERENCE,
+  WallAccommodationExperiment,
+  type WallAccommodationParams,
+} from './WallAccommodationExperiment';
 
 /**
  * Experiment registry: one entry per experiment type, used by the CLI, the UI
@@ -46,10 +51,29 @@ const thermal: ExperimentEntry<ThermalParams> = {
   create: (p) => new ThermalExperiment(p) as unknown as SequentialExperiment<unknown, unknown>,
 };
 
+const wallAccommodation: ExperimentEntry<WallAccommodationParams> = {
+  type: 'wall-accommodation',
+  title: 'Wall accommodation',
+  defaults: WALL_ACCOMMODATION_REFERENCE,
+  quick: {
+    ...WALL_ACCOMMODATION_REFERENCE,
+    count: 400,
+    height: 20,
+    accommodations: [0, 0.5, 1],
+    seeds: [1, 2],
+    thermalEquilibrationCollisions: 40,
+    thermalCollisions: 30,
+    shearEquilibrationCollisions: 40,
+    shearCollisions: 30,
+  },
+  create: (p) => new WallAccommodationExperiment(p) as unknown as SequentialExperiment<unknown, unknown>,
+};
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const EXPERIMENTS: Partial<Record<ExperimentType, ExperimentEntry<any>>> = {
   'static-box': staticBox,
   thermal,
+  'wall-accommodation': wallAccommodation,
 };
 
 /** Re-run an experiment from a saved record's configuration (Master prompt §42.13). */

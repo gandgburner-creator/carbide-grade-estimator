@@ -60,6 +60,14 @@ export class PlaneWall {
   readonly normalImpulse: Float64Array;
   readonly tangentialImpulse: Float64Array;
   readonly energyIn: Float64Array;
+  /** kinetic energy carried in by incident particles / carried out by re-emitted ones */
+  readonly incidentEnergy: Float64Array;
+  readonly emittedEnergy: Float64Array;
+  /** tangential momentum (lab frame, along +tangent) carried in / out */
+  readonly incidentTangential: Float64Array;
+  readonly emittedTangential: Float64Array;
+  /** interactions that were diffuse re-emissions (realised accommodation) */
+  readonly diffuseHits: Float64Array;
   /** interactions whose rewind exceeded the step (particle was already inside the wall) */
   lateContacts = 0;
 
@@ -113,6 +121,11 @@ export class PlaneWall {
     this.normalImpulse = new Float64Array(bins);
     this.tangentialImpulse = new Float64Array(bins);
     this.energyIn = new Float64Array(bins);
+    this.incidentEnergy = new Float64Array(bins);
+    this.emittedEnergy = new Float64Array(bins);
+    this.incidentTangential = new Float64Array(bins);
+    this.emittedTangential = new Float64Array(bins);
+    this.diffuseHits = new Float64Array(bins);
   }
 
   get binWidth(): number {
@@ -163,7 +176,9 @@ export class PlaneWall {
       const vt = vx[i] * tx + vy[i] * ty;
       let vn2: number;
       let vt2: number;
+      let diffuse = false;
       if (Aw > 0 && rng.next() < Aw) {
+        diffuse = true;
         const sigma = Math.sqrt(kTw / m);
         vn2 = Math.sqrt(-2 * (kTw / m) * Math.log(rng.nextOpen()));
         vt2 = Uw + sigma * rng.gaussian();
@@ -190,6 +205,11 @@ export class PlaneWall {
       this.normalImpulse[b] += m * (vn2 - vn); // pushes the wall outward (> 0)
       this.tangentialImpulse[b] += m * (vt - vt2); // along +tangent, on the wall
       this.energyIn[b] += dE;
+      this.incidentEnergy[b] += 0.5 * m * (vn * vn + vt * vt);
+      this.emittedEnergy[b] += 0.5 * m * (vn2 * vn2 + vt2 * vt2);
+      this.incidentTangential[b] += m * vt;
+      this.emittedTangential[b] += m * vt2;
+      if (diffuse) this.diffuseHits[b] += 1;
       ledger.wallImpulseX += dpx;
       ledger.wallImpulseY += dpy;
       ledger.wallEnergyOut += dE;
@@ -201,16 +221,21 @@ export class PlaneWall {
   }
 
   totals() {
-    let hits = 0;
-    let normal = 0;
-    let tangential = 0;
-    let energy = 0;
-    for (let b = 0; b < this.config.bins; b++) {
-      hits += this.hits[b];
-      normal += this.normalImpulse[b];
-      tangential += this.tangentialImpulse[b];
-      energy += this.energyIn[b];
-    }
-    return { hits, normalImpulse: normal, tangentialImpulse: tangential, energyIn: energy };
+    const sum = (a: Float64Array) => {
+      let t = 0;
+      for (let b = 0; b < a.length; b++) t += a[b];
+      return t;
+    };
+    return {
+      hits: sum(this.hits),
+      normalImpulse: sum(this.normalImpulse),
+      tangentialImpulse: sum(this.tangentialImpulse),
+      energyIn: sum(this.energyIn),
+      incidentEnergy: sum(this.incidentEnergy),
+      emittedEnergy: sum(this.emittedEnergy),
+      incidentTangential: sum(this.incidentTangential),
+      emittedTangential: sum(this.emittedTangential),
+      diffuseHits: sum(this.diffuseHits),
+    };
   }
 }

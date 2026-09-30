@@ -44,13 +44,20 @@ describe('thermal experiment (small)', () => {
     ...THERMAL_REFERENCE,
     count: 300,
     seeds: [1, 2],
-    temperatures: [0.5, 2],
+    temperatures: [0.5, 1, 2],
     areaFractions: [0.05],
     distributions: ['maxwell', 'two-beam'],
     measurementCollisions: 15,
     relaxationCollisions: 20,
   }).runToCompletion();
   const byId = Object.fromEntries(rec.acceptance.map((c) => [c.id, c.status]));
+
+  it('temperature classes: kT differing by a power of 4 are the same trajectory; others are independent', async () => {
+    const { temperatureClass } = await import('../src/experiments/ThermalExperiment');
+    expect(temperatureClass(0.25)).toBe(temperatureClass(4));
+    expect(temperatureClass(0.5)).toBe(temperatureClass(2));
+    expect(temperatureClass(1)).not.toBe(temperatureClass(2));
+  });
 
   it('confirms the rigid-disk model has no hidden energy scale (exact kT rescaling)', () => {
     expect(byId['no-hidden-energy-scale']).toBe('PASSED');
@@ -62,7 +69,7 @@ describe('thermal experiment (small)', () => {
     const rows = (rec.results.distributionDependence as any).rows;
     const beam = rows.find((r: { distribution: string }) => r.distribution === 'two-beam');
     expect(beam.initial.anisotropy).toBeGreaterThan(0.8);
-    expect(Math.abs(beam.equilibrium_a2.mean)).toBeLessThan(0.1);
+    expect(Math.abs(beam.equilibrium_a2_pooled.mean)).toBeLessThan(0.1);
     expect(byId['equilibrium-independent-of-initial-distribution']).toBe('PASSED');
   });
 });

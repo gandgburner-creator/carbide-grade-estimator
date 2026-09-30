@@ -54,6 +54,7 @@ function printRecord(rec: ExperimentRecord): void {
   }
   if (rec.experimentType === 'static-box') printStaticBox(rec);
   if (rec.experimentType === 'thermal') printThermal(rec);
+  if (rec.experimentType === 'wall-accommodation') printWall(rec);
   if (rec.warnings.length) {
     console.log('warnings:');
     for (const w of rec.warnings.slice(0, 20)) console.log('  - ' + w);
@@ -67,7 +68,7 @@ function printStaticBox(rec: any): void {
   if (el?.measuredPressure) {
     const P = el.measuredPressure;
     console.log(
-      `\nMEASURED elastic wall pressure: ${fmt(P.mean)} ± ${fmt(P.se)} (SE), 95% CI [${fmt(P.ci95[0])}, ${fmt(P.ci95[1])}], sd(window) ${fmt(P.sd)}, method ${P.method}, independent samples ${fmt(P.nIndependent)}`,
+      `\nMEASURED elastic wall pressure: ${fmt(P.mean)} ± ${fmt(P.se)} (SE), 95% CI [${fmt(P.ci95[0])}, ${fmt(P.ci95[1])}], sd ${fmt(P.sd)} (${P.method === 'ensemble' ? 'between seeds' : 'between windows'}), method ${P.method}, independent samples ${fmt(P.nIndependent)}`,
     );
     console.log(`  kT (KE/N) = ${fmt(el.kTMean)}`);
     for (const s of el.perSeed) {
@@ -111,8 +112,8 @@ function printThermal(rec: any): void {
   const T = rec.results.temperatureDependence;
   if (T) {
     console.log('\nMEASURED temperature dependence (P/(nkT) per kT):');
-    for (const r of T.table) console.log(`  kT=${r.kT}: P = ${est(r.pressure)}, Z = ${est(r.dimensionlessPressure)} (${r.seeds} seeds)`);
-    console.log(`  fit P = a + b kT: a = ${fmt(T.fit.intercept)} ± ${fmt(T.fit.seIntercept)}, b = ${fmt(T.fit.slope)} ± ${fmt(T.fit.seSlope)}; Z consistency p = ${fmt(T.zConsistencyAcrossTemperatures.pValue)}`);
+    for (const r of T.table) console.log(`  kT=${r.kT} (class ${fmt(r.temperatureClass)}): P = ${est(r.pressure)}, Z = ${est(r.dimensionlessPressure)} (${r.seeds} seeds; seed ensemble ${est(r.dimensionlessPressure.seedEnsemble)})`);
+    console.log(`  fit P = a + b kT: a = ${fmt(T.fit.intercept)} ± ${fmt(T.fit.seIntercept)}, b = ${fmt(T.fit.slope)} ± ${fmt(T.fit.seSlope)}; Z consistency across classes p = ${fmt(T.zConsistencyAcrossTemperatureClasses.pValue)}; same-seed same-class spread ${fmt(T.sameSeedSameClassRelativeSpread)}`);
   }
   const D = rec.results.densityDependence;
   if (D) {
@@ -127,9 +128,22 @@ function printThermal(rec: any): void {
   if (X) {
     console.log('MEASURED relaxation from initial distributions:');
     for (const r of X.rows) {
-      console.log(`  ${r.distribution.padEnd(14)} a2: ${fmt(r.initial.a2)} → ${est(r.equilibrium_a2)} after ${est(r.relaxationCollisions_a2)} coll/particle; anisotropy ${fmt(r.initial.anisotropy)} relaxed after ${est(r.relaxationCollisions_anisotropy)}; kurtosis ${est(r.equilibrium_kurtosis)}; Z = ${est(r.equilibriumZ)}; settled ${r.settled}`);
+      console.log(`  ${r.distribution.padEnd(14)} a2: ${fmt(r.initial.a2)} → ${est(r.equilibrium_a2_pooled)} after ${est(r.relaxationCollisions_a2)} coll/particle; anisotropy ${fmt(r.initial.anisotropy)} relaxed after ${est(r.relaxationCollisions_anisotropy)}; kurtosis ${est(r.equilibrium_kurtosis)}; Z = ${est(r.equilibriumZ)}; settled ${r.settled}`);
     }
     for (const k of rec.benchmarks.velocityDistribution.ksAgainstRayleigh) console.log(`  benchmark KS vs Rayleigh (${k.distribution}): D = ${fmt(k.D)}, n = ${k.n}, p = ${fmt(k.pValue)}`);
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function printWall(rec: any): void {
+  const est = (e: any) => (e && Number.isFinite(e.mean) ? `${fmt(e.mean)} ± ${fmt(e.se)}` : 'n/a');
+  console.log(`\nMEASURED thermal accommodation (hot wall kT = ${rec.config.hotWallKT}, cold wall kT = ${rec.config.coldWallKT}):`);
+  for (const t of rec.results.thermal) {
+    console.log(`  Aw=${t.Aw}: diffuse ${est(t.realisedDiffuseFraction)}, α_E hot ${est(t.alphaE_hotWall)} cold ${est(t.alphaE_coldWall)}, q_in ${est(t.heatIntoGasAtHotWallPerTimePerLength)}, q_out ${est(t.heatOutOfGasAtColdWallPerTimePerLength)}, imbalance ${est(t.heatImbalance)} (z ${fmt(t.heatImbalance.z)}), gas kT at hot wall ${est(t.gasKTNextToHotWall)}, at cold wall ${est(t.gasKTNextToColdWall)}`);
+  }
+  console.log(`MEASURED shear response (top wall U = ${rec.config.shearWallSpeed}):`);
+  for (const s of rec.results.shear) {
+    console.log(`  Aw=${s.Aw}: τ_bottom ${est(s.bottomShear)}, τ_top ${est(s.topShear)}, imbalance ${est(s.shearImbalance)} (z ${fmt(s.shearImbalance.z)}), α_t bottom ${est(s.alphaT_bottom)} top ${est(s.alphaT_top)}, slip bottom ${est(s.slipBottom)} top ${est(s.slipTop)}, work ${est(s.wallWorkOnGasPerTime)} heat ${est(s.heatRemovedPerTime)}, gas kT ${est(s.gasKT)}`);
   }
 }
 
