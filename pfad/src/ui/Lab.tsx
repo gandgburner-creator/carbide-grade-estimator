@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PFAD_MODEL_VERSION } from '../core/version';
 import type { ExperimentRecord, ExperimentType } from '../experiments/Experiment';
-import { EXPERIMENTS } from '../experiments/registry';
+import { AB_PRESETS, EXPERIMENTS } from '../experiments/registry';
 import type { ValidationStatus } from '../validation/Status';
 import type { FieldKind, Frame, FromWorker, ToWorker } from '../workers/protocol';
 import { CATALOG, type CatalogEntry } from './catalog';
@@ -45,6 +45,7 @@ export function Lab() {
   const epochRef = useRef(0);
   const [entry, setEntry] = useState<CatalogEntry>(CATALOG[0]);
   const [preset, setPreset] = useState<'quick' | 'reference'>('quick');
+  const [formVersion, setFormVersion] = useState(0);
   const [params, setParams] = useState<Params | null>(() => paramsFor(CATALOG[0], 'quick'));
   const [frame, setFrame] = useState<Frame | null>(null);
   const [record, setRecord] = useState<ExperimentRecord | null>(null);
@@ -171,7 +172,30 @@ export function Lab() {
                     </button>
                   ))}
                 </div>
-                <ParamsForm key={`${entry.key}-${preset}`} entry={entry} params={params} onChange={setParams} disabled={running} />
+                {entry.engine === 'ab-test' && (
+                  <label className="field" style={{ display: 'block', marginBottom: 8 }}>
+                    comparison preset
+                    <select
+                      disabled={running}
+                      value=""
+                      onChange={(e) => {
+                        const p = AB_PRESETS[e.target.value];
+                        if (p) {
+                          setParams(p as unknown as Params);
+                          setFormVersion((v) => v + 1);
+                        }
+                      }}
+                    >
+                      <option value="">— choose a comparison —</option>
+                      {Object.keys(AB_PRESETS).map((k) => (
+                        <option key={k} value={k}>
+                          {k}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                <ParamsForm key={`${entry.key}-${preset}-${formVersion}`} entry={entry} params={params} onChange={setParams} disabled={running} />
                 <div style={{ marginTop: 8 }}>
                   <SeedPicker
                     key={`seeds-${entry.key}-${preset}`}

@@ -186,6 +186,9 @@ const scaling: ExperimentEntry<ScalingParams> = {
 };
 
 const abBase = { ...STATIC_BOX_REFERENCE, restitutions: [1], count: 1000, measurementCollisions: 60 };
+// A/B sides compare metrics by name, so both sides of a model comparison carry the same case label
+const pulseSide = (k: number, seeds: number[]) => ({ ...PULSE_REFERENCE, seeds, cases: [{ ...PULSE_REFERENCE.cases[k], label: 'pulse φ=0.2' }] });
+const couetteBase = COUETTE_REFERENCE.cases[0];
 export const AB_PRESETS: Record<string, ABTestParams> = {
   'null test: disjoint seeds (expect no difference)': {
     experiment: 'static-box',
@@ -199,6 +202,26 @@ export const AB_PRESETS: Record<string, ABTestParams> = {
       label: 'impulse-at-detection',
       params: { ...abBase, seeds: [7, 8, 9, 10, 11], contact: 'impulse-at-detection', timestep: { kind: 'adaptive', courant: 0.1, dtMax: 1, dtMin: 1e-7 } },
     },
+  },
+  'collision only vs collision + occupancy (disturbance speed)': {
+    experiment: 'sound-speed',
+    a: { label: 'A: collisions only', params: pulseSide(0, [41, 42, 43, 44, 45, 46, 47, 48]) },
+    b: { label: 'B: collisions + occupancy', params: pulseSide(1, [41, 42, 43, 44, 45, 46, 47, 48]) },
+  },
+  'e = 1 vs e < 1 + thermal reservoir (disturbance speed)': {
+    experiment: 'sound-speed',
+    a: { label: 'A: e = 1', params: pulseSide(0, [41, 42, 43, 44, 45, 46, 47, 48]) },
+    b: { label: 'C: e = 0.9, reservoir release 0.5', params: pulseSide(2, [41, 42, 43, 44, 45, 46, 47, 48]) },
+  },
+  'specular vs diffuse plate (boundary layer)': {
+    experiment: 'boundary-layer',
+    a: { label: 'diffuse plate Aw = 1', params: { ...BOUNDARY_LAYER_REFERENCE, seeds: [91, 92, 93, 94] } },
+    b: { label: 'specular plate Aw = 0', params: { ...BOUNDARY_LAYER_REFERENCE, seeds: [91, 92, 93, 94], accommodation: 0 } },
+  },
+  'particle resolution: radius 0.5 vs 0.35 at equal φ and H (Couette μ_eff)': {
+    experiment: 'viscosity',
+    a: { label: 'r = 0.5', params: { ...COUETTE_REFERENCE, cases: [{ ...couetteBase, label: 'base' }] } },
+    b: { label: 'r = 0.35', params: { ...COUETTE_REFERENCE, cases: [{ ...couetteBase, label: 'base', radius: 0.35, count: Math.round(couetteBase.count * 2.041) }] } },
   },
 };
 const abTest: ExperimentEntry<ABTestParams> = {

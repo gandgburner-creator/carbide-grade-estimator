@@ -52,6 +52,22 @@ export function metricsOf(rec: ExperimentRecord): Metric[] {
     case 'viscosity':
     case 'viscosity-sweeps':
       return (r.cases ?? []).map((c: any) => ({ name: `μ_eff: ${c.label}`, estimate: c.muEff }));
+    case 'boundary-layer': {
+      const st = (r.stations ?? []).filter((s: any) => s.xFromLeadingEdge > 0);
+      const last = st[st.length - 1];
+      if (!last) return [];
+      return [
+        { name: `δ* at ${last.label}`, estimate: last.displacementThickness },
+        { name: `near-wall deficit at ${last.label}`, estimate: last.deficitAtWall },
+        { name: `wall shear at ${last.label}`, estimate: last.wallShear },
+      ];
+    }
+    case 'kutta':
+      return (r.cases ?? []).filter(Boolean).flatMap((c: any) => [
+        { name: `lift: ${c.label}`, estimate: c.lift },
+        { name: `drag: ${c.label}`, estimate: c.drag },
+        { name: `Γ_body: ${c.label}`, estimate: c.gammaBody },
+      ]);
     default:
       return [];
   }

@@ -4,6 +4,7 @@
  *   npm run exp -- <experiment-type> [--quick] [--set key=<json>]... [--out dir] [--name file-stem]
  *   npm run exp -- replay <record.json>
  *   npm run exp -- show <record.json>        (print a saved record without running anything)
+ *   npm run exp -- ab-test --preset "<name>"  (a registered A/B comparison; unknown name lists them)
  *
  * Writes <out>/<name>.json (the full ExperimentRecord) and, where a plot is
  * defined, <out>/<name>.svg. Prints the acceptance checks and headline numbers.
@@ -11,7 +12,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ExperimentRecord, ExperimentType } from '../src/experiments/Experiment';
-import { EXPERIMENTS, runFromRecord } from '../src/experiments/registry';
+import { AB_PRESETS, EXPERIMENTS, runFromRecord } from '../src/experiments/registry';
 import { runConvergenceStudy } from '../src/validation/Convergence';
 import { CONVERGENCE_STUDIES } from '../src/validation/studies';
 import { runParallel } from './parallel';
@@ -20,13 +21,14 @@ import { svgPlot, type Series } from './svgPlot';
 const COLORS = ['#1f6feb', '#d1242f', '#1a7f37', '#9a6700', '#8250df', '#57606a'];
 
 function parseArgs(argv: string[]) {
-  const args = { type: argv[0], quick: false, set: {} as Record<string, unknown>, out: 'results', name: '', file: '', parallel: 1 };
+  const args = { type: argv[0], quick: false, set: {} as Record<string, unknown>, out: 'results', name: '', file: '', parallel: 1, preset: '' };
   for (let i = 1; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--quick') args.quick = true;
     else if (a === '--out') args.out = argv[++i];
     else if (a === '--parallel') args.parallel = Number(argv[++i]);
     else if (a === '--name') args.name = argv[++i];
+    else if (a === '--preset') args.preset = argv[++i];
     else if (a === '--set') {
       const kv = argv[++i];
       const eq = kv.indexOf('=');
@@ -321,7 +323,15 @@ async function main(): Promise<void> {
       console.error(`unknown experiment '${args.type}'. Available: ${Object.keys(EXPERIMENTS).join(', ')}`);
       process.exit(1);
     }
-    const params = { ...(args.quick ? entry.quick : entry.defaults), ...args.set };
+    let base = args.quick ? entry.quick : entry.defaults;
+    if (args.preset) {
+      if (args.type !== 'ab-test' || !AB_PRESETS[args.preset]) {
+        console.error(`--preset applies to ab-test only. Presets:\n  ${Object.keys(AB_PRESETS).join('\n  ')}`);
+        process.exit(1);
+      }
+      base = AB_PRESETS[args.preset];
+    }
+    const params = { ...base, ...args.set };
     if (args.parallel > 1) {
       record = await runParallel(args.type as ExperimentType, params, args.parallel, (d, n) =>
         process.stdout.write(`\r${d}/${n} runs finished on ${args.parallel} threads   `),
