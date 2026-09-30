@@ -49,6 +49,7 @@ export function Lab() {
   const [params, setParams] = useState<Params | null>(() => paramsFor(CATALOG[0], 'quick'));
   const [frame, setFrame] = useState<Frame | null>(null);
   const [record, setRecord] = useState<ExperimentRecord | null>(null);
+  const [imported, setImported] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [statuses, setStatuses] = useState<Record<string, ValidationStatus>>({});
@@ -106,14 +107,32 @@ export function Lab() {
     setEntry(e);
     setParams(paramsFor(e, preset));
     setRecord(null);
+    setImported(null);
     setError(null);
     setLoaded(false);
     setFrame(null);
     setSelected(null);
   };
 
+  /** Show a saved record (e.g. a headless reference run); its status counts toward the Phase 0 criteria. */
+  const importRecord = (text: string, name: string) => {
+    try {
+      const rec = JSON.parse(text) as ExperimentRecord;
+      if (!rec || typeof rec !== 'object' || !rec.experimentType || !rec.status || !Array.isArray(rec.acceptance)) {
+        throw new Error('not a PFAD experiment record');
+      }
+      const e = CATALOG.find((c) => c.engine === rec.experimentType) ?? entry;
+      select(e);
+      setRecord(rec);
+      setImported(name);
+    } catch (err) {
+      setError(`Import failed (${name}): ${(err as Error).message}`);
+    }
+  };
+
   const load = () => {
     if (!entry.engine || !params) return;
+    setImported(null);
     setRecord(null);
     setError(null);
     setSelected(null);
@@ -319,6 +338,25 @@ export function Lab() {
           <div className="section">
             <h2>Export</h2>
             <ExportPanel record={record} config={params} experiment={entry.engine ?? entry.key} />
+            <label className="ctl" style={{ display: 'inline-block', marginTop: 8, cursor: 'pointer' }}>
+              IMPORT RECORD
+              <input
+                type="file"
+                accept="application/json,.json"
+                style={{ display: 'none' }}
+                onChange={(ev) => {
+                  const f = ev.target.files?.[0];
+                  if (f) f.text().then((t) => importRecord(t, f.name));
+                  ev.target.value = '';
+                }}
+              />
+            </label>
+            {imported && record && (
+              <div className="note" style={{ marginTop: 6 }}>
+                Showing imported record <code>{imported}</code> (model {record.modelVersion}); it was not run in this session. Regenerate it with{' '}
+                <code>npm run exp -- replay {imported}</code>.
+              </div>
+            )}
           </div>
         </div>
       </div>
