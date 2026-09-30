@@ -1,0 +1,195 @@
+THERMAL  (thermal-2026-09-30T16-13-32-189Z-s21_22_23_24_25_26_27_28_29_30, model 0.2.0-p0.4, seeds 21,22,23,24,25,26,27,28,29,30)
+
+  kT = 0.5 (class of 0.5, 2), φ = 0.05
+    per seed: 21: Z 1.11458, kTx/kTy 1.0054, a2 0.000640, kurt 3.001, disp 0.866 (797 windows, 200 coll/particle)
+              22: Z 1.11430, kTx/kTy 0.99974, a2 -0.00258, kurt 2.993, disp 0.841 (798 windows, 200 coll/particle)
+              23: Z 1.11507, kTx/kTy 1.0029, a2 -0.00272, kurt 2.986, disp 0.804 (798 windows, 200 coll/particle)
+              24: Z 1.11545, kTx/kTy 1.0050, a2 0.000804, kurt 3.000, disp 0.795 (798 windows, 200 coll/particle)
+              25: Z 1.11416, kTx/kTy 1.0036, a2 -0.000837, kurt 2.997, disp 0.839 (798 windows, 200 coll/particle)
+              26: Z 1.11385, kTx/kTy 0.99776, a2 0.00435, kurt 3.011, disp 0.819 (798 windows, 200 coll/particle)
+              27: Z 1.11624, kTx/kTy 0.99695, a2 -0.00185, kurt 2.996, disp 0.828 (798 windows, 200 coll/particle)
+              28: Z 1.11721, kTx/kTy 0.99437, a2 -0.00314, kurt 2.984, disp 0.772 (798 windows, 200 coll/particle)
+              29: Z 1.11468, kTx/kTy 0.99852, a2 0.000466, kurt 2.998, disp 0.804 (798 windows, 200 coll/particle)
+              30: Z 1.11524, kTx/kTy 1.0085, a2 -0.00278, kurt 2.992, disp 0.789 (798 windows, 200 coll/particle)
+    Z = 1.11508  var 0.00000105  SD 0.00102  SE 0.000324  95% CI [1.1143, 1.1158]  (±0.0657 %)  between-seed CV 0.0919 %   | Henderson 1.1084
+    kT = 0.500000, kTx/kTy = 1.0013 ± 0.0014, a2 = -0.000764 ± 0.00075, kurtosis = 2.996 ± 0.0025, anisotropy = 0.000628 ± 0.00070, dispersion = 0.8156 ± 0.0089 (hard-disk S(0) 0.8158)
+    stationarity (late − early half, seed-paired): Z -0.00167 ± 0.0015 p 0.297; a2 0.00160 ± 0.0015 p 0.309; kurtosis 0.00424 ± 0.0050 p 0.416; anisotropy -0.000647 ± 0.0015 p 0.676; dispersion -0.0196 ± 0.014 p 0.209
+    window sensitivity (Z from the last x of the measurement): 1: 1.11508 ± 0.00032; 0.75: 1.11436 ± 0.00040; 0.5: 1.11424 ± 0.00071; 0.25: 1.11549 ± 0.0014
+
+  φ = 0.02, kT = 1
+    per seed: 21: Z 1.04336, kTx/kTy 1.0034, a2 0.00326, kurt 3.003, disp 0.874 (799 windows, 200 coll/particle)
+              22: Z 1.04536, kTx/kTy 0.99777, a2 -0.00178, kurt 2.988, disp 0.912 (799 windows, 200 coll/particle)
+              23: Z 1.04340, kTx/kTy 1.0008, a2 0.00623, kurt 3.016, disp 0.941 (799 windows, 200 coll/particle)
+              24: Z 1.04385, kTx/kTy 0.99469, a2 -0.00649, kurt 2.976, disp 0.980 (799 windows, 200 coll/particle)
+              25: Z 1.04541, kTx/kTy 0.99470, a2 0.000174, kurt 3.000, disp 0.928 (799 windows, 200 coll/particle)
+              26: Z 1.04536, kTx/kTy 1.0060, a2 0.00572, kurt 3.017, disp 0.999 (799 windows, 200 coll/particle)
+              27: Z 1.04459, kTx/kTy 1.0004, a2 0.000164, kurt 3.002, disp 0.912 (799 windows, 200 coll/particle)
+              28: Z 1.04528, kTx/kTy 0.99994, a2 -0.00654, kurt 2.981, disp 0.941 (799 windows, 200 coll/particle)
+              29: Z 1.04472, kTx/kTy 0.99398, a2 -0.00720, kurt 2.976, disp 0.934 (799 windows, 200 coll/particle)
+              30: Z 1.04634, kTx/kTy 0.99987, a2 -0.00327, kurt 2.988, disp 0.923 (799 windows, 200 coll/particle)
+    Z = 1.04477  var 9.53e-7  SD 0.000976  SE 0.000309  95% CI [1.0441, 1.0455]  (±0.0668 %)  between-seed CV 0.0934 %   | Henderson 1.0413
+    kT = 1.00000, kTx/kTy = 0.99915 ± 0.0012, a2 = -0.000974 ± 0.0016, kurtosis = 2.995 ± 0.0048, anisotropy = -0.000427 ± 0.00062, dispersion = 0.9344 ± 0.011 (hard-disk S(0) 0.9226)
+    stationarity (late − early half, seed-paired): Z -0.00162 ± 0.00094 p 0.118; a2 -0.000481 ± 0.0019 p 0.809; kurtosis 0.000751 ± 0.0050 p 0.885; anisotropy 0.000268 ± 0.0014 p 0.851; dispersion 0.0139 ± 0.014 p 0.331
+    window sensitivity (Z from the last x of the measurement): 1: 1.04477 ± 0.00031; 0.75: 1.04454 ± 0.00037; 0.5: 1.04396 ± 0.00060; 0.25: 1.04464 ± 0.00085
+
+  φ = 0.05, kT = 1  [also represents kT = 0.25, 1, 4 (bit-identical in rescaled time) and the Maxwell-start relaxation run]
+    per seed: 21: Z 1.11430, kTx/kTy 0.99642, a2 0.000579, kurt 3.000, disp 0.872 (798 windows, 200 coll/particle)
+              22: Z 1.11667, kTx/kTy 1.0018, a2 0.00476, kurt 3.015, disp 0.882 (797 windows, 200 coll/particle)
+              23: Z 1.11415, kTx/kTy 0.99659, a2 0.00119, kurt 3.004, disp 0.849 (798 windows, 200 coll/particle)
+              24: Z 1.11241, kTx/kTy 1.0000, a2 0.00469, kurt 3.013, disp 0.858 (798 windows, 200 coll/particle)
+              25: Z 1.11440, kTx/kTy 1.0011, a2 0.00374, kurt 3.011, disp 0.843 (798 windows, 200 coll/particle)
+              26: Z 1.11320, kTx/kTy 1.0015, a2 -0.00641, kurt 2.981, disp 0.804 (797 windows, 200 coll/particle)
+              27: Z 1.11819, kTx/kTy 0.99566, a2 0.00381, kurt 3.017, disp 0.885 (797 windows, 200 coll/particle)
+              28: Z 1.11609, kTx/kTy 1.0032, a2 -0.00121, kurt 2.997, disp 0.827 (798 windows, 200 coll/particle)
+              29: Z 1.11497, kTx/kTy 0.99900, a2 -0.00336, kurt 2.991, disp 0.775 (798 windows, 200 coll/particle)
+              30: Z 1.11575, kTx/kTy 1.0012, a2 -0.00268, kurt 2.989, disp 0.778 (798 windows, 200 coll/particle)
+    Z = 1.11501  var 0.00000291  SD 0.00171  SE 0.000539  95% CI [1.1138, 1.1162]  (±0.109 %)  between-seed CV 0.153 %   | Henderson 1.1084
+    kT = 1.00000, kTx/kTy = 0.99965 ± 0.00082, a2 = 0.000511 ± 0.0012, kurtosis = 3.002 ± 0.0039, anisotropy = -0.000178 ± 0.00041, dispersion = 0.8373 ± 0.013 (hard-disk S(0) 0.8158)
+    stationarity (late − early half, seed-paired): Z 0.00372 ± 0.0013 p 0.0160; a2 -0.00195 ± 0.0018 p 0.296; kurtosis -0.00595 ± 0.0057 p 0.321; anisotropy -0.000652 ± 0.0010 p 0.537; dispersion -0.0137 ± 0.018 p 0.478
+    window sensitivity (Z from the last x of the measurement): 1: 1.11501 ± 0.00054; 0.75: 1.11635 ± 0.00077; 0.5: 1.11688 ± 0.00067; 0.25: 1.11475 ± 0.0019
+
+  φ = 0.1, kT = 1
+    per seed: 21: Z 1.24645, kTx/kTy 1.0022, a2 0.000788, kurt 2.999, disp 0.669 (795 windows, 200 coll/particle)
+              22: Z 1.24910, kTx/kTy 0.99729, a2 0.000202, kurt 2.996, disp 0.698 (795 windows, 200 coll/particle)
+              23: Z 1.24810, kTx/kTy 1.0006, a2 0.00429, kurt 3.009, disp 0.693 (795 windows, 200 coll/particle)
+              24: Z 1.25061, kTx/kTy 0.99626, a2 0.00158, kurt 3.004, disp 0.655 (795 windows, 200 coll/particle)
+              25: Z 1.24921, kTx/kTy 0.99984, a2 0.00325, kurt 3.009, disp 0.694 (795 windows, 200 coll/particle)
+              26: Z 1.25171, kTx/kTy 1.0048, a2 0.00280, kurt 3.005, disp 0.679 (795 windows, 200 coll/particle)
+              27: Z 1.24305, kTx/kTy 1.0016, a2 0.00383, kurt 3.013, disp 0.654 (795 windows, 200 coll/particle)
+              28: Z 1.24841, kTx/kTy 0.99820, a2 0.00211, kurt 3.006, disp 0.698 (795 windows, 200 coll/particle)
+              29: Z 1.24544, kTx/kTy 1.0003, a2 0.000173, kurt 2.995, disp 0.651 (795 windows, 200 coll/particle)
+              30: Z 1.25170, kTx/kTy 0.99682, a2 -0.0109, kurt 2.969, disp 0.673 (795 windows, 200 coll/particle)
+    Z = 1.24838  var 0.00000768  SD 0.00277  SE 0.000876  95% CI [1.2464, 1.2504]  (±0.159 %)  between-seed CV 0.222 %   | Henderson 1.2361
+    kT = 1.00000, kTx/kTy = 0.99978 ± 0.00085, a2 = 0.000814 ± 0.0014, kurtosis = 3.001 ± 0.0040, anisotropy = -0.000111 ± 0.00042, dispersion = 0.6764 ± 0.0060 (hard-disk S(0) 0.6606)
+    stationarity (late − early half, seed-paired): Z 0.00319 ± 0.0035 p 0.381; a2 0.000327 ± 0.0017 p 0.855; kurtosis 0.000281 ± 0.0052 p 0.958; anisotropy -0.000170 ± 0.0013 p 0.902; dispersion 0.0207 ± 0.014 p 0.169
+    window sensitivity (Z from the last x of the measurement): 1: 1.24838 ± 0.00088; 0.75: 1.24808 ± 0.00098; 0.5: 1.24997 ± 0.0017; 0.25: 1.25205 ± 0.0034
+
+  φ = 0.2, kT = 1
+    per seed: 21: Z 1.59359, kTx/kTy 1.0002, a2 0.00327, kurt 3.006, disp 0.453 (787 windows, 200 coll/particle)
+              22: Z 1.59299, kTx/kTy 0.99864, a2 -0.00407, kurt 2.983, disp 0.483 (787 windows, 200 coll/particle)
+              23: Z 1.58992, kTx/kTy 1.0016, a2 -0.00557, kurt 2.982, disp 0.460 (787 windows, 200 coll/particle)
+              24: Z 1.58489, kTx/kTy 0.99148, a2 0.000895, kurt 3.005, disp 0.504 (787 windows, 200 coll/particle)
+              25: Z 1.59601, kTx/kTy 1.0024, a2 -0.00246, kurt 2.988, disp 0.457 (787 windows, 200 coll/particle)
+              26: Z 1.59577, kTx/kTy 1.0039, a2 -0.00673, kurt 2.980, disp 0.431 (787 windows, 200 coll/particle)
+              27: Z 1.59148, kTx/kTy 1.0049, a2 -0.00128, kurt 2.999, disp 0.463 (787 windows, 200 coll/particle)
+              28: Z 1.58988, kTx/kTy 1.0020, a2 -0.000402, kurt 2.998, disp 0.469 (787 windows, 200 coll/particle)
+              29: Z 1.58831, kTx/kTy 1.0053, a2 -0.00559, kurt 2.982, disp 0.447 (787 windows, 200 coll/particle)
+              30: Z 1.59790, kTx/kTy 0.98745, a2 -0.00142, kurt 2.997, disp 0.451 (787 windows, 200 coll/particle)
+    Z = 1.59207  var 0.0000158  SD 0.00397  SE 0.00126  95% CI [1.5892, 1.5949]  (±0.178 %)  between-seed CV 0.249 %   | Henderson 1.5703
+    kT = 1.00000, kTx/kTy = 0.99979 ± 0.0019, a2 = -0.00234 ± 0.0010, kurtosis = 2.992 ± 0.0032, anisotropy = -0.000113 ± 0.00093, dispersion = 0.4618 ± 0.0064 (hard-disk S(0) 0.4217)
+    stationarity (late − early half, seed-paired): Z -0.00486 ± 0.0041 p 0.270; a2 0.00141 ± 0.0013 p 0.299; kurtosis 0.00296 ± 0.0044 p 0.517; anisotropy 0.00243 ± 0.0018 p 0.216; dispersion 0.00614 ± 0.0092 p 0.521
+    window sensitivity (Z from the last x of the measurement): 1: 1.59207 ± 0.0013; 0.75: 1.59258 ± 0.0020; 0.5: 1.58965 ± 0.0027; 0.25: 1.59313 ± 0.0044
+
+  uniform-speed start, φ = 0.05 (late half of the relaxation run)
+    per seed: 21: Z 1.10153, kTx/kTy 0.99655, a2 -0.000746, kurt 3.003, disp 0.832 (396 windows, 40.0 coll/particle)
+              22: Z 1.10344, kTx/kTy 1.0063, a2 0.00366, kurt 3.019, disp 0.909 (395 windows, 40.0 coll/particle)
+              23: Z 1.12047, kTx/kTy 1.0066, a2 -0.00876, kurt 2.969, disp 0.910 (396 windows, 40.0 coll/particle)
+              24: Z 1.11720, kTx/kTy 0.99217, a2 0.00373, kurt 3.001, disp 0.730 (396 windows, 40.0 coll/particle)
+              25: Z 1.11284, kTx/kTy 0.98774, a2 -0.00673, kurt 2.975, disp 0.839 (396 windows, 40.0 coll/particle)
+              26: Z 1.10846, kTx/kTy 1.0150, a2 -0.00883, kurt 2.976, disp 0.770 (396 windows, 40.0 coll/particle)
+              27: Z 1.12288, kTx/kTy 1.0028, a2 -0.000421, kurt 3.010, disp 0.924 (396 windows, 40.0 coll/particle)
+              28: Z 1.12555, kTx/kTy 0.99098, a2 -0.00618, kurt 2.975, disp 0.755 (396 windows, 40.0 coll/particle)
+              29: Z 1.11416, kTx/kTy 0.99090, a2 0.00127, kurt 3.018, disp 1.08 (396 windows, 40.0 coll/particle)
+              30: Z 1.12067, kTx/kTy 0.98056, a2 0.0153, kurt 3.052, disp 0.909 (396 windows, 40.0 coll/particle)
+    Z = 1.11472  var 0.0000670  SD 0.00819  SE 0.00259  95% CI [1.1089, 1.1206]  (±0.525 %)  between-seed CV 0.734 %   | Henderson 1.1084
+    kT = 1.00000, kTx/kTy = 0.99696 ± 0.0033, a2 = -0.000770 ± 0.0023, kurtosis = 3.000 ± 0.0084, anisotropy = -0.00155 ± 0.0017, dispersion = 0.8658 ± 0.033 (hard-disk S(0) 0.8158)
+    stationarity (late − early half, seed-paired): Z 0.00613 ± 0.0080 p 0.461; a2 0.00172 ± 0.0042 p 0.691; kurtosis 0.00447 ± 0.014 p 0.749; anisotropy 0.00146 ± 0.0040 p 0.726; dispersion 0.0123 ± 0.018 p 0.514
+    window sensitivity (Z from the last x of the measurement): 1: 1.11472 ± 0.0026; 0.75: 1.11567 ± 0.0030; 0.5: 1.11778 ± 0.0049; 0.25: 1.11654 ± 0.0093
+
+  uniform-box start, φ = 0.05 (late half of the relaxation run)
+    per seed: 21: Z 1.11835, kTx/kTy 0.99344, a2 0.00595, kurt 3.016, disp 0.913 (396 windows, 40.0 coll/particle)
+              22: Z 1.10859, kTx/kTy 0.98766, a2 0.00275, kurt 3.006, disp 0.841 (395 windows, 40.0 coll/particle)
+              23: Z 1.11727, kTx/kTy 1.0042, a2 0.00276, kurt 3.000, disp 0.883 (395 windows, 40.0 coll/particle)
+              24: Z 1.11527, kTx/kTy 1.0025, a2 0.00431, kurt 3.020, disp 0.860 (395 windows, 40.0 coll/particle)
+              25: Z 1.11397, kTx/kTy 1.0092, a2 0.0120, kurt 3.032, disp 0.867 (396 windows, 40.0 coll/particle)
+              26: Z 1.11138, kTx/kTy 1.0207, a2 -0.00148, kurt 2.994, disp 0.770 (396 windows, 40.0 coll/particle)
+              27: Z 1.11236, kTx/kTy 0.99941, a2 -0.00921, kurt 2.967, disp 0.804 (395 windows, 40.0 coll/particle)
+              28: Z 1.10742, kTx/kTy 1.0206, a2 -0.0155, kurt 2.953, disp 0.891 (395 windows, 40.0 coll/particle)
+              29: Z 1.11927, kTx/kTy 0.99459, a2 -0.0129, kurt 2.971, disp 0.887 (396 windows, 40.0 coll/particle)
+              30: Z 1.11645, kTx/kTy 0.99762, a2 -0.00402, kurt 2.983, disp 0.806 (396 windows, 40.0 coll/particle)
+    Z = 1.11403  var 0.0000163  SD 0.00404  SE 0.00128  95% CI [1.1111, 1.1169]  (±0.259 %)  between-seed CV 0.363 %   | Henderson 1.1084
+    kT = 1.00000, kTx/kTy = 1.0030 ± 0.0035, a2 = -0.00154 ± 0.0028, kurtosis = 2.994 ± 0.0081, anisotropy = 0.00147 ± 0.0017, dispersion = 0.8522 ± 0.015 (hard-disk S(0) 0.8158)
+    stationarity (late − early half, seed-paired): Z -0.00828 ± 0.0048 p 0.119; a2 -0.00256 ± 0.0040 p 0.537; kurtosis -0.00586 ± 0.012 p 0.643; anisotropy -0.00103 ± 0.0026 p 0.707; dispersion 0.0114 ± 0.021 p 0.592
+    window sensitivity (Z from the last x of the measurement): 1: 1.11403 ± 0.0013; 0.75: 1.11063 ± 0.0023; 0.5: 1.10990 ± 0.0021; 0.25: 1.10947 ± 0.012
+
+  two-beam start, φ = 0.05 (late half of the relaxation run)
+    per seed: 21: Z 1.11584, kTx/kTy 1.0026, a2 0.00376, kurt 3.001, disp 0.832 (396 windows, 40.0 coll/particle)
+              22: Z 1.08659, kTx/kTy 0.99958, a2 -0.00506, kurt 2.988, disp 0.853 (396 windows, 40.0 coll/particle)
+              23: Z 1.11140, kTx/kTy 0.99076, a2 -0.0134, kurt 2.964, disp 0.842 (396 windows, 40.0 coll/particle)
+              24: Z 1.11068, kTx/kTy 1.0093, a2 0.00375, kurt 3.009, disp 0.790 (396 windows, 40.0 coll/particle)
+              25: Z 1.11563, kTx/kTy 0.99503, a2 0.0201, kurt 3.069, disp 0.858 (395 windows, 40.0 coll/particle)
+              26: Z 1.10980, kTx/kTy 0.99570, a2 -0.0108, kurt 2.972, disp 0.781 (396 windows, 40.0 coll/particle)
+              27: Z 1.12328, kTx/kTy 1.0165, a2 -0.00115, kurt 2.991, disp 0.835 (396 windows, 40.0 coll/particle)
+              28: Z 1.11362, kTx/kTy 1.0001, a2 -0.00586, kurt 2.977, disp 0.774 (396 windows, 40.0 coll/particle)
+              29: Z 1.12496, kTx/kTy 0.99467, a2 -0.00702, kurt 2.987, disp 0.857 (396 windows, 40.0 coll/particle)
+              30: Z 1.11175, kTx/kTy 1.0102, a2 0.00687, kurt 3.016, disp 0.821 (396 windows, 40.0 coll/particle)
+    Z = 1.11236  var 0.000109  SD 0.0104  SE 0.00330  95% CI [1.1049, 1.1198]  (±0.670 %)  between-seed CV 0.937 %   | Henderson 1.1084
+    kT = 1.00000, kTx/kTy = 1.0014 ± 0.0026, a2 = -0.000882 ± 0.0031, kurtosis = 2.997 ± 0.0094, anisotropy = 0.000707 ± 0.0013, dispersion = 0.8242 ± 0.010 (hard-disk S(0) 0.8158)
+    stationarity (late − early half, seed-paired): Z 0.00421 ± 0.0099 p 0.679; a2 0.00208 ± 0.0033 p 0.539; kurtosis 0.00949 ± 0.0086 p 0.300; anisotropy 0.00168 ± 0.0021 p 0.437; dispersion 0.0218 ± 0.030 p 0.492
+    window sensitivity (Z from the last x of the measurement): 1: 1.11236 ± 0.0033; 0.75: 1.11318 ± 0.0035; 0.5: 1.11446 ± 0.0064; 0.25: 1.09789 ± 0.011
+
+VISCOSITY  (viscosity-2026-09-30T15-54-47-485Z-s71_72_73_74_75_76_77_78_79_80_81_82_83_84_85_86_87_88_89_90_91_92_93_94_95_96_97_98_99_100, model 0.2.0-p0.4, 30 seeds 71–100)
+  per seed: 71: μ 0.2674 ± 0.037 (τ 0.00334, γ 0.0125, fit p 0.73)
+            72: μ 0.3438 ± 0.029 (τ 0.00375, γ 0.0109, fit p 0.97)
+            73: μ 0.3197 ± 0.033 (τ 0.00358, γ 0.0112, fit p 0.94)
+            74: μ 0.3867 ± 0.032 (τ 0.00427, γ 0.0110, fit p 0.99)
+            75: μ 0.3026 ± 0.029 (τ 0.00346, γ 0.0114, fit p 0.99)
+            76: μ 0.4137 ± 0.054 (τ 0.00377, γ 0.00911, fit p 0.87)
+            77: μ 0.3513 ± 0.041 (τ 0.00358, γ 0.0102, fit p 0.99)
+            78: μ 0.2518 ± 0.037 (τ 0.00320, γ 0.0127, fit p 0.92)
+            79: μ 0.4182 ± 0.047 (τ 0.00436, γ 0.0104, fit p 0.98)
+            80: μ 0.3166 ± 0.042 (τ 0.00390, γ 0.0123, fit p 0.96)
+            81: μ 0.3391 ± 0.040 (τ 0.00357, γ 0.0105, fit p 0.51)
+            82: μ 0.3620 ± 0.039 (τ 0.00372, γ 0.0103, fit p 0.79)
+            83: μ 0.3506 ± 0.041 (τ 0.00359, γ 0.0102, fit p 0.92)
+            84: μ 0.3293 ± 0.034 (τ 0.00363, γ 0.0110, fit p 0.98)
+            85: μ 0.3734 ± 0.037 (τ 0.00374, γ 0.0100, fit p 0.57)
+            86: μ 0.3236 ± 0.035 (τ 0.00334, γ 0.0103, fit p 0.99)
+            87: μ 0.3849 ± 0.048 (τ 0.00343, γ 0.00890, fit p 0.37)
+            88: μ 0.3679 ± 0.034 (τ 0.00402, γ 0.0109, fit p 0.89)
+            89: μ 0.2990 ± 0.038 (τ 0.00348, γ 0.0116, fit p 0.65)
+            90: μ 0.3566 ± 0.030 (τ 0.00383, γ 0.0107, fit p 0.67)
+            91: μ 0.2500 ± 0.029 (τ 0.00299, γ 0.0119, fit p 0.78)
+            92: μ 0.3537 ± 0.042 (τ 0.00360, γ 0.0102, fit p 1.0)
+            93: μ 0.3327 ± 0.030 (τ 0.00367, γ 0.0110, fit p 0.99)
+            94: μ 0.2835 ± 0.027 (τ 0.00326, γ 0.0115, fit p 0.96)
+            95: μ 0.2973 ± 0.032 (τ 0.00349, γ 0.0117, fit p 1.0)
+            96: μ 0.3025 ± 0.031 (τ 0.00355, γ 0.0117, fit p 0.65)
+            97: μ 0.3115 ± 0.039 (τ 0.00329, γ 0.0106, fit p 0.74)
+            98: μ 0.3791 ± 0.046 (τ 0.00358, γ 0.00945, fit p 0.68)
+            99: μ 0.3070 ± 0.037 (τ 0.00336, γ 0.0109, fit p 0.54)
+            100: μ 0.3027 ± 0.029 (τ 0.00408, γ 0.0135, fit p 1.0)
+  μ_eff = 0.3326  var 0.00186  SD 0.0432  SE 0.00788  95% CI [0.31648, 0.34873] (±4.85 %)  between-seed CV 13.0 %
+  pooled (per-run SEs): 0.3255 ± 0.00640, seed χ² p 0.0980
+  halves: first 0.3303 ± 0.0097, second 0.3355 ± 0.0099; paired Δ 0.00517 ± 0.012 (p 0.666)
+  core fraction: 0.4 0.3379 ± 0.0099, 0.6 0.3317 ± 0.0077, 0.8 0.3295 ± 0.0069; paired 0.4−0.6 p 0.266, 0.8−0.6 p 0.377 (diagnostic)
+  cumulative μ(t): 75.0: 0.3198 ± 0.020; 150: 0.3259 ± 0.013; 225: 0.3280 ± 0.010; 300: 0.3303 ± 0.0097; 375: 0.3366 ± 0.0092; 450: 0.3343 ± 0.0083; 525: 0.3382 ± 0.0086; 600: 0.3317 ± 0.0077
+  V7 timestep: Courant 0.025 0.3326 ± 0.0079 vs Courant 0.05 0.3220 ± 0.0070 → z = -1.01
+
+CLASSIFICATION
+  thermal: INCONCLUSIVE
+    [PASSED] numerical-safety: none
+    [PASSED] E5-no-empty-space: none (φ 0.00833 … 0.299, mean 0.0631)
+    [PASSED] E1-energy-conservation: 3.40e-14
+    [PASSED] no-hidden-energy-scale: 0.00e+0 over 30 pair(s)
+    [PASSED] E3-temperature-scaling: p = 0.921 over 2 classes
+    [PASSED] E3-independent-of-initial-distribution: p(Z) = 0.904, p(a2) = 0.935
+    [NOT CONVERGED] E6-relaxation-settled: uniform-box
+    [PASSED] E2-stationarity: all pass; smallest p = 1.60e-2 (φ = 0.05, kT = 1 / Z)
+    [PASSED] E4-precision: all < 0.71 %; worst 0.67 % (two-beam start, φ = 0.05 (late half of the relaxation run))
+  viscosity: PASS
+    [PASSED] numerical-safety: none
+    [PASSED] no-empty-space: none (φ 0.0506 … 0.152, mean 0.100)
+    [PASSED] energy-accounting: 1.18e-13
+    [PASSED] momentum-accounting: 5.91e-15
+    [PASSED] V1-steady-state-momentum: max |z| = 0.06
+    [PASSED] V1-steady-state-energy: max |z| = 0.30
+    [PASSED] V2-core-profile-linear: all linear (min p 3.73e-1)
+    [PASSED] V3-emergent: all CIs above 0
+    [PASSED] V4-seed-reproducible: min p = 0.0980
+    [PASSED] V5-time-stable: base: φ=0.1, H=40, U=0.5, Aw=1: p = 0.666
+    [PASSED] V6-window-insensitive: base: φ=0.1, H=40, U=0.5, Aw=1: p = 0.266
+    [PASSED] V8-viscosity-precision: all < 10 % (4.8 %)
+    [PASSED] V7-timestep: z = -1.01 (Courant 0.05 − 0.025, independent seeds)
+
+plots: results/plots/thermal_Z_convergence_1.svg, results/plots/thermal_Z_convergence_2.svg, results/plots/thermal_Z_convergence_3.svg, results/plots/thermal_Z_convergence_4.svg, results/plots/thermal_Z_convergence_5.svg, results/plots/thermal_Z_convergence_6.svg, results/plots/thermal_Z_convergence_7.svg, results/plots/thermal_Z_convergence_8.svg, results/plots/thermal_relaxation_a2.svg, results/plots/thermal_relaxation_anisotropy.svg, results/plots/thermal_window_sensitivity.svg, results/plots/viscosity_profile.svg, results/plots/viscosity_mu_convergence.svg, results/plots/viscosity_mu_per_block.svg, results/plots/viscosity_per_seed.svg, results/plots/viscosity_window_sensitivity.svg

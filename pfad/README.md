@@ -17,6 +17,7 @@ convergence studies, and at present they have not (see
 - Every assumption and implementation choice, by ID: [`docs/MODEL_ASSUMPTIONS.md`](docs/MODEL_ASSUMPTIONS.md)
 - Model versions and why they changed: [`docs/MODEL_CHANGELOG.md`](docs/MODEL_CHANGELOG.md)
 - What was measured, against what, and what it means: [`docs/EXPERIMENT_LOG.md`](docs/EXPERIMENT_LOG.md)
+- Thermal-equilibrium and viscosity precision reruns (criteria fixed in advance, full report): [`docs/CRITERIA_THERMAL_VISCOSITY.md`](docs/CRITERIA_THERMAL_VISCOSITY.md), [`docs/REPORT_THERMAL_VISCOSITY.md`](docs/REPORT_THERMAL_VISCOSITY.md)
 
 ## The rules the code keeps
 

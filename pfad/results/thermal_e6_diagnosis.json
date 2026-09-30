@@ -1,0 +1,935 @@
+{
+ "source": "thermal-2026-09-30T16-13-32-189Z-s21_22_23_24_25_26_27_28_29_30",
+ "note": "Post-hoc diagnosis of E6; does not change the pre-registered classification (docs/CRITERIA_THERMAL_VISCOSITY.md).",
+ "officialE6": {
+  "id": "E6-relaxation-settled",
+  "description": "Relaxation completes within the recorded time",
+  "criterion": "last > 4σ excursion in the first half of every run",
+  "measured": "uniform-box",
+  "status": "NOT CONVERGED"
+ },
+ "excursions": {
+  "equilibriumFrom": 20,
+  "windowsInspected": 51400,
+  "lateWindows": 31608,
+  "series": 80,
+  "episodes": [
+   {
+    "distribution": "uniform-speed",
+    "seed": 22,
+    "observable": "anisotropy",
+    "window": 265,
+    "c": 26.939,
+    "z": 4.100174439575188,
+    "half": "early",
+    "windows": 5,
+    "maxZ": 4.398022060486735,
+    "cTo": 27.344
+   },
+   {
+    "distribution": "uniform-box",
+    "seed": 25,
+    "observable": "a2",
+    "window": 560,
+    "c": 56.816,
+    "z": 4.677362554052457,
+    "half": "late",
+    "windows": 1,
+    "maxZ": 4.677362554052457,
+    "cTo": 56.816
+   },
+   {
+    "distribution": "maxwell",
+    "seed": 28,
+    "observable": "a2",
+    "window": 201,
+    "c": 20.506,
+    "z": 4.2600316850619135,
+    "half": "early",
+    "windows": 7,
+    "maxZ": 5.176527942679428,
+    "cTo": 21.114
+   },
+   {
+    "distribution": "maxwell",
+    "seed": 28,
+    "observable": "anisotropy",
+    "window": 299,
+    "c": 30.41,
+    "z": 4.1567407600919,
+    "half": "early",
+    "windows": 11,
+    "maxZ": 4.559885747745845,
+    "cTo": 31.419
+   },
+   {
+    "distribution": "uniform-box",
+    "seed": 29,
+    "observable": "a2",
+    "window": 348,
+    "c": 35.376,
+    "z": 4.53896042305629,
+    "half": "early",
+    "windows": 3,
+    "maxZ": 4.53896042305629,
+    "cTo": 35.576
+   }
+  ],
+  "ratePerSeriesPerCollision": 0.0009618355207396749,
+  "expectedChanceEpisodesPerStart": 0.7669763007575037,
+  "chanceAnyStartFlagged": 0.9534815003248127,
+  "lateMaxZ": [
+   {
+    "distribution": "maxwell",
+    "seed": 21,
+    "observable": "a2",
+    "maxAbsZ": 2.3552623977288567,
+    "skewness": -0.315895209880831
+   },
+   {
+    "distribution": "maxwell",
+    "seed": 21,
+    "observable": "anisotropy",
+    "maxAbsZ": 2.9516863061477268,
+    "skewness": -0.47315154906408824
+   },
+   {
+    "distribution": "uniform-speed",
+    "seed": 21,
+    "observable": "a2",
+    "maxAbsZ": 2.338670328165479,
+    "skewness": -0.1318581346418293
+   },
+   {
+    "distribution": "uniform-speed",
+    "seed": 21,
+    "observable": "anisotropy",
+    "maxAbsZ": 2.9470969241759213,
+    "skewness": -0.015836623868660207
+   },
+   {
+    "distribution": "uniform-box",
+    "seed": 21,
+    "observable": "a2",
+    "maxAbsZ": 3.4447591123813055,
+    "skewness": 0.8270798066037025
+   },
+   {
+    "distribution": "uniform-box",
+    "seed": 21,
+    "observable": "anisotropy",
+    "maxAbsZ": 2.7329284427852754,
+    "skewness": 0.31288096402271987
+   },
+   {
+    "distribution": "two-beam",
+    "seed": 21,
+    "observable": "a2",
+    "maxAbsZ": 2.9379929732385337,
+    "skewness": 0.32325139078774345
+   },
+   {
+    "distribution": "two-beam",
+    "seed": 21,
+    "observable": "anisotropy",
+    "maxAbsZ": 2.7837397714698864,
+    "skewness": -0.14200442127186635
+   },
+   {
+    "distribution": "maxwell",
+    "seed": 22,
+    "observable": "a2",
+    "maxAbsZ": 3.0158438144608755,
+    "skewness": 0.09719127811180772
+   },
+   {
+    "distribution": "maxwell",
+    "seed": 22,
+    "observable": "anisotropy",
+    "maxAbsZ": 2.922703802066383,
+    "skewness": -0.21683557731716643
+   },
+   {
+    "distribution": "uniform-speed",
+    "seed": 22,
+    "observable": "a2",
+    "maxAbsZ": 2.8663204703517735,
+    "skewness": 0.43598303034066666
+   },
+   {
+    "distribution": "uniform-speed",
+    "seed": 22,
+    "observable": "anisotropy",
+    "maxAbsZ": 3.682363686349742,
+    "skewness": -0.3683052763077158
+   },
+   {
+    "distribution": "uniform-box",
+    "seed": 22,
+    "observable": "a2",
+    "maxAbsZ": 2.9808313763872185,
+    "skewness": -0.4220571354636814
+   },
+   {
+    "distribution": "uniform-box",
+    "seed": 22,
+    "observable": "anisotropy",
+    "maxAbsZ": 2.2216290791992774,
+    "skewness": 0.0972338201253084
+   },
+   {
+    "distribution": "two-beam",
+    "seed": 22,
+    "observable": "a2",
+    "maxAbsZ": 2.3966691531934257,
+    "skewness": 0.021120205832877128
+   },
+   {
+    "distribution": "two-beam",
+    "seed": 22,
+    "observable": "anisotropy",
+    "maxAbsZ": 2.66626640668198,
+    "skewness": 0.21082696255810673
+   },
+   {
+    "distribution": "maxwell",
+    "seed": 23,
+    "observable": "a2",
+    "maxAbsZ": 3.5726101835237114,
+    "skewness": 0.5108278694488022
+   },
+   {
+    "distribution": "maxwell",
+    "seed": 23,
+    "observable": "anisotropy",
+    "maxAbsZ": 3.4212146473994105,
+    "skewness": 0.3101871448744706
+   },
+   {
+    "distribution": "uniform-speed",
+    "seed": 23,
+    "observable": "a2",
+    "maxAbsZ": 3.305012033385015,
+    "skewness": 0.8433486828369231
+   },
+   {
+    "distribution": "uniform-speed",
+    "seed": 23,
+    "observable": "anisotropy",
+    "maxAbsZ": 3.375344774727072,
+    "skewness": -0.2818959806004207
+   },
+   {
+    "distribution": "uniform-box",
+    "seed": 23,
+    "observable": "a2",
+    "maxAbsZ": 2.8574845206901283,
+    "skewness": 0.09156085719286924
+   },
+   {
+    "distribution": "uniform-box",
+    "seed": 23,
+    "observable": "anisotropy",
+    "maxAbsZ": 3.0113236400012204,
+    "skewness": 0.1269724398375349
+   },
+   {
+    "distribution": "two-beam",
+    "seed": 23,
+    "observable": "a2",
+    "maxAbsZ": 2.9803590346941986,
+    "skewness": 0.19688742296154313
+   },
+   {
+    "distribution": "two-beam",
+    "seed": 23,
+    "observable": "anisotropy",
+    "maxAbsZ": 2.5822738076507776,
+    "skewness": 0.12214604351203262
+   },
+   {
+    "distribution": "maxwell",
+    "seed": 24,
+    "observable": "a2",
+    "maxAbsZ": 2.625039596506016,
+    "skewness": 0.3503170437640344
+   },
+   {
+    "distribution": "maxwell",
+    "seed": 24,
+    "observable": "anisotropy",
+    "maxAbsZ": 2.9403931652663653,
+    "skewness": -0.48440771121528414
+   },
+   {
+    "distribution": "uniform-speed",
+    "seed": 24,
+    "observable": "a2",
+    "maxAbsZ": 2.597030423812191,
+    "skewness": 0.163098057819212
+   },
+   {
+    "distribution": "uniform-speed",
+    "seed": 24,
+    "observable": "anisotropy",
+    "maxAbsZ": 2.9105257427299147,
+    "skewness": 0.21190668789926692
+   },
+   {
+    "distribution": "uniform-box",
+    "seed": 24,
+    "observable": "a2",
+    "maxAbsZ": 2.882031192273201,
+    "skewness": 0.03374787323539751
+   },
+   {
+    "distribution": "uniform-box",
+    "seed": 24,
+    "observable": "anisotropy",
+    "maxAbsZ": 3.2809735245051357,
+    "skewness": 0.30774913901046347
+   },
+   {
+    "distribution": "two-beam",
+    "seed": 24,
+    "observable": "a2",
+    "maxAbsZ": 2.6783237766378227,
+    "skewness": -0.02194528819319637
+   },
+   {
+    "distribution": "two-beam",
+    "seed": 24,
+    "observable": "anisotropy",
+    "maxAbsZ": 3.3549201814687013,
+    "skewness": 0.3187976929275911
+   },
+   {
+    "distribution": "maxwell",
+    "seed": 25,
+    "observable": "a2",
+    "maxAbsZ": 3.1436822149049264,
+    "skewness": 0.6654688581350897
+   },
+   {
+    "distribution": "maxwell",
+    "seed": 25,
+    "observable": "anisotropy",
+    "maxAbsZ": 2.4489887491550495,
+    "skewness": 0.33217145850785323
+   },
+   {
+    "distribution": "uniform-speed",
+    "seed": 25,
+    "observable": "a2",
+    "maxAbsZ": 2.9862719531327766,
+    "skewness": 0.7187210006672348
+   },
+   {
+    "distribution": "uniform-speed",
+    "seed": 25,
+    "observable": "anisotropy",
+    "maxAbsZ": 2.90268271771582,
+    "skewness": -0.22472179094430753
+   },
+   {
+    "distribution": "uniform-box",
+    "seed": 25,
+    "observable": "a2",
+    "maxAbsZ": 4.677362554052457,
+    "skewness": 0.8407928896921752
+   },
+   {
+    "distribution": "uniform-box",
+    "seed": 25,
+    "observable": "anisotropy",
+    "maxAbsZ": 2.835627322223418,
+    "skewness": 0.04078717105066504
+   },
+   {
+    "distribution": "two-beam",
+    "seed": 25,
+    "observable": "a2",
+    "maxAbsZ": 3.2393408163427893,
+    "skewness": 0.6046887644880916
+   },
+   {
+    "distribution": "two-beam",
+    "seed": 25,
+    "observable": "anisotropy",
+    "maxAbsZ": 2.6122643267288903,
+    "skewness": 0.26009600974033886
+   },
+   {
+    "distribution": "maxwell",
+    "seed": 26,
+    "observable": "a2",
+    "maxAbsZ": 3.114176389970168,
+    "skewness": -0.4319072070026094
+   },
+   {
+    "distribution": "maxwell",
+    "seed": 26,
+    "observable": "anisotropy",
+    "maxAbsZ": 2.591506319773165,
+    "skewness": -0.04461360699026304
+   },
+   {
+    "distribution": "uniform-speed",
+    "seed": 26,
+    "observable": "a2",
+    "maxAbsZ": 2.708738737833739,
+    "skewness": -0.058979348584832836
+   },
+   {
+    "distribution": "uniform-speed",
+    "seed": 26,
+    "observable": "anisotropy",
+    "maxAbsZ": 2.7521506935043556,
+    "skewness": 0.022841218957361225
+   },
+   {
+    "distribution": "uniform-box",
+    "seed": 26,
+    "observable": "a2",
+    "maxAbsZ": 2.790112840969217,
+    "skewness": 0.4115539386934783
+   },
+   {
+    "distribution": "uniform-box",
+    "seed": 26,
+    "observable": "anisotropy",
+    "maxAbsZ": 2.648622905481385,
+    "skewness": -0.042143999910039066
+   },
+   {
+    "distribution": "two-beam",
+    "seed": 26,
+    "observable": "a2",
+    "maxAbsZ": 2.936658108454132,
+    "skewness": 0.43477679715303963
+   },
+   {
+    "distribution": "two-beam",
+    "seed": 26,
+    "observable": "anisotropy",
+    "maxAbsZ": 2.596005603106821,
+    "skewness": -0.03902710969538566
+   },
+   {
+    "distribution": "maxwell",
+    "seed": 27,
+    "observable": "a2",
+    "maxAbsZ": 2.518974059556902,
+    "skewness": -0.25184370868963896
+   },
+   {
+    "distribution": "maxwell",
+    "seed": 27,
+    "observable": "anisotropy",
+    "maxAbsZ": 2.795085614712141,
+    "skewness": -0.07448191147837686
+   },
+   {
+    "distribution": "uniform-speed",
+    "seed": 27,
+    "observable": "a2",
+    "maxAbsZ": 2.6345195659539935,
+    "skewness": 0.36997873867240594
+   },
+   {
+    "distribution": "uniform-speed",
+    "seed": 27,
+    "observable": "anisotropy",
+    "maxAbsZ": 2.6194377760749727,
+    "skewness": 0.024028709748558134
+   },
+   {
+    "distribution": "uniform-box",
+    "seed": 27,
+    "observable": "a2",
+    "maxAbsZ": 2.7741368751768323,
+    "skewness": 0.008670048382870964
+   },
+   {
+    "distribution": "uniform-box",
+    "seed": 27,
+    "observable": "anisotropy",
+    "maxAbsZ": 2.747705356395067,
+    "skewness": -0.11270810035304546
+   },
+   {
+    "distribution": "two-beam",
+    "seed": 27,
+    "observable": "a2",
+    "maxAbsZ": 2.334498838114073,
+    "skewness": -0.21015966901338598
+   },
+   {
+    "distribution": "two-beam",
+    "seed": 27,
+    "observable": "anisotropy",
+    "maxAbsZ": 3.4507358561158297,
+    "skewness": -0.6620803345098281
+   },
+   {
+    "distribution": "maxwell",
+    "seed": 28,
+    "observable": "a2",
+    "maxAbsZ": 2.215922049890661,
+    "skewness": 0.15698276835404515
+   },
+   {
+    "distribution": "maxwell",
+    "seed": 28,
+    "observable": "anisotropy",
+    "maxAbsZ": 3.366894058694306,
+    "skewness": 0.2715556123510906
+   },
+   {
+    "distribution": "uniform-speed",
+    "seed": 28,
+    "observable": "a2",
+    "maxAbsZ": 2.659336785895764,
+    "skewness": -0.07327687225982457
+   },
+   {
+    "distribution": "uniform-speed",
+    "seed": 28,
+    "observable": "anisotropy",
+    "maxAbsZ": 3.0759295219670033,
+    "skewness": 0.05241447942816899
+   },
+   {
+    "distribution": "uniform-box",
+    "seed": 28,
+    "observable": "a2",
+    "maxAbsZ": 2.8538961898891566,
+    "skewness": 0.14609411531051483
+   },
+   {
+    "distribution": "uniform-box",
+    "seed": 28,
+    "observable": "anisotropy",
+    "maxAbsZ": 3.2751291850408744,
+    "skewness": -0.16853514045944235
+   },
+   {
+    "distribution": "two-beam",
+    "seed": 28,
+    "observable": "a2",
+    "maxAbsZ": 2.2686791936486275,
+    "skewness": -0.02344775337550205
+   },
+   {
+    "distribution": "two-beam",
+    "seed": 28,
+    "observable": "anisotropy",
+    "maxAbsZ": 2.799512652226961,
+    "skewness": 0.17901693914440722
+   },
+   {
+    "distribution": "maxwell",
+    "seed": 29,
+    "observable": "a2",
+    "maxAbsZ": 2.94411780103702,
+    "skewness": 0.020900239371323865
+   },
+   {
+    "distribution": "maxwell",
+    "seed": 29,
+    "observable": "anisotropy",
+    "maxAbsZ": 2.9198267581622255,
+    "skewness": -0.14612589698911888
+   },
+   {
+    "distribution": "uniform-speed",
+    "seed": 29,
+    "observable": "a2",
+    "maxAbsZ": 2.778241842311105,
+    "skewness": 0.6579952685208722
+   },
+   {
+    "distribution": "uniform-speed",
+    "seed": 29,
+    "observable": "anisotropy",
+    "maxAbsZ": 2.538831284349682,
+    "skewness": -0.28273710463115304
+   },
+   {
+    "distribution": "uniform-box",
+    "seed": 29,
+    "observable": "a2",
+    "maxAbsZ": 2.789373140902419,
+    "skewness": -0.11626824138062807
+   },
+   {
+    "distribution": "uniform-box",
+    "seed": 29,
+    "observable": "anisotropy",
+    "maxAbsZ": 3.2471854270993847,
+    "skewness": -0.1659737961792905
+   },
+   {
+    "distribution": "two-beam",
+    "seed": 29,
+    "observable": "a2",
+    "maxAbsZ": 2.3037891103242423,
+    "skewness": 0.10705611368455317
+   },
+   {
+    "distribution": "two-beam",
+    "seed": 29,
+    "observable": "anisotropy",
+    "maxAbsZ": 2.6882550936401777,
+    "skewness": -0.3625450140523785
+   },
+   {
+    "distribution": "maxwell",
+    "seed": 30,
+    "observable": "a2",
+    "maxAbsZ": 3.2122919679014363,
+    "skewness": -0.17269467927566642
+   },
+   {
+    "distribution": "maxwell",
+    "seed": 30,
+    "observable": "anisotropy",
+    "maxAbsZ": 2.71141500879522,
+    "skewness": 0.21875631285647376
+   },
+   {
+    "distribution": "uniform-speed",
+    "seed": 30,
+    "observable": "a2",
+    "maxAbsZ": 2.432677596289399,
+    "skewness": 0.21326674735974352
+   },
+   {
+    "distribution": "uniform-speed",
+    "seed": 30,
+    "observable": "anisotropy",
+    "maxAbsZ": 3.096200259246208,
+    "skewness": -0.07287397431120064
+   },
+   {
+    "distribution": "uniform-box",
+    "seed": 30,
+    "observable": "a2",
+    "maxAbsZ": 2.4401154641020333,
+    "skewness": 0.04096563695525533
+   },
+   {
+    "distribution": "uniform-box",
+    "seed": 30,
+    "observable": "anisotropy",
+    "maxAbsZ": 2.8500588545157095,
+    "skewness": 0.3542883759393962
+   },
+   {
+    "distribution": "two-beam",
+    "seed": 30,
+    "observable": "a2",
+    "maxAbsZ": 3.3198374619956943,
+    "skewness": 0.16476291227681786
+   },
+   {
+    "distribution": "two-beam",
+    "seed": 30,
+    "observable": "anisotropy",
+    "maxAbsZ": 3.1389908359069407,
+    "skewness": 0.3866926786278824
+   }
+  ]
+ },
+ "relaxation": [
+  {
+   "distribution": "maxwell",
+   "observable": "a2",
+   "initial": -0.0029726679442729107,
+   "late": 0.0009145075752549518,
+   "sigmaEnsemble": 0.007655181148420342,
+   "initialDeviationInSigma": 0.5077836101017659,
+   "tOneOverE": 1.0127,
+   "tWithin3Sigma": 0.10069999999999998,
+   "runLength": 79.9645
+  },
+  {
+   "distribution": "maxwell",
+   "observable": "anisotropy",
+   "initial": -0.0066169298965654015,
+   "late": -0.002200318148879271,
+   "sigmaEnsemble": 0.005368751605450719,
+   "initialDeviationInSigma": 0.8226515347072658,
+   "tOneOverE": 0.3034,
+   "tWithin3Sigma": 0.10069999999999998,
+   "runLength": 79.9645
+  },
+  {
+   "distribution": "uniform-speed",
+   "observable": "a2",
+   "initial": -0.4864103741494259,
+   "late": -0.0007535384322511792,
+   "sigmaEnsemble": 0.006169065838797823,
+   "initialDeviationInSigma": 78.72453437971664,
+   "tOneOverE": 3.1448,
+   "tWithin3Sigma": 8.924500000000002,
+   "runLength": 79.9789
+  },
+  {
+   "distribution": "uniform-speed",
+   "observable": "anisotropy",
+   "initial": -0.011903787872872319,
+   "late": -0.0015593451169990979,
+   "sigmaEnsemble": 0.0064999133134137545,
+   "initialDeviationInSigma": 1.591473956202705,
+   "tOneOverE": 0.9151999999999999,
+   "tWithin3Sigma": 0.10189999999999999,
+   "runLength": 79.9789
+  },
+  {
+   "distribution": "uniform-box",
+   "observable": "a2",
+   "initial": -0.2879303234666157,
+   "late": -0.0015419828026005358,
+   "sigmaEnsemble": 0.007692597267022929,
+   "initialDeviationInSigma": 37.22908280818512,
+   "tOneOverE": 2.6357000000000004,
+   "tWithin3Sigma": 6.485499999999999,
+   "runLength": 79.9681
+  },
+  {
+   "distribution": "uniform-box",
+   "observable": "anisotropy",
+   "initial": -0.004383641384232756,
+   "late": 0.0014772966667571086,
+   "sigmaEnsemble": 0.0065595150305162876,
+   "initialDeviationInSigma": 0.893501733546384,
+   "tOneOverE": 1.0135,
+   "tWithin3Sigma": 0.1011,
+   "runLength": 79.9681
+  },
+  {
+   "distribution": "two-beam",
+   "observable": "a2",
+   "initial": -0.49798222386774427,
+   "late": -0.0008786871814974578,
+   "sigmaEnsemble": 0.00551421910804016,
+   "initialDeviationInSigma": 90.14939866307293,
+   "tOneOverE": 3.4482999999999997,
+   "tWithin3Sigma": 9.337100000000001,
+   "runLength": 79.9808
+  },
+  {
+   "distribution": "two-beam",
+   "observable": "anisotropy",
+   "initial": 0.9020857859803801,
+   "late": 0.0007065060878145285,
+   "sigmaEnsemble": 0.0063769336361161584,
+   "initialDeviationInSigma": 141.34995459064342,
+   "tOneOverE": 1.2199,
+   "tWithin3Sigma": 4.969500000000001,
+   "runLength": 79.9808
+  }
+ ],
+ "proposedE6prime": {
+  "blocks": 4,
+  "m": 24,
+  "alpha": 0.0020833333333333333,
+  "tests": [
+   {
+    "distribution": "uniform-speed",
+    "observable": "a2",
+    "block": 1,
+    "t": -0.5391734287675264,
+    "df": 17.675068422635157,
+    "p": 0.5964941785823822
+   },
+   {
+    "distribution": "uniform-speed",
+    "observable": "a2",
+    "block": 2,
+    "t": 0.8359792276709453,
+    "df": 17.998858870606544,
+    "p": 0.4141274317577366
+   },
+   {
+    "distribution": "uniform-speed",
+    "observable": "a2",
+    "block": 3,
+    "t": 0.0883804721044613,
+    "df": 17.99902060835974,
+    "p": 0.9305502189183522
+   },
+   {
+    "distribution": "uniform-speed",
+    "observable": "a2",
+    "block": 4,
+    "t": -2.271598231324896,
+    "df": 17.99846465231054,
+    "p": 0.035614595427929475
+   },
+   {
+    "distribution": "uniform-speed",
+    "observable": "anisotropy",
+    "block": 1,
+    "t": -0.11281666931085399,
+    "df": 17.966115375348178,
+    "p": 0.9114269203369646
+   },
+   {
+    "distribution": "uniform-speed",
+    "observable": "anisotropy",
+    "block": 2,
+    "t": 0.27282084359459674,
+    "df": 17.918344687662053,
+    "p": 0.7881102730316256
+   },
+   {
+    "distribution": "uniform-speed",
+    "observable": "anisotropy",
+    "block": 3,
+    "t": -0.7190986602229381,
+    "df": 15.208891235301516,
+    "p": 0.48298362517635873
+   },
+   {
+    "distribution": "uniform-speed",
+    "observable": "anisotropy",
+    "block": 4,
+    "t": 1.213454894369149,
+    "df": 17.985383911063604,
+    "p": 0.24065204497141157
+   },
+   {
+    "distribution": "uniform-box",
+    "observable": "a2",
+    "block": 1,
+    "t": 0.1738212346467296,
+    "df": 17.11897864421838,
+    "p": 0.8640448584882486
+   },
+   {
+    "distribution": "uniform-box",
+    "observable": "a2",
+    "block": 2,
+    "t": 0.5952141601417432,
+    "df": 17.985281318131893,
+    "p": 0.5591158925261127
+   },
+   {
+    "distribution": "uniform-box",
+    "observable": "a2",
+    "block": 3,
+    "t": -0.13838134045303874,
+    "df": 17.633533455626182,
+    "p": 0.8915070736257634
+   },
+   {
+    "distribution": "uniform-box",
+    "observable": "a2",
+    "block": 4,
+    "t": -2.7108471449155243,
+    "df": 15.928010115774931,
+    "p": 0.01547103656807231
+   },
+   {
+    "distribution": "uniform-box",
+    "observable": "anisotropy",
+    "block": 1,
+    "t": 1.399698048761766,
+    "df": 15.933908324344516,
+    "p": 0.1807716950200513
+   },
+   {
+    "distribution": "uniform-box",
+    "observable": "anisotropy",
+    "block": 2,
+    "t": 0.5737922796998337,
+    "df": 16.65653926119276,
+    "p": 0.5737753993591488
+   },
+   {
+    "distribution": "uniform-box",
+    "observable": "anisotropy",
+    "block": 3,
+    "t": 1.3365623851171786,
+    "df": 17.98148541144637,
+    "p": 0.19803252570445085
+   },
+   {
+    "distribution": "uniform-box",
+    "observable": "anisotropy",
+    "block": 4,
+    "t": 0.297249635664027,
+    "df": 17.601893254879535,
+    "p": 0.7697553913850235
+   },
+   {
+    "distribution": "two-beam",
+    "observable": "a2",
+    "block": 1,
+    "t": -0.08834525169009391,
+    "df": 15.546649963501508,
+    "p": 0.9307302717522418
+   },
+   {
+    "distribution": "two-beam",
+    "observable": "a2",
+    "block": 2,
+    "t": 0.2597065934232625,
+    "df": 17.8347578453661,
+    "p": 0.7980643956930183
+   },
+   {
+    "distribution": "two-beam",
+    "observable": "a2",
+    "block": 3,
+    "t": -0.7542981749926244,
+    "df": 17.52084710720471,
+    "p": 0.4606887514924125
+   },
+   {
+    "distribution": "two-beam",
+    "observable": "a2",
+    "block": 4,
+    "t": -0.8242625671787843,
+    "df": 16.290599175991073,
+    "p": 0.42169534915455165
+   },
+   {
+    "distribution": "two-beam",
+    "observable": "anisotropy",
+    "block": 1,
+    "t": 0.769290248507905,
+    "df": 17.992949023725775,
+    "p": 0.4517023226319641
+   },
+   {
+    "distribution": "two-beam",
+    "observable": "anisotropy",
+    "block": 2,
+    "t": 0.41967230928362287,
+    "df": 16.029104448550513,
+    "p": 0.6802958001139489
+   },
+   {
+    "distribution": "two-beam",
+    "observable": "anisotropy",
+    "block": 3,
+    "t": 1.0687113214099901,
+    "df": 17.96841801906204,
+    "p": 0.2993476326352925
+   },
+   {
+    "distribution": "two-beam",
+    "observable": "anisotropy",
+    "block": 4,
+    "t": 0.804793801317589,
+    "df": 17.452592407365433,
+    "p": 0.43176629801094624
+   }
+  ],
+  "outcome": "PASS",
+  "postHoc": true
+ }
+}

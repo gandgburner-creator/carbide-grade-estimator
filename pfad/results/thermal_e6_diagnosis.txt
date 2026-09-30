@@ -1,0 +1,30 @@
+E6 statistic: |x − late mean| > 4 × late SD, per window, per seed, per observable
+  windows inspected (equilibrium part): 51400 in 80 series; late-half windows 31608
+  > 4σ episodes: 5
+    uniform-speed seed 22 anisotropy: c 26.94–27.34 (5 windows), max z 4.40, early half
+    uniform-box seed 25 a2: c 56.82–56.82 (1 windows), max z 4.68, late half
+    maxwell seed 28 a2: c 20.51–21.11 (7 windows), max z 5.18, early half
+    maxwell seed 28 anisotropy: c 30.41–31.42 (11 windows), max z 4.56, early half
+    uniform-box seed 29 a2: c 35.38–35.58 (3 windows), max z 4.54, early half
+  episode rate in equilibrium: 9.62e-4 per series per collision/particle
+  expected chance episodes in the late halves of one start (20 series × 39.9 collisions/particle): 0.77
+  chance that E6 flags at least one of 4 starts with no relaxation defect at all: 95 %
+  a2: late-half skewness mean 0.181 (range -0.43 … 0.84); late max|z| mean 2.85, max 4.68
+  anisotropy: late-half skewness mean -0.005 (range -0.66 … 0.39); late max|z| mean 2.91, max 3.68
+
+Seed-ensemble relaxation (collisions/particle):
+  maxwell       a2         initial -0.0030 → 9.15e-4 (0.5 σ_ens): 1/e at 1.01, within 3 σ_ens at 0.10 of 80
+  maxwell       anisotropy initial -0.0066 → -2.20e-3 (0.8 σ_ens): 1/e at 0.30, within 3 σ_ens at 0.10 of 80
+  uniform-speed a2         initial -0.4864 → -7.54e-4 (78.7 σ_ens): 1/e at 3.14, within 3 σ_ens at 8.92 of 80
+  uniform-speed anisotropy initial -0.0119 → -1.56e-3 (1.6 σ_ens): 1/e at 0.92, within 3 σ_ens at 0.10 of 80
+  uniform-box   a2         initial -0.2879 → -1.54e-3 (37.2 σ_ens): 1/e at 2.64, within 3 σ_ens at 6.49 of 80
+  uniform-box   anisotropy initial -0.0044 → 1.48e-3 (0.9 σ_ens): 1/e at 1.01, within 3 σ_ens at 0.10 of 80
+  two-beam      a2         initial -0.4980 → -8.79e-4 (90.1 σ_ens): 1/e at 3.45, within 3 σ_ens at 9.34 of 80
+  two-beam      anisotropy initial 0.9021 → 7.07e-4 (141.3 σ_ens): 1/e at 1.22, within 3 σ_ens at 4.97 of 80
+
+Proposed E6′ (post hoc, NOT used for classification): late half in 4 blocks; per block, the non-Maxwell starts' per-seed block means vs the Maxwell-start control (Welch t); PASS if all p > 0.05/24 = 2.08e-3, FAIL if any p < 1e-6
+  smallest p = 0.0155 (uniform-box / a2 / block 4, t = -2.71); outcome on this record: PASS
+
+Official E6 in the record: NOT CONVERGED (uniform-box); the classification is unchanged by this script.
+written results/thermal_e6_diagnosis.json
+written results/plots/thermal_e6_diagnosis.svg

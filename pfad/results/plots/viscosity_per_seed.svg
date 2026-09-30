@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="440" font-family="sans-serif" font-size="12">
+<rect width="720" height="440" fill="#fff"/>
+<text x="360" y="22" text-anchor="middle" font-size="14" font-weight="600">Couette: μ_eff per seed (± per-run SE) and the seed mean</text>
+<line x1="70" x2="700" y1="385" y2="385" stroke="#e5e5e5"/>
+<text x="64" y="389" text-anchor="end">0.250</text>
+<text x="70" y="403" text-anchor="middle">1.00</text>
+<line x1="70" x2="700" y1="316" y2="316" stroke="#e5e5e5"/>
+<text x="64" y="320" text-anchor="end">0.284</text>
+<text x="196" y="403" text-anchor="middle">6.80</text>
+<line x1="70" x2="700" y1="246.99999999999994" y2="246.99999999999994" stroke="#e5e5e5"/>
+<text x="64" y="250.99999999999994" text-anchor="end">0.317</text>
+<text x="322" y="403" text-anchor="middle">12.6</text>
+<line x1="70" x2="700" y1="178.00000000000006" y2="178.00000000000006" stroke="#e5e5e5"/>
+<text x="64" y="182.00000000000006" text-anchor="end">0.351</text>
+<text x="448" y="403" text-anchor="middle">18.4</text>
+<line x1="70" x2="700" y1="109" y2="109" stroke="#e5e5e5"/>
+<text x="64" y="113" text-anchor="end">0.385</text>
+<text x="574" y="403" text-anchor="middle">24.2</text>
+<line x1="70" x2="700" y1="40" y2="40" stroke="#e5e5e5"/>
+<text x="64" y="44" text-anchor="end">0.418</text>
+<text x="700" y="403" text-anchor="middle">30.0</text>
+<line x1="70" x2="70" y1="40" y2="385" stroke="#333"/>
+<line x1="70" x2="700" y1="385" y2="385" stroke="#333"/>
+<text x="360" y="428" text-anchor="middle">seed index</text>
+<text transform="translate(16 220) rotate(-90)" text-anchor="middle">μ_eff</text>
+<circle cx="70.0" cy="349.4" r="3" fill="#1f6feb"/>
+<circle cx="91.7" cy="192.7" r="3" fill="#1f6feb"/>
+<circle cx="113.4" cy="242.0" r="3" fill="#1f6feb"/>
+<circle cx="135.2" cy="104.7" r="3" fill="#1f6feb"/>
+<circle cx="156.9" cy="277.1" r="3" fill="#1f6feb"/>
+<circle cx="178.6" cy="49.3" r="3" fill="#1f6feb"/>
+<circle cx="200.3" cy="177.2" r="3" fill="#1f6feb"/>
+<circle cx="222.1" cy="381.4" r="3" fill="#1f6feb"/>
+<circle cx="243.8" cy="40.0" r="3" fill="#1f6feb"/>
+<circle cx="265.5" cy="248.4" r="3" fill="#1f6feb"/>
+<circle cx="287.2" cy="202.3" r="3" fill="#1f6feb"/>
+<circle cx="309.0" cy="155.3" r="3" fill="#1f6feb"/>
+<circle cx="330.7" cy="178.7" r="3" fill="#1f6feb"/>
+<circle cx="352.4" cy="222.4" r="3" fill="#1f6feb"/>
+<circle cx="374.1" cy="132.0" r="3" fill="#1f6feb"/>
+<circle cx="395.9" cy="234.1" r="3" fill="#1f6feb"/>
+<circle cx="417.6" cy="108.4" r="3" fill="#1f6feb"/>
+<circle cx="439.3" cy="143.3" r="3" fill="#1f6feb"/>
+<circle cx="461.0" cy="284.5" r="3" fill="#1f6feb"/>
+<circle cx="482.8" cy="166.3" r="3" fill="#1f6feb"/>
+<circle cx="504.5" cy="385.0" r="3" fill="#1f6feb"/>
+<circle cx="526.2" cy="172.4" r="3" fill="#1f6feb"/>
+<circle cx="547.9" cy="215.5" r="3" fill="#1f6feb"/>
+<circle cx="569.7" cy="316.3" r="3" fill="#1f6feb"/>
+<circle cx="591.4" cy="288.0" r="3" fill="#1f6feb"/>
+<circle cx="613.1" cy="277.3" r="3" fill="#1f6feb"/>
+<circle cx="634.8" cy="258.9" r="3" fill="#1f6feb"/>
+<circle cx="656.6" cy="120.2" r="3" fill="#1f6feb"/>
+<circle cx="678.3" cy="268.0" r="3" fill="#1f6feb"/>
+<circle cx="700.0" cy="277.0" r="3" fill="#1f6feb"/>
+<line x1="70" x2="70" y1="426.1053774289681" y2="272.65828313869054" stroke="#1f6feb" opacity="0.6"/>
+<line x1="91.72413793103448" x2="91.72413793103448" y1="252.81672507862243" y2="132.62769935529897" stroke="#1f6feb" opacity="0.6"/>
+<line x1="113.44827586206897" x2="113.44827586206897" y1="309.5552149503888" y2="174.48266496874555" stroke="#1f6feb" opacity="0.6"/>
+<line x1="135.17241379310343" x2="135.17241379310343" y1="170.70023996897302" y2="38.67347205543615" stroke="#1f6feb" opacity="0.6"/>
+<line x1="156.89655172413794" x2="156.89655172413794" y1="335.8009813479701" y2="218.44563567434824" stroke="#1f6feb" opacity="0.6"/>
+<line x1="178.62068965517244" x2="178.62068965517244" y1="159.73168128105948" y2="-61.219872101330395" stroke="#1f6feb" opacity="0.6"/>
+<line x1="200.3448275862069" x2="200.3448275862069" y1="262.1493757175061" y2="92.20759341792012" stroke="#1f6feb" opacity="0.6"/>
+<line x1="222.0689655172414" x2="222.0689655172414" y1="456.73956485686745" y2="305.9745323416056" stroke="#1f6feb" opacity="0.6"/>
+<line x1="243.79310344827587" x2="243.79310344827587" y1="135.48637664866254" y2="-55.4863766486626" stroke="#1f6feb" opacity="0.6"/>
+<line x1="265.51724137931035" x2="265.51724137931035" y1="333.9660198733784" y2="162.85493859647823" stroke="#1f6feb" opacity="0.6"/>
+<line x1="287.2413793103449" x2="287.2413793103449" y1="284.2258867787781" y2="120.43477425941586" stroke="#1f6feb" opacity="0.6"/>
+<line x1="308.9655172413793" x2="308.9655172413793" y1="234.89956516340612" y2="75.65184787582979" stroke="#1f6feb" opacity="0.6"/>
+<line x1="330.6896551724138" x2="330.6896551724138" y1="262.09823140369036" y2="95.39954259772361" stroke="#1f6feb" opacity="0.6"/>
+<line x1="352.41379310344826" x2="352.41379310344826" y1="292.55840786640306" y2="152.17557931611668" stroke="#1f6feb" opacity="0.6"/>
+<line x1="374.1379310344828" x2="374.1379310344828" y1="207.9374131440126" y2="56.142843978843246" stroke="#1f6feb" opacity="0.6"/>
+<line x1="395.86206896551727" x2="395.86206896551727" y1="306.6849814033457" y2="161.492691444923" stroke="#1f6feb" opacity="0.6"/>
+<line x1="417.58620689655174" x2="417.58620689655174" y1="207.1838597044482" y2="9.715371092335147" stroke="#1f6feb" opacity="0.6"/>
+<line x1="439.31034482758616" x2="439.31034482758616" y1="212.66762710859177" y2="73.8504781676819" stroke="#1f6feb" opacity="0.6"/>
+<line x1="461.0344827586207" x2="461.0344827586207" y1="361.87809073092205" y2="207.0726765248984" stroke="#1f6feb" opacity="0.6"/>
+<line x1="482.7586206896552" x2="482.7586206896552" y1="227.016067457427" y2="105.6516261916151" stroke="#1f6feb" opacity="0.6"/>
+<line x1="504.4827586206897" x2="504.4827586206897" y1="445.2709212959542" y2="324.7290787040458" stroke="#1f6feb" opacity="0.6"/>
+<line x1="526.2068965517242" x2="526.2068965517242" y1="258.03231764724643" y2="86.73189409676377" stroke="#1f6feb" opacity="0.6"/>
+<line x1="547.9310344827586" x2="547.9310344827586" y1="277.3001649494714" y2="153.70903783357107" stroke="#1f6feb" opacity="0.6"/>
+<line x1="569.6551724137931" x2="569.6551724137931" y1="371.1358062080957" y2="261.38570962594684" stroke="#1f6feb" opacity="0.6"/>
+<line x1="591.3793103448276" x2="591.3793103448276" y1="354.018464799867" y2="221.94089608825942" stroke="#1f6feb" opacity="0.6"/>
+<line x1="613.103448275862" x2="613.103448275862" y1="340.890652314485" y2="213.7434437522074" stroke="#1f6feb" opacity="0.6"/>
+<line x1="634.8275862068965" x2="634.8275862068965" y1="338.6349670808919" y2="179.1682381576524" stroke="#1f6feb" opacity="0.6"/>
+<line x1="656.551724137931" x2="656.551724137931" y1="215.20626631716252" y2="25.261057832344193" stroke="#1f6feb" opacity="0.6"/>
+<line x1="678.2758620689656" x2="678.2758620689656" y1="344.4529485937567" y2="191.565985648336" stroke="#1f6feb" opacity="0.6"/>
+<line x1="700" x2="700" y1="335.65971433789923" y2="218.26296248852552" stroke="#1f6feb" opacity="0.6"/>
+<polyline points="70.0,215.6 700.0,215.6" fill="none" stroke="#d1242f" stroke-width="1.8"/>
+<polyline points="70.0,248.7 700.0,248.7" fill="none" stroke="#d1242f" stroke-width="1.8" stroke-dasharray="6 4"/>
+<polyline points="70.0,182.5 700.0,182.5" fill="none" stroke="#d1242f" stroke-width="1.8" stroke-dasharray="6 4"/>
+<rect x="470" y="46" width="14" height="3" fill="#1f6feb"/>
+<text x="490" y="51">per seed ± SE</text>
+<rect x="470" y="64" width="14" height="3" fill="#d1242f"/>
+<text x="490" y="69">mean 0.3326 (95 % CI [0.31648, 0.34873])</text>
+</svg>

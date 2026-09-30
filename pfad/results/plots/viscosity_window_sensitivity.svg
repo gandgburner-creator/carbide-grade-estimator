@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="440" font-family="sans-serif" font-size="12">
+<rect width="900" height="440" fill="#fff"/>
+<text x="450" y="22" text-anchor="middle" font-size="14" font-weight="600">Couette: μ_eff by averaging window and timestep (seed mean ± 95 % CI); order: core 0.4 · core 0.6 (reported) · core 0.8 (Knudsen layers) · first half · second half · Courant 0.05</text>
+<line x1="70" x2="880" y1="385" y2="385" stroke="#e5e5e5"/>
+<text x="64" y="389" text-anchor="end">0.322</text>
+<text x="70" y="403" text-anchor="middle">1.00</text>
+<line x1="70" x2="880" y1="315.9999999999998" y2="315.9999999999998" stroke="#e5e5e5"/>
+<text x="64" y="319.9999999999998" text-anchor="end">0.325</text>
+<text x="232" y="403" text-anchor="middle">2.00</text>
+<line x1="70" x2="880" y1="246.99999999999952" y2="246.99999999999952" stroke="#e5e5e5"/>
+<text x="64" y="250.99999999999952" text-anchor="end">0.328</text>
+<text x="394" y="403" text-anchor="middle">3.00</text>
+<line x1="70" x2="880" y1="178.00000000000045" y2="178.00000000000045" stroke="#e5e5e5"/>
+<text x="64" y="182.00000000000045" text-anchor="end">0.332</text>
+<text x="556" y="403" text-anchor="middle">4.00</text>
+<line x1="70" x2="880" y1="109.00000000000023" y2="109.00000000000023" stroke="#e5e5e5"/>
+<text x="64" y="113.00000000000023" text-anchor="end">0.335</text>
+<text x="718" y="403" text-anchor="middle">5.00</text>
+<line x1="70" x2="880" y1="40" y2="40" stroke="#e5e5e5"/>
+<text x="64" y="44" text-anchor="end">0.338</text>
+<text x="880" y="403" text-anchor="middle">6.00</text>
+<line x1="70" x2="70" y1="40" y2="385" stroke="#333"/>
+<line x1="70" x2="880" y1="385" y2="385" stroke="#333"/>
+<text x="450" y="428" text-anchor="middle">variant (see title order)</text>
+<text transform="translate(16 220) rotate(-90)" text-anchor="middle">μ_eff</text>
+<circle cx="70.0" cy="40.0" r="3" fill="#8250df"/>
+<circle cx="232.0" cy="173.9" r="3" fill="#8250df"/>
+<circle cx="394.0" cy="222.4" r="3" fill="#8250df"/>
+<circle cx="556.0" cy="204.4" r="3" fill="#8250df"/>
+<circle cx="718.0" cy="92.3" r="3" fill="#8250df"/>
+<circle cx="880.0" cy="385.0" r="3" fill="#8250df"/>
+<line x1="70" x2="70" y1="476.92970849260615" y2="-396.9297084926062" stroke="#8250df" opacity="0.6"/>
+<line x1="232" x2="232" y1="514.0271704866132" y2="-166.25038752914975" stroke="#8250df" opacity="0.6"/>
+<line x1="394" x2="394" y1="527.9530162847145" y2="-83.09944348576624" stroke="#8250df" opacity="0.6"/>
+<line x1="556" x2="556" y1="633.2541087066325" y2="-224.45274476151667" stroke="#8250df" opacity="0.6"/>
+<line x1="718" x2="718" y1="531.8472804988957" y2="-347.2276022114156" stroke="#8250df" opacity="0.6"/>
+<line x1="880" x2="880" y1="694.9761052807532" y2="75.02389471924675" stroke="#8250df" opacity="0.6"/>
+<rect x="650" y="46" width="14" height="3" fill="#8250df"/>
+<text x="670" y="51">variant</text>
+</svg>

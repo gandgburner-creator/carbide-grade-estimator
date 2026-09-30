@@ -183,3 +183,27 @@ is unchanged. Criteria for the reruns were fixed beforehand in
   0.71 %, derived from Bible §20). Made before the rerun; the rerun is judged
   by it unchanged.
 
+
+### Criterion E6 found ill-posed after the rerun (not revised; no model change)
+
+- **What happened:** the 10-seed thermal rerun (`thermal_reference.json`,
+  judged at `dac9f52`) failed only E6, "last > 4σ window in the first half of
+  every relaxation run". The failure is one a₂ window, uniform-box start,
+  seed 25, at c = 56.8 of 80 collisions/particle, z = 4.68.
+- **Evidence it is the rule, not the relaxation:**
+  - The Maxwell-start runs begin in equilibrium, yet show the same statistic
+    at z up to 5.18.
+  - The measured equilibrium excursion rate (9.6 × 10⁻⁴ per series per
+    collision/particle) makes a flag ≈ 95 % likely at 10 seeds × 80
+    collisions.
+  - Every start's seed-ensemble a₂ and anisotropy are within 3 σ of their
+    late values by 10 collisions/particle.
+  - Stationarity (E2) and initial-distribution independence (E3) pass.
+
+  Diagnosis script: `scripts/diagnose-thermal-e6.ts`.
+- **Not changed:** per the pre-registration, E6 is not repaired after the
+  fact. The thermal experiment stays INCONCLUSIVE. A replacement (E6′: the
+  late-half block means of each start against the Maxwell-start control,
+  Bonferroni over 24 tests) is proposed in `REPORT_THERMAL_VISCOSITY.md`
+  §3.8. It applies only to a future, fresh seed set, and only after it is
+  committed.

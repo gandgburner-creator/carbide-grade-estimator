@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="440" font-family="sans-serif" font-size="12">
+<rect width="720" height="440" fill="#fff"/>
+<text x="360" y="22" text-anchor="middle" font-size="14" font-weight="600">Couette: μ_eff in each consecutive block (no drift ⇒ stationary)</text>
+<line x1="70" x2="700" y1="385" y2="385" stroke="#e5e5e5"/>
+<text x="64" y="389" text-anchor="end">0.00</text>
+<text x="70" y="403" text-anchor="middle">75.0</text>
+<line x1="70" x2="700" y1="316" y2="316" stroke="#e5e5e5"/>
+<text x="64" y="320" text-anchor="end">0.0758</text>
+<text x="196" y="403" text-anchor="middle">180</text>
+<line x1="70" x2="700" y1="247" y2="247" stroke="#e5e5e5"/>
+<text x="64" y="251" text-anchor="end">0.152</text>
+<text x="322" y="403" text-anchor="middle">285</text>
+<line x1="70" x2="700" y1="177.99999999999997" y2="177.99999999999997" stroke="#e5e5e5"/>
+<text x="64" y="181.99999999999997" text-anchor="end">0.227</text>
+<text x="448" y="403" text-anchor="middle">390</text>
+<line x1="70" x2="700" y1="109" y2="109" stroke="#e5e5e5"/>
+<text x="64" y="113" text-anchor="end">0.303</text>
+<text x="574" y="403" text-anchor="middle">495</text>
+<line x1="70" x2="700" y1="40" y2="40" stroke="#e5e5e5"/>
+<text x="64" y="44" text-anchor="end">0.379</text>
+<text x="700" y="403" text-anchor="middle">600</text>
+<line x1="70" x2="70" y1="40" y2="385" stroke="#333"/>
+<line x1="70" x2="700" y1="385" y2="385" stroke="#333"/>
+<text x="360" y="428" text-anchor="middle">end of block, collisions per particle</text>
+<text transform="translate(16 220) rotate(-90)" text-anchor="middle">μ_eff (block)</text>
+<polyline points="70.0,93.8 160.0,64.5 250.0,66.7 340.0,62.0 430.0,40.0 520.0,83.5 610.0,40.1 700.0,105.9" fill="none" stroke="#1a7f37" stroke-width="1.8"/>
+<circle cx="70.0" cy="93.8" r="3" fill="#1a7f37"/>
+<circle cx="160.0" cy="64.5" r="3" fill="#1a7f37"/>
+<circle cx="250.0" cy="66.7" r="3" fill="#1a7f37"/>
+<circle cx="340.0" cy="62.0" r="3" fill="#1a7f37"/>
+<circle cx="430.0" cy="40.0" r="3" fill="#1a7f37"/>
+<circle cx="520.0" cy="83.5" r="3" fill="#1a7f37"/>
+<circle cx="610.0" cy="40.1" r="3" fill="#1a7f37"/>
+<circle cx="700.0" cy="105.9" r="3" fill="#1a7f37"/>
+<line x1="70" x2="70" y1="131.38999547150112" y2="56.110813153684774" stroke="#1a7f37" opacity="0.6"/>
+<line x1="160" x2="160" y1="99.54129931925974" y2="29.366606580586165" stroke="#1a7f37" opacity="0.6"/>
+<line x1="250" x2="250" y1="101.34263976791703" y2="32.11043538244604" stroke="#1a7f37" opacity="0.6"/>
+<line x1="340" x2="340" y1="108.84796811264175" y2="15.135282733307463" stroke="#1a7f37" opacity="0.6"/>
+<line x1="430" x2="430" y1="81.75396660968397" y2="-1.753966609683971" stroke="#1a7f37" opacity="0.6"/>
+<line x1="520" x2="520" y1="118.16967084070319" y2="48.732998895856895" stroke="#1a7f37" opacity="0.6"/>
+<line x1="610" x2="610" y1="87.43549317404461" y2="-7.1861618550966" stroke="#1a7f37" opacity="0.6"/>
+<line x1="700" x2="700" y1="136.28752441302288" y2="75.45943974102676" stroke="#1a7f37" opacity="0.6"/>
+<rect x="470" y="46" width="14" height="3" fill="#1a7f37"/>
+<text x="490" y="51">per-block μ_eff, seed mean ± 95 % CI</text>
+</svg>

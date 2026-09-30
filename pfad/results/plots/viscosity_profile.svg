@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="440" font-family="sans-serif" font-size="12">
+<rect width="720" height="440" fill="#fff"/>
+<text x="360" y="22" text-anchor="middle" font-size="14" font-weight="600">Couette: velocity profile (30 seeds; walls at y = 0 and 40, U = 0.5)</text>
+<line x1="70" x2="700" y1="385" y2="385" stroke="#e5e5e5"/>
+<text x="64" y="389" text-anchor="end">0.0344</text>
+<text x="70" y="403" text-anchor="middle">1.00</text>
+<line x1="70" x2="700" y1="316" y2="316" stroke="#e5e5e5"/>
+<text x="64" y="320" text-anchor="end">0.121</text>
+<text x="196" y="403" text-anchor="middle">8.60</text>
+<line x1="70" x2="700" y1="247" y2="247" stroke="#e5e5e5"/>
+<text x="64" y="251" text-anchor="end">0.207</text>
+<text x="322" y="403" text-anchor="middle">16.2</text>
+<line x1="70" x2="700" y1="178" y2="178" stroke="#e5e5e5"/>
+<text x="64" y="182" text-anchor="end">0.294</text>
+<text x="448" y="403" text-anchor="middle">23.8</text>
+<line x1="70" x2="700" y1="109" y2="109" stroke="#e5e5e5"/>
+<text x="64" y="113" text-anchor="end">0.380</text>
+<text x="574" y="403" text-anchor="middle">31.4</text>
+<line x1="70" x2="700" y1="40" y2="40" stroke="#e5e5e5"/>
+<text x="64" y="44" text-anchor="end">0.467</text>
+<text x="700" y="403" text-anchor="middle">39.0</text>
+<line x1="70" x2="70" y1="40" y2="385" stroke="#333"/>
+<line x1="70" x2="700" y1="385" y2="385" stroke="#333"/>
+<text x="360" y="428" text-anchor="middle">y</text>
+<text transform="translate(16 220) rotate(-90)" text-anchor="middle">u_x</text>
+<circle cx="70.0" cy="385.0" r="3" fill="#1f6feb"/>
+<circle cx="103.2" cy="366.1" r="3" fill="#1f6feb"/>
+<circle cx="136.3" cy="345.0" r="3" fill="#1f6feb"/>
+<circle cx="169.5" cy="327.4" r="3" fill="#1f6feb"/>
+<circle cx="202.6" cy="311.7" r="3" fill="#1f6feb"/>
+<circle cx="235.8" cy="292.9" r="3" fill="#1f6feb"/>
+<circle cx="268.9" cy="275.2" r="3" fill="#1f6feb"/>
+<circle cx="302.1" cy="257.2" r="3" fill="#1f6feb"/>
+<circle cx="335.3" cy="240.3" r="3" fill="#1f6feb"/>
+<circle cx="368.4" cy="224.8" r="3" fill="#1f6feb"/>
+<circle cx="401.6" cy="206.8" r="3" fill="#1f6feb"/>
+<circle cx="434.7" cy="189.4" r="3" fill="#1f6feb"/>
+<circle cx="467.9" cy="170.2" r="3" fill="#1f6feb"/>
+<circle cx="501.1" cy="153.2" r="3" fill="#1f6feb"/>
+<circle cx="534.2" cy="136.1" r="3" fill="#1f6feb"/>
+<circle cx="567.4" cy="116.9" r="3" fill="#1f6feb"/>
+<circle cx="600.5" cy="98.4" r="3" fill="#1f6feb"/>
+<circle cx="633.7" cy="80.5" r="3" fill="#1f6feb"/>
+<circle cx="666.8" cy="62.1" r="3" fill="#1f6feb"/>
+<circle cx="700.0" cy="40.0" r="3" fill="#1f6feb"/>
+<line x1="70" x2="70" y1="388.4483591231046" y2="381.5516408768954" stroke="#1f6feb" opacity="0.6"/>
+<line x1="103.15789473684211" x2="103.15789473684211" y1="370.4790183218326" y2="361.67384576940987" stroke="#1f6feb" opacity="0.6"/>
+<line x1="136.31578947368422" x2="136.31578947368422" y1="349.6630764672505" y2="340.3391367457085" stroke="#1f6feb" opacity="0.6"/>
+<line x1="169.4736842105263" x2="169.4736842105263" y1="332.04557346895297" y2="322.6962550587235" stroke="#1f6feb" opacity="0.6"/>
+<line x1="202.6315789473684" x2="202.6315789473684" y1="316.8189878972999" y2="306.5368753425915" stroke="#1f6feb" opacity="0.6"/>
+<line x1="235.78947368421052" x2="235.78947368421052" y1="297.9313646329581" y2="287.91581471291715" stroke="#1f6feb" opacity="0.6"/>
+<line x1="268.9473684210526" x2="268.9473684210526" y1="280.33839032889387" y2="270.00653052500934" stroke="#1f6feb" opacity="0.6"/>
+<line x1="302.1052631578947" x2="302.1052631578947" y1="262.3303089419023" y2="252.16887253137367" stroke="#1f6feb" opacity="0.6"/>
+<line x1="335.2631578947368" x2="335.2631578947368" y1="245.8098362794333" y2="234.71382190233217" stroke="#1f6feb" opacity="0.6"/>
+<line x1="368.4210526315789" x2="368.4210526315789" y1="230.18138272126754" y2="219.32474979777407" stroke="#1f6feb" opacity="0.6"/>
+<line x1="401.57894736842104" x2="401.57894736842104" y1="212.892460424197" y2="200.69151238153174" stroke="#1f6feb" opacity="0.6"/>
+<line x1="434.7368421052632" x2="434.7368421052632" y1="195.35201877928446" y2="183.3553457819554" stroke="#1f6feb" opacity="0.6"/>
+<line x1="467.89473684210526" x2="467.89473684210526" y1="176.20973270957188" y2="164.26915244483067" stroke="#1f6feb" opacity="0.6"/>
+<line x1="501.0526315789474" x2="501.0526315789474" y1="158.88730325895426" y2="147.42645674152627" stroke="#1f6feb" opacity="0.6"/>
+<line x1="534.2105263157894" x2="534.2105263157894" y1="141.45647444873723" y2="130.68733167767226" stroke="#1f6feb" opacity="0.6"/>
+<line x1="567.3684210526316" x2="567.3684210526316" y1="122.6206109737904" y2="111.25849080278124" stroke="#1f6feb" opacity="0.6"/>
+<line x1="600.5263157894736" x2="600.5263157894736" y1="102.91981747192614" y2="93.79138694821336" stroke="#1f6feb" opacity="0.6"/>
+<line x1="633.6842105263158" x2="633.6842105263158" y1="84.98935355854024" y2="75.91609414932492" stroke="#1f6feb" opacity="0.6"/>
+<line x1="666.8421052631578" x2="666.8421052631578" y1="66.36926225842501" y2="57.760566437148555" stroke="#1f6feb" opacity="0.6"/>
+<line x1="700" x2="700" y1="42.840497364402154" y2="37.1595026355979" stroke="#1f6feb" opacity="0.6"/>
+<polyline points="186.1,319.4 583.9,109.5" fill="none" stroke="#d1242f" stroke-width="1.8"/>
+<rect x="470" y="46" width="14" height="3" fill="#1f6feb"/>
+<text x="490" y="51">u(y), seed mean ± 95 % CI</text>
+<rect x="470" y="64" width="14" height="3" fill="#d1242f"/>
+<text x="490" y="69">core fit (y ∈ [8.00, 32.0])</text>
+</svg>

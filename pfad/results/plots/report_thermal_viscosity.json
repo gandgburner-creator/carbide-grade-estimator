@@ -1,0 +1,173 @@
+{
+ "criteria": "docs/CRITERIA_THERMAL_VISCOSITY.md",
+ "thermal": {
+  "record": "results/thermal_reference.json",
+  "classification": "INCONCLUSIVE",
+  "checks": [
+   {
+    "id": "numerical-safety",
+    "status": "PASSED",
+    "measured": "none"
+   },
+   {
+    "id": "E5-no-empty-space",
+    "status": "PASSED",
+    "measured": "none (φ 0.00833 … 0.299, mean 0.0631)"
+   },
+   {
+    "id": "E1-energy-conservation",
+    "status": "PASSED",
+    "measured": "3.40e-14"
+   },
+   {
+    "id": "no-hidden-energy-scale",
+    "status": "PASSED",
+    "measured": "0.00e+0 over 30 pair(s)"
+   },
+   {
+    "id": "E3-temperature-scaling",
+    "status": "PASSED",
+    "measured": "p = 0.921 over 2 classes"
+   },
+   {
+    "id": "E3-independent-of-initial-distribution",
+    "status": "PASSED",
+    "measured": "p(Z) = 0.904, p(a2) = 0.935"
+   },
+   {
+    "id": "E6-relaxation-settled",
+    "status": "NOT CONVERGED",
+    "measured": "uniform-box"
+   },
+   {
+    "id": "E2-stationarity",
+    "status": "PASSED",
+    "measured": "all pass; smallest p = 1.60e-2 (φ = 0.05, kT = 1 / Z)"
+   },
+   {
+    "id": "E4-precision",
+    "status": "PASSED",
+    "measured": "all < 0.71 %; worst 0.67 % (two-beam start, φ = 0.05 (late half of the relaxation run))"
+   }
+  ]
+ },
+ "viscosity": {
+  "record": "results/viscosity_reference.json",
+  "timestepRecord": "results/viscosity_courant-0.05.json",
+  "classification": "PASS",
+  "checks": [
+   {
+    "id": "numerical-safety",
+    "status": "PASSED",
+    "measured": "none"
+   },
+   {
+    "id": "no-empty-space",
+    "status": "PASSED",
+    "measured": "none (φ 0.0506 … 0.152, mean 0.100)"
+   },
+   {
+    "id": "energy-accounting",
+    "status": "PASSED",
+    "measured": "1.18e-13"
+   },
+   {
+    "id": "momentum-accounting",
+    "status": "PASSED",
+    "measured": "5.91e-15"
+   },
+   {
+    "id": "V1-steady-state-momentum",
+    "status": "PASSED",
+    "measured": "max |z| = 0.06"
+   },
+   {
+    "id": "V1-steady-state-energy",
+    "status": "PASSED",
+    "measured": "max |z| = 0.30"
+   },
+   {
+    "id": "V2-core-profile-linear",
+    "status": "PASSED",
+    "measured": "all linear (min p 3.73e-1)"
+   },
+   {
+    "id": "V3-emergent",
+    "status": "PASSED",
+    "measured": "all CIs above 0"
+   },
+   {
+    "id": "V4-seed-reproducible",
+    "status": "PASSED",
+    "measured": "min p = 0.0980"
+   },
+   {
+    "id": "V5-time-stable",
+    "status": "PASSED",
+    "measured": "base: φ=0.1, H=40, U=0.5, Aw=1: p = 0.666"
+   },
+   {
+    "id": "V6-window-insensitive",
+    "status": "PASSED",
+    "measured": "base: φ=0.1, H=40, U=0.5, Aw=1: p = 0.266"
+   },
+   {
+    "id": "V8-viscosity-precision",
+    "status": "PASSED",
+    "measured": "all < 10 % (4.8 %)"
+   },
+   {
+    "id": "V7-timestep",
+    "status": "PASSED",
+    "measured": "z = -1.01 (Courant 0.05 − 0.025, independent seeds)"
+   }
+  ],
+  "v7": {
+   "z": -1.0076359845467238,
+   "reference": {
+    "n": 30,
+    "mean": 0.33260355714781753,
+    "variance": 0.0018646843678228066,
+    "sd": 0.043181991244300055,
+    "se": 0.007883916894164572,
+    "ci95": [
+     0.316480947099251,
+     0.34872616719638405
+    ],
+    "relHalfWidth95": 0.048473955560857845,
+    "betweenSeedCV": 0.12983021472951017
+   },
+   "courant005": {
+    "n": 30,
+    "mean": 0.3219869457735206,
+    "variance": 0.0014656340395031264,
+    "sd": 0.03828360013769769,
+    "se": 0.006989597125974969,
+    "ci95": [
+     0.3076932196509018,
+     0.3362806718961394
+    ],
+    "relHalfWidth95": 0.044392253506677075,
+    "betweenSeedCV": 0.1188979883818819
+   }
+  }
+ },
+ "plots": [
+  "results/plots/thermal_Z_convergence_1.svg",
+  "results/plots/thermal_Z_convergence_2.svg",
+  "results/plots/thermal_Z_convergence_3.svg",
+  "results/plots/thermal_Z_convergence_4.svg",
+  "results/plots/thermal_Z_convergence_5.svg",
+  "results/plots/thermal_Z_convergence_6.svg",
+  "results/plots/thermal_Z_convergence_7.svg",
+  "results/plots/thermal_Z_convergence_8.svg",
+  "results/plots/thermal_relaxation_a2.svg",
+  "results/plots/thermal_relaxation_anisotropy.svg",
+  "results/plots/thermal_window_sensitivity.svg",
+  "results/plots/viscosity_profile.svg",
+  "results/plots/viscosity_mu_convergence.svg",
+  "results/plots/viscosity_mu_per_block.svg",
+  "results/plots/viscosity_per_seed.svg",
+  "results/plots/viscosity_window_sensitivity.svg"
+ ]
+}

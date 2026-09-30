@@ -1,0 +1,6 @@
+START viscosity_reference 2026-09-30T15:49:26Z: npx tsx scripts/run-couette-reference.ts 4 viscosity
+END   viscosity_reference 2026-09-30T15:54:47Z exit=0 seconds=321
+START viscosity_courant-0.05 2026-09-30T15:54:47Z: npx tsx scripts/run-experiment.ts viscosity --parallel 4 --set timestep={"kind":"adaptive","courant":0.05,"dtMax":1,"dtMin":1e-7} --set seeds=[101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,127,128,129,130] --out results --name viscosity_courant-0.05
+END   viscosity_courant-0.05 2026-09-30T15:57:25Z exit=0 seconds=158
+START thermal_reference 2026-09-30T15:57:25Z: npx tsx scripts/run-experiment.ts thermal --parallel 4 --out results --name thermal_reference
+END   thermal_reference 2026-09-30T16:13:32Z exit=0 seconds=967

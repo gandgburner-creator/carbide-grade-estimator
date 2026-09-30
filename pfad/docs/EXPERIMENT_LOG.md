@@ -28,9 +28,9 @@ changed with resolution beyond its tolerance.
 | 1 | produce stable particle gas | static box, thermal | **PASSED** | stationary, isotropic, Maxwellian from any start (§1, §3) |
 | 2 | measure pressure from impacts | static box | **PASSED** | 1.116 nkT at φ = 0.05 = hard-disk EOS; v0.1's 0.997 not reproduced (§1) |
 | 3 | quantify energy conservation | every record | **PASSED** | ledgers close to ~10⁻¹³ (§2) |
-| 4 | measure thermal behaviour | thermal | INCONCLUSIVE | all checks pass except EOS precision 2.10 % vs 2 % at φ = 0.2 (§3) |
+| 4 | measure thermal behaviour | thermal | INCONCLUSIVE | 10 seeds: E1–E5 pass (Z to ≤ 0.67 %, 95 %); the pre-registered relaxation rule E6 flags one window, diagnosed as a false alarm of an ill-posed rule (§3) |
 | 5 | measure disturbance propagation | pulse reference, sweeps | INCONCLUSIVE | finite speed measured, but amplitude/width-dependent; model E ambiguous (§5) |
-| 6 | measure effective viscosity | Couette reference, sweeps | INCONCLUSIVE | μ_eff = 0.325 ± 0.027 (Enskog 0.316) at 23 % precision vs 10 % required (§6) |
+| 6 | measure effective viscosity | Couette reference, sweeps | **PASSED** (reference) | μ_eff = 0.3326, 95 % CI ± 4.85 % over 30 seeds (Enskog 0.316), stable, timestep-independent; sweeps not rerun (§6) |
 | 7 | demonstrate wall momentum transfer | wall accommodation | **PASSED** | α_E and α_t equal Aw (§4) |
 | 8 | show a boundary layer | boundary layer | INCONCLUSIVE | layer emerged; upstream control not clean, momentum integral not closed (§7) |
 | 9 | investigate adverse-gradient separation | separation | INCONCLUSIVE | investigated; no separation up to 87 % deceleration at Re ~ 10² (§8) |
@@ -41,7 +41,7 @@ changed with resolution beyond its tolerance.
 | 14 | export experiment data | every record | **PASSED** | JSON records; lab EXPORT / IMPORT |
 | 15 | distinguish measured results from assumptions | every record | **PASSED** | results, benchmarks and assumption IDs kept apart (`MODEL_ASSUMPTIONS.md`) |
 
-**Airfoil optimisation stays locked.** Criteria 4, 5, 6, 8 and 9 are
+**Airfoil optimisation stays locked.** Criteria 4, 5, 8 and 9 are
 INCONCLUSIVE and the flow scaling study is NOT CONVERGED. That is the honest
 state of Phase 0, not a failure to hide. §14 lists what would change it.
 
@@ -101,20 +101,42 @@ goes to one explicit ledger destination (external or internal reservoir).
 
 ## 3. Thermal behaviour (Step 8)
 
-Record `thermal_reference.json`, status **INCONCLUSIVE** — only because the
-equation-of-state precision at φ = 0.2 is 2.10 % against a 2 % criterion.
+Record `thermal_reference.json` (10 seeds, 21–30; 200 collisions/particle,
+80 for relaxation runs), status **INCONCLUSIVE**. It is judged under the
+criteria fixed before the run (`CRITERIA_THERMAL_VISCOSITY.md`). The full
+report, with per-seed tables, plots and the error budget, is
+`REPORT_THERMAL_VISCOSITY.md`.
 
-- **No hidden energy scale.** For rigid disks kT only rescales time; runs in the
-  same power-of-4 temperature class (kT = 0.25, 1, 4 and 0.5, 2) give
-  bit-identical P/(nkT) (relative spread 0 over 15 pairs). Across classes
-  P = a + b·kT with a = (2 ± 2) × 10⁻⁴ (zero) and ANOVA p = 0.013.
-- **Equation of state.** Z(φ) = 1.043, 1.110, 1.248, 1.583 at φ = 0.02, 0.05,
-  0.1, 0.2 (Henderson: 1.041, 1.108, 1.236, 1.570; ratios 1.001–1.010).
-  Fitted second virial coefficient B = 2.03 ± 0.04 (exact hard-disk value 2).
-- **Equilibrium is independent of the initial velocity distribution**
-  (Maxwell, uniform-speed, uniform-box, two-beam): ANOVA p = 0.18 for Z and
-  0.50 for the late-time a₂; all relax to Maxwellian speeds (KS p ≥ 0.62)
-  within ~6 collisions per particle.
+- **Precision (E4) now met.** Seed-ensemble 95 % half-width of Z is
+  0.07–0.18 % in the 200-collision configurations and ≤ 0.67 % in the
+  40-collision relaxation halves (criterion < 0.71 %). The earlier failure
+  came from pooled per-run SEs that overstate the closed-box uncertainty
+  4–6× (`MODEL_CHANGELOG.md`, revision 8).
+- **Equation of state.** Z(φ) = 1.0448, 1.1150, 1.2484, 1.5921 at φ = 0.02,
+  0.05, 0.1, 0.2 (95 % half-widths 0.07–0.18 %). Henderson gives 1.0413,
+  1.1084, 1.2361, 1.5703. The measured values are +0.3 … +1.4 % higher, a
+  wall finite-size effect: at φ = 0.05 it equals the static box's N → ∞
+  shift. This is reported, not corrected. Fitted B = 2.12 ± 0.01 (exact 2),
+  biased by the same effect.
+- **No hidden energy scale.** Same-class temperatures give bit-identical Z
+  (30 pairs). Across classes Z agrees (ANOVA p = 0.92) and P = a + b·kT
+  with intercept a = (0.2 ± 4.3) × 10⁻⁵, i.e. zero.
+- **Equilibrium, stationarity, uniformity.** All 40 seed-paired late/early
+  stationarity tests pass (smallest p = 0.016 against 1.25 × 10⁻³).
+  kT_x/kT_y = 1 within 0.3 %. Kurtosis is 2.99–3.00 and a₂ ≈ 0. There is no
+  empty-space flag in 130 runs.
+- **Independent of the initial velocity distribution** (Maxwell,
+  uniform-speed, uniform-box, two-beam): ANOVA p = 0.90 for Z and 0.94 for
+  late a₂. KS of the final speeds against the 2D Maxwellian gives p ≥ 0.30.
+  Every start relaxes within ~10 collisions/particle (1/e times 1.2–3.5).
+- **Why INCONCLUSIVE.** The pre-registered relaxation rule E6 ("last > 4σ
+  window in the first half of every run") is not met. The uniform-box start,
+  seed 25, has one a₂ window at z = 4.68 at c = 56.8. The Maxwell-start runs
+  begin in equilibrium and show the same statistic firing (z up to 5.18). The
+  measured false-alarm rate makes a flag ≈ 95 % likely at 10 seeds × 80
+  collisions with no relaxation defect at all. So the rule is ill-posed. As
+  pre-registered, that is reported, not repaired. A well-posed replacement
+  (E6′) is proposed for a fresh seed set.
 
 ## 4. Wall momentum and energy transfer (Step 9)
 
@@ -181,15 +203,34 @@ What the sweeps show:
 
 ## 6. Effective viscosity (Step 11)
 
-Records `viscosity_reference.json` (5 seeds) and `viscosity_sweeps.json`
-(4 seeds per case), both **INCONCLUSIVE** on the stated 10 % precision
-criterion (achieved 20–35 % for most cases: the core velocity gradient is
-small against thermal noise). μ_eff = measured wall shear / measured core
-velocity gradient; no viscosity enters the solver.
+μ_eff = measured wall shear / measured core velocity gradient; no viscosity
+enters the solver.
+
+**Reference: `viscosity_reference.json`, status PASSED** (30 seeds, 71–100,
+600 collisions/particle, judged under the pre-registered criteria V1–V8; full
+report in `REPORT_THERMAL_VISCOSITY.md`). μ_eff = **0.3326**, 95 % CI
+[0.3165, 0.3487] (± 4.85 %), between-seed CV 13 %. The results:
+
+- Every run's core profile is linear (χ² p ≥ 0.37).
+- The halves agree (paired p = 0.67), and so do core fractions 0.4 and 0.6
+  (p = 0.27).
+- Courant 0.05 with 30 independent seeds (`viscosity_courant-0.05.json`)
+  gives 0.3220 ± 0.0070 (z = −1.01).
+- Wall stresses balance (z = −0.06) and input work balances wall heat
+  (z = 0.30).
+- The value is 5 % above the Enskog benchmark 0.316 (comparison only).
+
+The earlier 5-seed value was 0.325 ± 0.027. Flow records made before this
+rerun keep that μ in their configuration; `run-flow-references.ts` reads the
+new one.
+
+**Sweeps: `viscosity_sweeps.json`** (4 seeds per case, not rerun),
+**INCONCLUSIVE** on the 10 % precision criterion. Most cases achieve 20–35 %:
+the core velocity gradient is small against thermal noise.
 
 | case | μ_eff | Kn = λ/H (λ measured) | Enskog benchmark |
 |---|---|---|---|
-| reference φ = 0.1, H = 40, U = 0.5, Aw = 1 | **0.325 ± 0.027** | 0.059 | 0.316 |
+| reference φ = 0.1, H = 40, U = 0.5, Aw = 1 (30 seeds) | **0.3326 ± 0.0079** | 0.058 | 0.316 |
 | U = 0.25 / 0.5 / 1.0 | 0.41 ± 0.11 / 0.320 ± 0.021 / 0.319 ± 0.020 | 0.059 | 0.314–0.321 |
 | φ = 0.05 / 0.2 | 0.282 ± 0.009 / 0.351 ± 0.033 | 0.127 / 0.024 | 0.300 / 0.379 |
 | H = 20 / 80 | 0.312 ± 0.021 / 0.267 ± 0.021 | 0.116 / 0.029 | 0.317 / 0.315 |
@@ -391,7 +432,9 @@ fixed with a test, and both records regenerated.
 ## 12. Reynolds and Mach numbers
 
 Every flow record states Re and Mp with their definitions. Re uses the
-viscosity measured in the Couette reference (0.325 ± 0.027); Mp = V/c_p uses
+viscosity measured in the 5-seed Couette reference in force when they were run
+(0.325 ± 0.027). The 30-seed rerun gives 0.3326 ± 0.0079: +2.3 %, within that
+uncertainty, and these Re would be 2.3 % lower with it. Mp = V/c_p uses
 the disturbance speed measured at the matching density (c_p = 1.81 ± 0.10 at
 φ = 0.1). None of these is a physical-wing Reynolds number:
 
@@ -417,8 +460,12 @@ proportionally larger universe in particle diameters (particle count ∝ Re² in
   theory and passes its convergence studies.
 - **Sound speed** is amplitude- and width-dependent in the configurations
   run; the linear limit is not established (§5).
-- **Viscosity precision** is 20–35 % at the reference settings; more seeds or
-  longer runs are needed to meet the stated 10 %.
+- **Viscosity precision** is met at the reference settings (± 4.85 %, 30
+  seeds); the sweep cases are still at 4 seeds (20–35 %).
+- **Thermal relaxation criterion E6** turned out ill-posed: its false-alarm
+  rate grows with seeds × run length (§3). Thermal behaviour stays
+  INCONCLUSIVE until a well-posed rule is fixed in advance and judged on
+  fresh seeds.
 - **Open boundaries** supply only kinetic pressure (A-18), leaving dense
   interiors below their stated density; all flow results use the realised
   state.
@@ -443,8 +490,10 @@ proportionally larger universe in particle diameters (particle count ∝ Re² in
 The lock opens only when every §42 criterion has PASSED and the flow results
 are scale-converged. From the data above, the shortest path is:
 
-1. **Viscosity and thermal precision** (criteria 4, 6): more seeds and longer
-   measurement windows at the reference settings; nothing new is needed.
+1. **Thermal relaxation** (criterion 4): precision is now met. Commit the
+   proposed E6′ (`REPORT_THERMAL_VISCOSITY.md` §3.8) or another well-posed
+   relaxation rule, then judge a fresh seed set with it. Criterion 6
+   (viscosity) passed with 30 seeds × 600 collisions/particle.
 2. **Sound speed in the linear limit** (criterion 5): an amplitude series
    (e.g. 0.1–0.5) extrapolated to zero amplitude, with enough seeds that the
    small-amplitude pulses are tracked; and a tracker that reports competing
