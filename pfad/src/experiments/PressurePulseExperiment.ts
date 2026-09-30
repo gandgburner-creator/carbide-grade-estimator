@@ -444,6 +444,7 @@ export interface CaseAnalysis {
     widths: number[];
   };
   speed: Estimate | null;
+  speedLeaveOneOut: number[];
   attenuation: { value: number; se: number };
   widthGrowth: { value: number; se: number };
   kTStart: number;
@@ -528,6 +529,8 @@ export class PressurePulseExperiment extends SequentialExperiment<Spec, Result> 
         widths: full.widths,
       },
       speed,
+      /** leave-one-seed-out speeds behind the jackknife SE (a spread here shows which subsets track differently) */
+      speedLeaveOneOut: jkSpeed.leaveOneOut,
       attenuation: { value: jkAtt.value, se: jkAtt.se },
       widthGrowth: { value: jkW.value, se: jkW.se },
       kTStart: mean(runs.map((r) => r.kTStart)),

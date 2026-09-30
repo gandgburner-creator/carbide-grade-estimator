@@ -3,6 +3,7 @@
  *
  *   npm run exp -- <experiment-type> [--quick] [--set key=<json>]... [--out dir] [--name file-stem]
  *   npm run exp -- replay <record.json>
+ *   npm run exp -- show <record.json>        (print a saved record without running anything)
  *
  * Writes <out>/<name>.json (the full ExperimentRecord) and, where a plot is
  * defined, <out>/<name>.svg. Prints the acceptance checks and headline numbers.
@@ -304,6 +305,10 @@ async function main(): Promise<void> {
     const stem = args.name || `convergence_${args.file.replace(/\//g, '_')}`;
     writeFileSync(join(args.out, `${stem}.json`), JSON.stringify({ study: args.file, ...res }, null, 1));
     console.log(`written ${join(args.out, `${stem}.json`)}`);
+    return;
+  }
+  if (args.type === 'show') {
+    printRecord(JSON.parse(readFileSync(args.file, 'utf8')) as ExperimentRecord);
     return;
   }
   if (args.type === 'replay') {
