@@ -1,3 +1,4 @@
+import { ReservoirBoundary, type ReservoirBoundaryConfig } from '../walls/ReservoirBoundary';
 import { PlaneWall, type PlaneWallConfig } from '../walls/WallModel';
 import { CollisionLog } from './CollisionLog';
 import { HardDiskCollider, type CollisionConfig } from './CollisionModel';
@@ -24,6 +25,8 @@ export interface ForceModel {
 export interface SimulationConfig {
   domain: DomainSpec;
   walls: PlaneWallConfig[];
+  /** open (reservoir) boundaries on bounded sides without a wall */
+  boundaries?: ReservoirBoundaryConfig[];
   collision: CollisionConfig;
   timestep: TimestepPolicy;
   /** seed for dynamical randomness (wall re-emission) */
@@ -52,6 +55,7 @@ export class Simulation {
   readonly store: ParticleStore;
   readonly domain: Domain;
   readonly walls: PlaneWall[];
+  readonly boundaries: ReservoirBoundary[];
   readonly collider: HardDiskCollider;
   readonly grid: SpatialGrid;
   readonly ledger = new Ledger();
@@ -76,6 +80,7 @@ export class Simulation {
   readonly gridCellSize: number;
 
   private readonly wallRng: Rng;
+  private readonly boundaryRng: Rng;
   private readonly contactCutoff: number;
   private readonly minDiameter: number;
   private readonly warned = new Set<SafetyCode>();
@@ -86,13 +91,15 @@ export class Simulation {
     this.store = store;
     this.domain = new Domain(config.domain);
     this.walls = config.walls.map((w) => new PlaneWall(w, this.domain));
-    const sides = new Set(config.walls.map((w) => w.side));
-    if (sides.size !== config.walls.length) throw new Error('duplicate wall side');
+    this.boundaries = (config.boundaries ?? []).map((b) => new ReservoirBoundary(b, this.domain));
+    const sideList = [...config.walls.map((w) => w.side), ...(config.boundaries ?? []).map((b) => b.side)];
+    const sides = new Set(sideList);
+    if (sides.size !== sideList.length) throw new Error('duplicate wall/boundary side');
     if (!this.domain.periodicX && !(sides.has('left') && sides.has('right'))) {
-      throw new Error('bounded x axis needs left and right walls');
+      throw new Error('bounded x axis needs a wall or open boundary on the left and on the right');
     }
     if (!this.domain.periodicY && !(sides.has('bottom') && sides.has('top'))) {
-      throw new Error('bounded y axis needs bottom and top walls');
+      throw new Error('bounded y axis needs a wall or open boundary at the bottom and at the top');
     }
     this.limits = { ...DEFAULT_SAFETY_LIMITS, ...config.safety };
     this.collider = new HardDiskCollider(config.collision, store.capacity);
@@ -107,6 +114,7 @@ export class Simulation {
     this.gridCellSize = Math.max(this.contactCutoff, config.gridCellSize ?? autoCell);
     this.grid = new SpatialGrid(this.domain, this.gridCellSize, store.capacity);
     this.wallRng = new Rng(config.seed, RNG_STREAM.walls);
+    this.boundaryRng = new Rng(config.seed, RNG_STREAM.boundaries);
     this.forceModels.push(...forceModels);
     if (this.forceModels.length > 0) this.potentialEnergy = this.computeForces();
 
@@ -130,7 +138,7 @@ export class Simulation {
   /** Energy-accounting residual: E(t) + energy that left through ledgered channels − E(0). */
   energyResidual(): number {
     const L = this.ledger;
-    return this.totalEnergy() + L.dissipatedExternal + L.wallEnergyOut + L.forceWorkOut - this.E0;
+    return this.totalEnergy() + L.dissipatedExternal + L.wallEnergyOut + L.forceWorkOut + L.boundaryEnergyOut - this.E0;
   }
 
   relativeEnergyResidual(): number {
@@ -142,8 +150,8 @@ export class Simulation {
     const p = this.store.momentum();
     const L = this.ledger;
     return {
-      x: p.x - this.P0.x - L.wallImpulseX - L.forceImpulseX,
-      y: p.y - this.P0.y - L.wallImpulseY - L.forceImpulseY,
+      x: p.x - this.P0.x - L.wallImpulseX - L.forceImpulseX + L.boundaryMomentumOutX,
+      y: p.y - this.P0.y - L.wallImpulseY - L.forceImpulseY + L.boundaryMomentumOutY,
     };
   }
 
@@ -206,6 +214,7 @@ export class Simulation {
     for (const w of this.walls) {
       wallInteractions += w.interact(s, dt, this.wallRng, this.ledger, this.collider.lastEventStep, this.stepCount);
     }
+    for (const b of this.boundaries) b.apply(s, dt, this.boundaryRng, this.ledger, this.collider);
     this.wrap();
 
     if (hasForces) {

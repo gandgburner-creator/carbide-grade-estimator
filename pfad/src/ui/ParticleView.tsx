@@ -161,7 +161,41 @@ export function ParticleView({ frame, options, selected, onPick }: Props) {
         g.font = '11px monospace';
         g.fillText(`U = ${wall.tangentialVelocity} →`, T.X(d.xmin) + 6, y + 4);
       }
+      // segments with their own accommodation (e.g. a diffuse plate in a specular floor)
+      for (const sg of wall.segments) {
+        g.strokeStyle = `rgba(255, 150, 60, ${0.5 + 0.5 * sg.accommodation})`;
+        g.lineWidth = 5;
+        g.beginPath();
+        if (wall.side === 'bottom' || wall.side === 'top') {
+          const y = T.Y(wall.side === 'bottom' ? d.ymin : d.ymax);
+          g.moveTo(T.X(sg.from), y);
+          g.lineTo(T.X(sg.to), y);
+        } else {
+          const x = T.X(wall.side === 'left' ? d.xmin : d.xmax);
+          g.moveTo(x, T.Y(sg.from));
+          g.lineTo(x, T.Y(sg.to));
+        }
+        g.stroke();
+      }
     }
+    // open reservoir boundaries: dashed blue
+    g.setLineDash([6, 4]);
+    g.strokeStyle = 'rgba(88,166,255,0.8)';
+    g.lineWidth = 2;
+    for (const side of frame.openSides) {
+      g.beginPath();
+      if (side === 'left' || side === 'right') {
+        const x = T.X(side === 'left' ? d.xmin : d.xmax);
+        g.moveTo(x, T.Y(d.ymin));
+        g.lineTo(x, T.Y(d.ymax));
+      } else {
+        const y = T.Y(side === 'bottom' ? d.ymin : d.ymax);
+        g.moveTo(T.X(d.xmin), y);
+        g.lineTo(T.X(d.xmax), y);
+      }
+      g.stroke();
+    }
+    g.setLineDash([]);
     // periodic boundaries drawn dashed
     g.setLineDash([4, 4]);
     g.strokeStyle = '#3b4652';

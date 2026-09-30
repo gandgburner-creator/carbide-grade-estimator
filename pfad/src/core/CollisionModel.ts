@@ -85,6 +85,18 @@ export class HardDiskCollider {
     this.lastEventStep = new Int32Array(capacity).fill(-10);
   }
 
+  /** Mirror ParticleStore.removeSwap: slot `to` now holds the particle formerly at `from`. */
+  moveParticle(from: number, to: number): void {
+    this.lastStep[to] = this.lastStep[from];
+    this.lastEventStep[to] = this.lastEventStep[from];
+  }
+
+  /** A particle has just been inserted at slot i (no collision history). */
+  resetParticle(i: number): void {
+    this.lastStep[i] = -10;
+    this.lastEventStep[i] = -10;
+  }
+
   /**
    * Detect and resolve all overlapping, approaching pairs.
    * Returns the number of collisions processed.

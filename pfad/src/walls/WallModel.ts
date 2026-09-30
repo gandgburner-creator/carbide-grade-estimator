@@ -37,6 +37,20 @@ export interface PlaneWallConfig {
   tangentialVelocity?: number;
   /** number of measurement bins along the wall */
   bins?: number;
+  /**
+   * Optional segments along the wall (tangential coordinate interval) with their
+   * own interaction parameters, e.g. a diffuse plate inside a specular floor.
+   * Positions outside every segment use the wall's own parameters.
+   */
+  segments?: WallSegment[];
+}
+
+export interface WallSegment {
+  from: number;
+  to: number;
+  accommodation: number;
+  temperature?: number;
+  tangentialVelocity?: number;
 }
 
 export const WALL_MODEL_VERSION = 'maxwell-accommodation-plane/1';
@@ -78,12 +92,20 @@ export class PlaneWall {
     if (Aw > 0 && !(config.temperature !== undefined && config.temperature > 0)) {
       throw new Error('a wall with accommodation > 0 needs a positive temperature');
     }
+    for (const sg of config.segments ?? []) {
+      if (!(sg.accommodation >= 0 && sg.accommodation <= 1)) throw new Error('segment accommodation must be in [0,1]');
+      if (sg.accommodation > 0 && !(sg.temperature !== undefined && sg.temperature > 0)) {
+        throw new Error('a wall segment with accommodation > 0 needs a positive temperature');
+      }
+      if (!(sg.to > sg.from)) throw new Error('wall segment needs to > from');
+    }
     this.config = {
       side: config.side,
       accommodation: Aw,
       temperature: config.temperature ?? 0,
       tangentialVelocity: config.tangentialVelocity ?? 0,
       bins,
+      segments: config.segments ?? [],
     };
     switch (config.side) {
       case 'left':
@@ -156,6 +178,7 @@ export class PlaneWall {
     const Aw = this.config.accommodation;
     const kTw = this.config.temperature;
     const Uw = this.config.tangentialVelocity;
+    const segments = this.config.segments;
     const bins = this.config.bins;
     const bw = this.length / bins;
     let count = 0;
@@ -174,14 +197,28 @@ export class PlaneWall {
       const py = y[i] - vy[i] * tau;
       const m = mass[i];
       const vt = vx[i] * tx + vy[i] * ty;
+      let aw = Aw;
+      let kt = kTw;
+      let uw = Uw;
+      if (segments.length > 0) {
+        const at = tx !== 0 ? px : py;
+        for (const sg of segments) {
+          if (at >= sg.from && at < sg.to) {
+            aw = sg.accommodation;
+            kt = sg.temperature ?? 0;
+            uw = sg.tangentialVelocity ?? 0;
+            break;
+          }
+        }
+      }
       let vn2: number;
       let vt2: number;
       let diffuse = false;
-      if (Aw > 0 && rng.next() < Aw) {
+      if (aw > 0 && rng.next() < aw) {
         diffuse = true;
-        const sigma = Math.sqrt(kTw / m);
-        vn2 = Math.sqrt(-2 * (kTw / m) * Math.log(rng.nextOpen()));
-        vt2 = Uw + sigma * rng.gaussian();
+        const sigma = Math.sqrt(kt / m);
+        vn2 = Math.sqrt(-2 * (kt / m) * Math.log(rng.nextOpen()));
+        vt2 = uw + sigma * rng.gaussian();
       } else {
         vn2 = -vn;
         vt2 = vt;

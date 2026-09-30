@@ -77,9 +77,9 @@ export const CATALOG: CatalogEntry[] = [
   {
     key: 'boundary-layer',
     label: 'BOUNDARY LAYER',
-    engine: null,
+    engine: 'boundary-layer',
     step: 'Step 12',
-    summary: 'Uniform flow over a long flat wall. Not implemented yet.',
+    summary: 'A uniform stream from an open reservoir passes a diffuse flat plate set in a specular floor (open top and outlet). Measures the near-wall deficit, δ*, θ, wall shear and growth — no profile is imposed. Dashed blue = open reservoir boundaries.',
   },
   {
     key: 'separation',
@@ -108,7 +108,7 @@ export const PHASE0_CRITERIA: { text: string; engine: ExperimentType | null }[] 
   { text: 'measure disturbance propagation', engine: 'sound-speed' },
   { text: 'measure effective viscosity', engine: 'viscosity' },
   { text: 'demonstrate wall momentum transfer', engine: 'wall-accommodation' },
-  { text: 'show a boundary layer', engine: null },
+  { text: 'show a boundary layer', engine: 'boundary-layer' },
   { text: 'investigate adverse-gradient separation', engine: null },
   { text: 'test Kutta emergence', engine: null },
   { text: 'report Re/Mach', engine: 'viscosity' },

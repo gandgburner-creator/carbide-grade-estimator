@@ -9,9 +9,12 @@
  *
  * holds up to floating-point error. The residual of that identity is the
  * reported "energy error". Likewise for momentum, which the gas exchanges only
- * with walls and external forces:
+ * with walls, external forces and open boundaries:
  *
- *   P_gas(t) − P_gas(0) − wallImpulse − forceImpulse ≈ 0.
+ *   P_gas(t) − P_gas(0) − wallImpulse − forceImpulse + boundaryMomentumOut ≈ 0.
+ *
+ * Open (reservoir) boundaries add and remove particles; the energy, momentum
+ * and mass they carry are ledgered here, so conservation stays auditable.
  */
 export class Ledger {
   /** Kinetic energy lost in inelastic collisions and NOT stored anywhere in the model. */
@@ -30,6 +33,14 @@ export class Ledger {
   forceImpulseY = 0;
   /** Work removed from the gas by external forces. */
   forceWorkOut = 0;
+  /** Energy (kinetic + internal) carried out through open boundaries minus carried in. */
+  boundaryEnergyOut = 0;
+  /** Momentum carried out through open boundaries minus carried in. */
+  boundaryMomentumOutX = 0;
+  boundaryMomentumOutY = 0;
+  /** Particles removed / injected at open boundaries. */
+  particlesOut = 0;
+  particlesIn = 0;
 
   reset(): void {
     this.dissipatedExternal = 0;
@@ -41,6 +52,11 @@ export class Ledger {
     this.forceImpulseX = 0;
     this.forceImpulseY = 0;
     this.forceWorkOut = 0;
+    this.boundaryEnergyOut = 0;
+    this.boundaryMomentumOutX = 0;
+    this.boundaryMomentumOutY = 0;
+    this.particlesOut = 0;
+    this.particlesIn = 0;
   }
 
   toJSON() {
@@ -54,6 +70,11 @@ export class Ledger {
       forceImpulseX: this.forceImpulseX,
       forceImpulseY: this.forceImpulseY,
       forceWorkOut: this.forceWorkOut,
+      boundaryEnergyOut: this.boundaryEnergyOut,
+      boundaryMomentumOutX: this.boundaryMomentumOutX,
+      boundaryMomentumOutY: this.boundaryMomentumOutY,
+      particlesOut: this.particlesOut,
+      particlesIn: this.particlesIn,
     };
   }
 }

@@ -46,6 +46,8 @@ export interface ParticleSnapshot {
 export class ParticleStore {
   readonly capacity: number;
   count = 0;
+  /** next identity to hand out; identities survive removal/reordering */
+  nextId = 0;
 
   readonly id: Uint32Array;
   readonly x: Float64Array;
@@ -86,7 +88,7 @@ export class ParticleStore {
     if (!(p.mass > 0)) throw new Error(`particle mass must be > 0, got ${p.mass}`);
     if (!(p.radius > 0)) throw new Error(`particle radius must be > 0, got ${p.radius}`);
     const i = this.count++;
-    this.id[i] = i;
+    this.id[i] = this.nextId++;
     this.x[i] = p.x;
     this.y[i] = p.y;
     this.vx[i] = p.vx;
@@ -100,6 +102,32 @@ export class ParticleStore {
     this.collisions[i] = 0;
     this.wallHits[i] = 0;
     return i;
+  }
+
+  /**
+   * Remove particle i by moving the last particle into its slot (O(1)).
+   * Returns the former index of the moved particle, or −1 if i was last.
+   * Callers holding per-particle side arrays must mirror the move.
+   */
+  removeSwap(i: number): number {
+    if (i < 0 || i >= this.count) throw new RangeError(`no particle ${i}`);
+    const last = this.count - 1;
+    this.count--;
+    if (i === last) return -1;
+    this.id[i] = this.id[last];
+    this.x[i] = this.x[last];
+    this.y[i] = this.y[last];
+    this.vx[i] = this.vx[last];
+    this.vy[i] = this.vy[last];
+    this.fx[i] = this.fx[last];
+    this.fy[i] = this.fy[last];
+    this.mass[i] = this.mass[last];
+    this.radius[i] = this.radius[last];
+    this.energy[i] = this.energy[last];
+    this.deformation[i] = this.deformation[last];
+    this.collisions[i] = this.collisions[last];
+    this.wallHits[i] = this.wallHits[last];
+    return last;
   }
 
   /** Total translational kinetic energy Σ ½ m |v|². */
@@ -198,6 +226,7 @@ export class ParticleStore {
   clone(): ParticleStore {
     const c = new ParticleStore(this.capacity);
     c.count = this.count;
+    c.nextId = this.nextId;
     c.id.set(this.id);
     c.x.set(this.x);
     c.y.set(this.y);

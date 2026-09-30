@@ -96,4 +96,5 @@ export const RNG_STREAM = {
   walls: 3,
   perturbation: 4,
   analysis: 5,
+  boundaries: 6,
 } as const;

@@ -1,5 +1,6 @@
 import { ABTestExperiment, setABFactory, type ABTestParams } from './ABTestExperiment';
 import type { ExperimentRecord, ExperimentType, SequentialExperiment } from './Experiment';
+import { BOUNDARY_LAYER_REFERENCE, BoundaryLayerExperiment, type BoundaryLayerParams } from './BoundaryLayerExperiment';
 import { COUETTE_REFERENCE, COUETTE_SWEEPS, CouetteExperiment, type CouetteParams } from './CouetteExperiment';
 import { PULSE_REFERENCE, PULSE_SWEEPS, PressurePulseExperiment, type PulseParams } from './PressurePulseExperiment';
 import { STATIC_BOX_REFERENCE, StaticBoxExperiment, type StaticBoxParams } from './StaticBoxExperiment';
@@ -111,6 +112,26 @@ const viscositySweeps: ExperimentEntry<CouetteParams> = {
   create: (p) => new CouetteExperiment(p, 'viscosity-sweeps') as unknown as SequentialExperiment<unknown, unknown>,
 };
 
+const boundaryLayer: ExperimentEntry<BoundaryLayerParams> = {
+  type: 'boundary-layer',
+  title: 'Flat-wall boundary layer',
+  defaults: BOUNDARY_LAYER_REFERENCE,
+  quick: {
+    ...BOUNDARY_LAYER_REFERENCE,
+    length: 200,
+    height: 60,
+    plateStart: 60,
+    plateEnd: 180,
+    seeds: [1, 2, 3],
+    startupTime: 200,
+    measurementTime: 200,
+    cellX: 8,
+    cellY: 3,
+    wallBinWidth: 8,
+  },
+  create: (p) => new BoundaryLayerExperiment(p) as unknown as SequentialExperiment<unknown, unknown>,
+};
+
 const abBase = { ...STATIC_BOX_REFERENCE, restitutions: [1], count: 1000, measurementCollisions: 60 };
 export const AB_PRESETS: Record<string, ABTestParams> = {
   'null test: disjoint seeds (expect no difference)': {
@@ -149,6 +170,7 @@ export const EXPERIMENTS: Partial<Record<ExperimentType, ExperimentEntry<any>>> 
   viscosity,
   'viscosity-sweeps': viscositySweeps,
   'ab-test': abTest,
+  'boundary-layer': boundaryLayer,
 };
 
 setABFactory((type, params) => {

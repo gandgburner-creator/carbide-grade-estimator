@@ -21,6 +21,7 @@ export interface WallGeometry {
   side: string;
   accommodation: number;
   tangentialVelocity: number;
+  segments: { from: number; to: number; accommodation: number }[];
 }
 
 export interface Frame {
@@ -36,6 +37,8 @@ export interface Frame {
   status: ValidationStatus;
   domain: { xmin: number; xmax: number; ymin: number; ymax: number; periodicX: boolean; periodicY: boolean };
   walls: WallGeometry[];
+  /** sides that are open reservoir boundaries */
+  openSides: string[];
   count: number;
   /** interleaved x, y */
   positions: Float32Array;

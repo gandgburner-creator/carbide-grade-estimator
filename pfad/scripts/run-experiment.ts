@@ -60,6 +60,7 @@ function printRecord(rec: ExperimentRecord): void {
   if (rec.experimentType === 'sound-speed' || rec.experimentType === 'sound-speed-sweeps') printPulse(rec);
   if (rec.experimentType === 'viscosity' || rec.experimentType === 'viscosity-sweeps') printCouette(rec);
   if (rec.experimentType === 'ab-test') printAB(rec);
+  if (rec.experimentType === 'boundary-layer') printBL(rec);
   if (rec.warnings.length) {
     console.log('warnings:');
     for (const w of rec.warnings.slice(0, 20)) console.log('  - ' + w);
@@ -187,6 +188,19 @@ function printAB(rec: any): void {
     if (c.difference === null) console.log(`  ${c.metric}: not comparable`);
     else console.log(`  ${c.metric}: A ${fmt(c.a.mean)} ± ${fmt(c.a.se, 3)}, B ${fmt(c.b.mean)} ± ${fmt(c.b.se, 3)}; B − A = ${fmt(c.difference)} ± ${fmt(c.se, 3)} (z ${fmt(c.z, 3)}, ${(100 * c.relative).toFixed(2)} %) → ${c.verdict}`);
   }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function printBL(rec: any): void {
+  const r = rec.results;
+  const est = (e: any, d = 4) => (e && Number.isFinite(e.mean) ? `${fmt(e.mean, d)} ± ${fmt(e.se, 2)}` : 'n/a');
+  console.log(`\nDETERMINATION: ${r.determination}`);
+  console.log(`free stream (realised): U_e ${fmt(r.freeStream.Ue, 4)}, ρ_e ${fmt(r.freeStream.density, 4)} (stated ${fmt(r.freeStream.statedDensity, 4)}); apparent wall μ ${est(r.apparentWallViscosity)}; growth exponent of δ* ${est(r.growthExponent)}`);
+  for (const s of r.stations) {
+    console.log(`  ${s.label.padEnd(34)} x=${fmt(s.x, 4)}  U_e ${est(s.Ue)}  wall deficit ${est(s.deficitAtWall)}  δ* ${est(s.displacementThickness)}  θ ${est(s.momentumThickness)}  δ90 ${est(s.delta90)}  τ_w ${est(s.wallShear)}  c_f ${est(s.skinFriction)}`);
+  }
+  for (const v of r.vonKarman) console.log(`  von Kármán ${v.from} → ${v.to}: dθ/dx ${fmt(v.dThetaDx, 3)} vs τ/(ρU²) − (2θ+δ*)U'/U ${fmt(v.rhs, 3)} (ratio ${fmt(v.ratio, 3)})`);
+  console.log(`  Re: ${rec.reynolds.note} → simulation ${fmt(rec.reynolds.simulation, 4)}, effective ${fmt(rec.reynolds.effective, 4)}; Mp ${fmt(rec.mach.Mp, 3)}`);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
