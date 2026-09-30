@@ -75,6 +75,12 @@ was then applied unchanged to fresh reference runs.
    above); the maximum is kept in the output as `conservativeSe`, and the
    plateau test (`reliable`) is unchanged.
 
+7. **A/B difference sign (bug fix, not a method change).** The A/B test
+   labelled its difference B − A but computed A − B. Magnitudes, standard
+   errors, |z| and verdicts were correct; the sign of `difference`, `z` and
+   `relative` was inverted. Found while reading the contact-timing record,
+   fixed with a test, and both A/B reference records regenerated.
+
 ## 0.2.0-p0.2 — collisions evaluated at the contact instant when forces act
 
 - **Change:** with continuous forces present (occupancy hypothesis, soft
