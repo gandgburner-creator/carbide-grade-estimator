@@ -56,3 +56,25 @@ describe('Kutta analysis helpers', () => {
     }
   });
 });
+
+describe('scaling families', () => {
+  it('fixed-Mach keeps U and scales geometry and convective times; fixed-Re scales U as 1/size', async () => {
+    const { levelParams, SCALING_REFERENCE } = await import('../src/experiments/ScalingExperiment');
+    const a = levelParams(SCALING_REFERENCE, 30).params as typeof KUTTA_REFERENCE;
+    const b = levelParams(SCALING_REFERENCE, 60).params as typeof KUTTA_REFERENCE;
+    expect(a.speed).toBe(1);
+    expect(b.speed).toBe(1);
+    expect(b.length / a.length).toBeCloseTo(2, 2);
+    expect(b.thickness / a.thickness).toBeCloseTo(2, 12);
+    expect(b.duration / a.duration).toBeCloseTo(2, 12);
+    expect(a.cases).toHaveLength(1);
+    expect(a.cases[0].alphaDeg).toBe(8);
+    const re = { ...SCALING_REFERENCE, mode: 'fixed-reynolds' as const, referenceSize: 30, referenceSpeed: 1 };
+    const c = levelParams(re, 30);
+    const d = levelParams(re, 60);
+    expect(c.speed).toBe(1);
+    expect(d.speed).toBeCloseTo(0.5, 12);
+    // convective time c/U grows 4× from size 30 to 60 at fixed Re
+    expect((d.params as typeof KUTTA_REFERENCE).duration / (c.params as typeof KUTTA_REFERENCE).duration).toBeCloseTo(4, 12);
+  });
+});

@@ -63,6 +63,7 @@ function printRecord(rec: ExperimentRecord): void {
   if (rec.experimentType === 'boundary-layer') printBL(rec);
   if (rec.experimentType === 'separation') printSeparation(rec);
   if (rec.experimentType === 'kutta') printKutta(rec);
+  if (rec.experimentType === 'scaling') printScaling(rec);
   if (rec.warnings.length) {
     console.log('warnings:');
     for (const w of rec.warnings.slice(0, 20)) console.log('  - ' + w);
@@ -217,6 +218,17 @@ function printSeparation(rec: any): void {
     console.log(`  hypothesis ${h.indicator}: critical ${h.critical === null ? 'n/a' : fmt(h.critical, 4)} (trained on ${h.trainedOn}); test accuracy ${h.classificationAccuracy ?? 'n/a'}, mean |Δx| ${h.meanAbsPositionError ?? 'n/a'} ${h.note ?? ''}`);
   }
   console.log(`  Re: ${rec.reynolds.note} → simulation ${rec.reynolds.simulation === null ? 'n/a' : fmt(rec.reynolds.simulation, 4)}; Mp ${rec.mach.Mp === null ? 'n/a' : fmt(rec.mach.Mp, 3)}`);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function printScaling(rec: any): void {
+  const r = rec.results;
+  console.log(`\nMEASURED scaling (${r.mode}): ${r.question}`);
+  for (const L of r.levels) {
+    console.log(`  ${L.name.padEnd(6)} size ${fmt(L.size, 3)} d, U ${fmt(L.speed, 3)}, N ${L.particleCount}, Re ${L.reynolds === null ? 'n/a' : fmt(L.reynolds, 3)}, Mp ${L.mach === null ? 'n/a' : fmt(L.mach, 3)}, status ${L.status}`);
+    for (const m of L.metrics) console.log(`         ${m.name}: ${m.mean === null ? 'n/a' : `${fmt(m.mean, 4)} ± ${fmt(m.se, 2)}`}`);
+  }
+  for (const m of r.perMetric) console.log(`  [${m.status}] ${m.metric}: ${m.verdict}`);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

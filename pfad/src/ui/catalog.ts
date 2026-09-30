@@ -95,7 +95,13 @@ export const CATALOG: CatalogEntry[] = [
     step: 'Step 14',
     summary: 'A uniform stream starts impulsively past a fixed polygon body with a sharp trailing edge (open reservoirs on all sides). Nothing about circulation or the trailing edge is imposed. Measures lift and drag from wall impulses, circulation from the particle velocity field, the starting vortex, the direction in which gas leaves the trailing edge, near-wall reversal and the wake. A blunt-edged body is the comparison case.',
   },
-  { key: 'scaling', label: 'SCALING', engine: null, step: 'Step 15', summary: 'Do results converge across scaled particle universes? Not implemented yet.' },
+  {
+    key: 'scaling',
+    label: 'SCALING',
+    engine: 'scaling',
+    step: 'Step 15',
+    summary: 'Do results converge across scaled particle universes? The Kutta configuration is rerun at geometrically similar sizes (chord in particle diameters). Fixed-Mach family: Re grows with size. Fixed-Re family (set mode): U ∝ 1/size. Dimensionless lift, drag and circulation are judged LOW/MEDIUM/HIGH.',
+  },
   {
     key: 'ab',
     label: 'MODEL A/B TEST',

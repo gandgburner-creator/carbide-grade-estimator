@@ -467,6 +467,34 @@ function Headline({ record }: { record: ExperimentRecord }) {
       </>
     );
   }
+  if (record.experimentType === 'scaling' && Array.isArray(r.perMetric)) {
+    return (
+      <table className="results" style={{ marginTop: 8 }}>
+        <thead>
+          <tr>
+            <th>MEASURED outcome</th>
+            {r.levels.map((L: any) => (
+              <th key={L.name}>
+                {L.name} ({fmt(L.size, 3)} d)
+              </th>
+            ))}
+            <th>verdict</th>
+          </tr>
+        </thead>
+        <tbody>
+          {r.perMetric.map((m: any) => (
+            <tr key={m.metric}>
+              <td>{m.metric}</td>
+              {m.values.map((v: any, k: number) => (
+                <td key={k}>{v.mean === null ? 'n/a' : `${fmt(v.mean, 3)} ± ${fmt(v.se, 2)}`}</td>
+              ))}
+              <td>{m.status}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  }
   if (record.experimentType === 'kutta' && Array.isArray(r.cases)) {
     return (
       <table className="results" style={{ marginTop: 8 }}>

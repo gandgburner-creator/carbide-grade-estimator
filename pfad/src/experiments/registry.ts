@@ -5,6 +5,7 @@ import { BOUNDARY_LAYER_REFERENCE, BoundaryLayerExperiment, type BoundaryLayerPa
 import { COUETTE_REFERENCE, COUETTE_SWEEPS, CouetteExperiment, type CouetteParams } from './CouetteExperiment';
 import { KUTTA_REFERENCE, KuttaExperiment, type KuttaParams } from './KuttaExperiment';
 import { PULSE_REFERENCE, PULSE_SWEEPS, PressurePulseExperiment, type PulseParams } from './PressurePulseExperiment';
+import { SCALING_REFERENCE, ScalingExperiment, setScalingFactory, type ScalingParams } from './ScalingExperiment';
 import { STATIC_BOX_REFERENCE, StaticBoxExperiment, type StaticBoxParams } from './StaticBoxExperiment';
 import { THERMAL_REFERENCE, ThermalExperiment, type ThermalParams } from './ThermalExperiment';
 import {
@@ -176,6 +177,14 @@ const kutta: ExperimentEntry<KuttaParams> = {
   create: (p) => new KuttaExperiment(p) as unknown as SequentialExperiment<unknown, unknown>,
 };
 
+const scaling: ExperimentEntry<ScalingParams> = {
+  type: 'scaling',
+  title: 'Scaling across particle universes',
+  defaults: SCALING_REFERENCE,
+  quick: { ...SCALING_REFERENCE, sizes: [16, 24], seeds: [1, 2] },
+  create: (p) => new ScalingExperiment(p) as unknown as SequentialExperiment<unknown, unknown>,
+};
+
 const abBase = { ...STATIC_BOX_REFERENCE, restitutions: [1], count: 1000, measurementCollisions: 60 };
 export const AB_PRESETS: Record<string, ABTestParams> = {
   'null test: disjoint seeds (expect no difference)': {
@@ -217,7 +226,14 @@ export const EXPERIMENTS: Partial<Record<ExperimentType, ExperimentEntry<any>>> 
   'boundary-layer': boundaryLayer,
   separation,
   kutta,
+  scaling,
 };
+
+setScalingFactory((type, params) => {
+  const entry = EXPERIMENTS[type];
+  if (!entry || type === 'scaling' || type === 'ab-test') throw new Error(`cannot scale experiment type ${type}`);
+  return entry.create(params);
+});
 
 setABFactory((type, params) => {
   const entry = EXPERIMENTS[type];
