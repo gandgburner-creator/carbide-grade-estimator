@@ -48,6 +48,7 @@ export function metricsOf(rec: ExperimentRecord): Metric[] {
       return (r.shear ?? []).map((s: any) => ({ name: `shear stress, Aw=${s.Aw}`, estimate: s.bottomShear }));
     case 'sound-speed':
     case 'sound-speed-sweeps':
+    case 'sound-speed-linear':
       return (r.cases ?? []).filter(Boolean).map((c: any) => ({ name: `c_p: ${c.label}`, estimate: c.speed }));
     case 'viscosity':
     case 'viscosity-sweeps':

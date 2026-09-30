@@ -61,6 +61,13 @@ export const CATALOG: CatalogEntry[] = [
     summary: 'c_p versus density, amplitude, pulse width, particle scale, temperature, contact stiffness, and the k_s = m c_p²/φ₀ calibration.',
   },
   {
+    key: 'sound-linear',
+    label: 'SOUND SPEED — LINEAR LIMIT',
+    engine: 'sound-speed-linear',
+    step: 'Step 10',
+    summary: 'Amplitude series (0.1–0.5) extrapolated to zero amplitude, where finite-amplitude effects vanish; widths 10 and 40 test width dependence near the linear regime.',
+  },
+  {
     key: 'viscosity',
     label: 'VISCOSITY',
     engine: 'viscosity',

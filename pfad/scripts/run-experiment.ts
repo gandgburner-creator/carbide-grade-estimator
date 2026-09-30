@@ -60,7 +60,7 @@ function printRecord(rec: ExperimentRecord): void {
   if (rec.experimentType === 'static-box') printStaticBox(rec);
   if (rec.experimentType === 'thermal') printThermal(rec);
   if (rec.experimentType === 'wall-accommodation') printWall(rec);
-  if (rec.experimentType === 'sound-speed' || rec.experimentType === 'sound-speed-sweeps') printPulse(rec);
+  if (rec.experimentType === 'sound-speed' || rec.experimentType === 'sound-speed-sweeps' || rec.experimentType === 'sound-speed-linear') printPulse(rec);
   if (rec.experimentType === 'viscosity' || rec.experimentType === 'viscosity-sweeps') printCouette(rec);
   if (rec.experimentType === 'ab-test') printAB(rec);
   if (rec.experimentType === 'boundary-layer') printBL(rec);
@@ -173,6 +173,12 @@ function printPulse(rec: any): void {
     const k = rec.results.ksCalibration;
     console.log(`  ks calibration: c_p² vs ks φ/m slope ${fmt(k.fit.slope)} ± ${fmt(k.fit.seSlope)}, intercept ${fmt(k.fit.intercept)} ± ${fmt(k.fit.seIntercept)}, through-origin slope ${fmt(k.slopeThroughOrigin)}`);
   }
+  const ll = rec.results.linearLimit;
+  if (ll) {
+    const hd = rec.benchmarks.perCase?.[0]?.hardDiskAdiabatic;
+    console.log(`  LINEAR LIMIT: c₀ = ${fmt(ll.c0.mean)} ± ${fmt(ll.c0.se, 2)} (95% ±${fmt(100 * ll.c0.relHalfWidth95, 3)} %), slope dc/dA = ${fmt(ll.slope.mean, 3)} ± ${fmt(ll.slope.se, 2)}, linearity χ² ${fmt(ll.chi2, 3)} / ${ll.dof} dof (p ${fmt(ll.linearityP, 3)})   | benchmark hard-disk adiabatic ${fmt(hd)} (ratio ${fmt(ll.c0.mean / hd)})`);
+  }
+  for (const c of rec.results.cases) if (c?.tracking?.ambiguous) console.log(`  AMBIGUOUS tracking (${c.label}): leave-one-out median ${fmt(c.tracking.looMedian)}, max deviation ${fmt(100 * c.tracking.looMaxRelDeviation, 3)} %`);
   for (const c of rec.results.cases) if (c && c.model.dissipationTarget === 'internal') console.log(`  reservoir (${c.label}): E_int/KE at pulse start = ${fmt(c.internalOverKinetic)}, phase-1 settled ${c.equilibrationSettled}`);
 }
 

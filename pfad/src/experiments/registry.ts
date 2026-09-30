@@ -4,7 +4,7 @@ import { ADVERSE_GRADIENT_REFERENCE, AdverseGradientExperiment, type AdverseGrad
 import { BOUNDARY_LAYER_REFERENCE, BoundaryLayerExperiment, type BoundaryLayerParams } from './BoundaryLayerExperiment';
 import { COUETTE_REFERENCE, COUETTE_SWEEPS, CouetteExperiment, type CouetteParams } from './CouetteExperiment';
 import { KUTTA_REFERENCE, KuttaExperiment, type KuttaParams } from './KuttaExperiment';
-import { PULSE_REFERENCE, PULSE_SWEEPS, PressurePulseExperiment, type PulseParams } from './PressurePulseExperiment';
+import { PULSE_LINEAR, PULSE_REFERENCE, PULSE_SWEEPS, PressurePulseExperiment, type PulseParams } from './PressurePulseExperiment';
 import { SCALING_REFERENCE, ScalingExperiment, setScalingFactory, type ScalingParams } from './ScalingExperiment';
 import { STATIC_BOX_REFERENCE, StaticBoxExperiment, type StaticBoxParams } from './StaticBoxExperiment';
 import { THERMAL_REFERENCE, ThermalExperiment, type ThermalParams } from './ThermalExperiment';
@@ -90,6 +90,14 @@ const soundSpeedSweeps: ExperimentEntry<PulseParams> = {
   defaults: PULSE_SWEEPS,
   quick: { ...PULSE_SWEEPS, seeds: [1, 2, 3], cases: PULSE_SWEEPS.cases.filter((_, i) => i % 3 === 0).map(quickCase) },
   create: (p) => new PressurePulseExperiment(p, 'sound-speed-sweeps') as unknown as SequentialExperiment<unknown, unknown>,
+};
+
+const soundSpeedLinear: ExperimentEntry<PulseParams> = {
+  type: 'sound-speed-linear',
+  title: 'Disturbance speed: linear (zero-amplitude) limit',
+  defaults: PULSE_LINEAR,
+  quick: { ...PULSE_LINEAR, seeds: [1, 2, 3], cases: PULSE_LINEAR.cases.slice(0, 4).map(quickCase) },
+  create: (p) => new PressurePulseExperiment(p, 'sound-speed-linear') as unknown as SequentialExperiment<unknown, unknown>,
 };
 
 const viscosity: ExperimentEntry<CouetteParams> = {
@@ -243,6 +251,7 @@ export const EXPERIMENTS: Partial<Record<ExperimentType, ExperimentEntry<any>>> 
   'wall-accommodation': wallAccommodation,
   'sound-speed': soundSpeed,
   'sound-speed-sweeps': soundSpeedSweeps,
+  'sound-speed-linear': soundSpeedLinear,
   viscosity,
   'viscosity-sweeps': viscositySweeps,
   'ab-test': abTest,

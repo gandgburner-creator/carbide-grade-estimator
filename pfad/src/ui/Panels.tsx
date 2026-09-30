@@ -380,7 +380,7 @@ function Headline({ record }: { record: ExperimentRecord }) {
       </table>
     );
   }
-  if ((record.experimentType === 'sound-speed' || record.experimentType === 'sound-speed-sweeps') && Array.isArray(r.cases)) {
+  if ((record.experimentType === 'sound-speed' || record.experimentType === 'sound-speed-sweeps' || record.experimentType === 'sound-speed-linear') && Array.isArray(r.cases)) {
     return (
       <table className="results" style={{ marginTop: 8 }}>
         <thead>

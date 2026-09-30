@@ -12,6 +12,7 @@ export type ExperimentType =
   | 'wall-accommodation'
   | 'sound-speed'
   | 'sound-speed-sweeps'
+  | 'sound-speed-linear'
   | 'viscosity'
   | 'viscosity-sweeps'
   | 'boundary-layer'

@@ -89,3 +89,18 @@ describe('pulse tracking of a released slab (linear acoustics)', () => {
   });
 });
 
+
+describe('tracking ambiguity (leave-one-seed-out spread)', () => {
+  it('flags the reference case E pattern and passes a tight ensemble', async () => {
+    const { trackingAmbiguity } = await import('../src/experiments/PressurePulseExperiment');
+    // leave-one-out speeds of pulse reference case E (sound-speed_caseE_diagnostic.json)
+    const caseE = [3.294, 3.298, 1.048, 3.299, 3.293, 3.055, 2.587, 2.602, 3.305, 3.301, 3.305, 3.0, 3.306, 3.309, 3.305, 2.934];
+    const e = trackingAmbiguity(caseE);
+    expect(e.ambiguous).toBe(true);
+    expect(e.looMedian).toBeCloseTo(3.296, 6);
+    const tight = [2.36, 2.37, 2.372, 2.368, 2.371, 2.365, 2.369];
+    expect(trackingAmbiguity(tight).ambiguous).toBe(false);
+    // a subset whose track failed (NaN) also counts as ambiguous
+    expect(trackingAmbiguity([2.3, 2.31, Number.NaN, 2.32]).ambiguous).toBe(true);
+  });
+});

@@ -10,7 +10,7 @@ import { Simulation, type ForceModel } from '../core/Simulation';
 import { createGas } from '../gas/InitialConditions';
 import { ConservationMonitor } from '../measurements/EnergyMonitor';
 import { ensembleProfiles, jackknife, profileNoise, trackPulse, type PulseTrack } from '../measurements/PulseAnalysis';
-import { difference, linearRegression, mean, type Estimate } from '../measurements/Statistics';
+import { chi2UpperP, difference, linearRegression, mean, weightedLinearFit, type Estimate } from '../measurements/Statistics';
 import { OccupancyForce } from '../occupancy/OccupancyModel';
 import { check, combineStatus, type AcceptanceCheck } from '../validation/Status';
 import { recordHeader, SequentialExperiment, type ExperimentRecord, type Run } from './Experiment';
@@ -93,6 +93,12 @@ export interface PulseParams {
   forceEnergyTolerance: number;
   /** which cases form the ks = m c_p²/φ₀ calibration (occupancy-only) */
   calibrationGroup?: string;
+  /**
+   * Cases forming an amplitude series (same model, φ, width; different
+   * amplitude). The record then reports c_p extrapolated to zero amplitude by
+   * a weighted linear fit of c_p against amplitude (the linear limit).
+   */
+  linearLimit?: { caseIndices: number[] };
 }
 
 export const MODEL_A: PulseModel = { collisions: true, restitution: 1, dissipationTarget: 'external', reservoirRelease: 0, occupancy: null, softContactK: null };
@@ -140,6 +146,24 @@ export const PULSE_REFERENCE: PulseParams = {
 const occOnly = (ks: number): PulseModel => ({ ...MODEL_A, collisions: false, occupancy: { ks, h: 4 } });
 const soft = (K: number): PulseModel => ({ ...MODEL_A, collisions: false, softContactK: K });
 const softDt = (K: number): TimestepPolicy => ({ kind: 'fixed', dt: SoftContactForce.contactTime(K, 1) / 25 });
+
+/**
+ * Linear-limit series (Collisions only, φ = 0.2): the reference sweeps showed
+ * the tracked speed rising with pulse amplitude and width (finite-amplitude
+ * propagation). Amplitudes 0.1–0.5 at width 20 are extrapolated to zero
+ * amplitude; widths 10 and 40 at amplitude 0.2 test width dependence near the
+ * linear regime. Taller strip (120) and 24 seeds for the weak pulses.
+ */
+export const PULSE_LINEAR: PulseParams = {
+  ...PULSE_REFERENCE,
+  seeds: Array.from({ length: 24 }, (_, k) => 401 + k),
+  cases: [
+    ...[0.1, 0.2, 0.3, 0.5].map((a) => ({ ...BASE_CASE, label: `A amplitude ${a}`, model: MODEL_A, amplitude: a, height: 120 })),
+    { ...BASE_CASE, label: 'A amplitude 0.2, width 10', model: MODEL_A, amplitude: 0.2, height: 120, slabWidth: 10 },
+    { ...BASE_CASE, label: 'A amplitude 0.2, width 40', model: MODEL_A, amplitude: 0.2, height: 120, slabWidth: 40 },
+  ],
+  linearLimit: { caseIndices: [0, 1, 2, 3] },
+};
 
 export const PULSE_SWEEPS: PulseParams = {
   ...PULSE_REFERENCE,
@@ -452,6 +476,13 @@ export interface CaseAnalysis {
   };
   speed: Estimate | null;
   speedLeaveOneOut: number[];
+  /**
+   * Ambiguous tracking: a leave-one-seed-out speed differs from the median of
+   * the leave-one-out speeds by more than 10 % — different seed subsets lock
+   * onto different features, so the full-ensemble speed is not a single
+   * feature's speed.
+   */
+  tracking: { ambiguous: boolean; looMedian: number; looMaxRelDeviation: number };
   attenuation: { value: number; se: number };
   widthGrowth: { value: number; se: number };
   kTStart: number;
@@ -468,11 +499,20 @@ export interface CaseAnalysis {
   sourceResidualDensity: number;
 }
 
+/** Leave-one-out spread test for ambiguous tracking (threshold fixed at 10 % of the median). */
+export function trackingAmbiguity(loo: number[]): { ambiguous: boolean; looMedian: number; looMaxRelDeviation: number } {
+  const v = loo.filter(Number.isFinite).sort((a, b) => a - b);
+  if (v.length < 3) return { ambiguous: false, looMedian: Number.NaN, looMaxRelDeviation: Number.NaN };
+  const med = v.length % 2 ? v[(v.length - 1) / 2] : 0.5 * (v[v.length / 2 - 1] + v[v.length / 2]);
+  const dev = Math.max(...v.map((x) => Math.abs(x - med))) / Math.abs(med);
+  return { ambiguous: dev > 0.1 || v.length < loo.length, looMedian: med, looMaxRelDeviation: dev };
+}
+
 export class PressurePulseExperiment extends SequentialExperiment<Spec, Result> {
-  readonly type: 'sound-speed' | 'sound-speed-sweeps';
+  readonly type: 'sound-speed' | 'sound-speed-sweeps' | 'sound-speed-linear';
   readonly params: PulseParams;
 
-  constructor(p: PulseParams, type: 'sound-speed' | 'sound-speed-sweeps' = 'sound-speed') {
+  constructor(p: PulseParams, type: 'sound-speed' | 'sound-speed-sweeps' | 'sound-speed-linear' = 'sound-speed') {
     const specs: Spec[] = [];
     p.cases.forEach((c, i) => {
       for (const seed of c.seeds ?? p.seeds) specs.push({ caseIndex: i, seed });
@@ -538,6 +578,7 @@ export class PressurePulseExperiment extends SequentialExperiment<Spec, Result> 
       speed,
       /** leave-one-seed-out speeds behind the jackknife SE (a spread here shows which subsets track differently) */
       speedLeaveOneOut: jkSpeed.leaveOneOut,
+      tracking: trackingAmbiguity(jkSpeed.leaveOneOut),
       attenuation: { value: jkAtt.value, se: jkAtt.se },
       widthGrowth: { value: jkW.value, se: jkW.se },
       kTStart: mean(runs.map((r) => r.kTStart)),
@@ -582,6 +623,11 @@ export class PressurePulseExperiment extends SequentialExperiment<Spec, Result> 
       'shift vs time linear with r² > 0.9 and ≥ 5 snapshots, in every case',
       invalid.length || missing.length ? `not tracked: ${[...missing, ...invalid.map((c) => `${c.label} (${c.track.reason})`)].join('; ')}` : 'all tracked',
       invalid.length === 0 && missing.length === 0, 'INCONCLUSIVE'));
+    const ambiguous = cases.filter((c) => c && c.tracking.ambiguous) as CaseAnalysis[];
+    checks.push(check('tracking-unambiguous', 'Every seed subset tracks the same feature',
+      'every leave-one-seed-out speed within 10 % of their median, in every case',
+      ambiguous.length ? ambiguous.map((c) => `${c.label}: max deviation ${(100 * c.tracking.looMaxRelDeviation).toFixed(0)} %`).join('; ') : 'unambiguous',
+      ambiguous.length === 0, 'INCONCLUSIVE'));
     const imprecise = cases.filter((c) => c?.speed && !(c.speed.relHalfWidth < 0.05)) as CaseAnalysis[];
     checks.push(check('speed-precision', 'Disturbance speed measured precisely enough to compare models',
       '95 % CI half-width < 5 % in every case (jackknife over seeds)',
@@ -592,6 +638,35 @@ export class PressurePulseExperiment extends SequentialExperiment<Spec, Result> 
       const unsettled = reservoirCases.filter((c) => !c.equilibrationSettled);
       checks.push(check('reservoir-steady-state', 'Universe B reservoir reached a steady internal/kinetic energy ratio before the pulse',
         'last two quarters of phase 1 agree within 5 %', unsettled.length ? unsettled.map((c) => c.label).join('; ') : 'settled', unsettled.length === 0, 'NOT CONVERGED'));
+    }
+
+    // linear limit: c_p extrapolated to zero amplitude over the amplitude series
+    let linearLimit: unknown = null;
+    if (p.linearLimit) {
+      const pts = p.linearLimit.caseIndices
+        .map((i) => cases[i])
+        .filter((c): c is CaseAnalysis => !!c && !!c.speed && c.track.valid && !c.tracking.ambiguous && c.speed.se > 0);
+      if (pts.length >= 3) {
+        const fit = weightedLinearFit(pts.map((c) => c.case.amplitude), pts.map((c) => c.speed!.mean), pts.map((c) => c.speed!.se));
+        const pLin = chi2UpperP(fit.chi2, fit.dof);
+        const rel = (1.96 * fit.seIntercept) / Math.abs(fit.intercept);
+        linearLimit = {
+          model: 'c_p(A) = c₀ + k·A, weighted least squares over the tracked, unambiguous cases of the amplitude series',
+          c0: { mean: fit.intercept, se: fit.seIntercept, relHalfWidth95: rel },
+          slope: { mean: fit.slope, se: fit.seSlope },
+          chi2: fit.chi2,
+          dof: fit.dof,
+          linearityP: pLin,
+          points: pts.map((c) => ({ label: c.label, amplitude: c.case.amplitude, speed: c.speed!.mean, se: c.speed!.se })),
+        };
+        checks.push(check('linear-limit-precision', 'Zero-amplitude disturbance speed extrapolated precisely',
+          '95 % CI half-width of c₀ < 5 %, from ≥ 3 tracked amplitudes', `${(100 * rel).toFixed(1)} % from ${pts.length} amplitudes`, rel < 0.05, 'INCONCLUSIVE'));
+        checks.push(check('linear-limit-linearity', 'c_p is linear in amplitude over the series (the extrapolation model fits)',
+          'χ² p > 0.01', `p = ${pLin.toPrecision(3)}`, pLin > 0.01, 'INCONCLUSIVE'));
+      } else {
+        checks.push(check('linear-limit-precision', 'Zero-amplitude disturbance speed extrapolated precisely',
+          '95 % CI half-width of c₀ < 5 %, from ≥ 3 tracked amplitudes', `only ${pts.length} usable amplitude(s)`, false, 'INCONCLUSIVE'));
+      }
     }
 
     // model comparison (A/B style: difference, uncertainty) relative to case 0
@@ -642,7 +717,15 @@ export class PressurePulseExperiment extends SequentialExperiment<Spec, Result> 
     for (const c of cases) if (c && c.kTEnd < 0.9 * c.kTStart) warnings.push(`${c.label}: kinetic temperature fell from ${c.kTStart.toPrecision(3)} to ${c.kTEnd.toPrecision(3)} during the run (energy leaves this model); c_p is an average over a cooling gas.`);
     const c0 = p.cases[0];
     return {
-      ...recordHeader(this.type, this.type === 'sound-speed' ? 'Pressure pulse: disturbance speed, models A–E' : 'Pressure pulse: sweeps (density, amplitude, width, particle scale, temperature, stiffness, k_s calibration)', p.seeds),
+      ...recordHeader(
+        this.type,
+        this.type === 'sound-speed'
+          ? 'Pressure pulse: disturbance speed, models A–E'
+          : this.type === 'sound-speed-linear'
+            ? 'Pressure pulse: linear (zero-amplitude) limit'
+            : 'Pressure pulse: sweeps (density, amplitude, width, particle scale, temperature, stiffness, k_s calibration)',
+        p.seeds,
+      ),
       particleCount: runs[0]?.count ?? 0,
       particleScale: { radius: c0.radius, diameter: 2 * c0.radius, mass: c0.mass },
       density: { numberDensity: c0.areaFraction / (Math.PI * c0.radius ** 2), massDensity: (c0.mass * c0.areaFraction) / (Math.PI * c0.radius ** 2), areaFraction: c0.areaFraction },
@@ -669,6 +752,7 @@ export class PressurePulseExperiment extends SequentialExperiment<Spec, Result> 
       },
       results: {
         emptySpace: empty,
+        linearLimit,
         cases,
         comparisonsToFirstCase: comparisons,
         ksCalibration,
