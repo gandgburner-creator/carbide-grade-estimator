@@ -74,6 +74,27 @@ export function metricsOf(rec: ExperimentRecord): Metric[] {
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
+/** Pair metrics by name; difference = B − A with SE √(SE_A² + SE_B²). */
+export function compareMetrics(mA: Metric[], mB: Metric[]) {
+  return mA.map((ma) => {
+    const mb = mB.find((m) => m.name === ma.name);
+    if (!ma.estimate || !mb?.estimate) return { metric: ma.name, a: ma.estimate, b: mb?.estimate ?? null, difference: null };
+    // B − A: difference(x, y) returns x − y
+    const d = difference(mb.estimate as Estimate, ma.estimate as Estimate);
+    return {
+      metric: ma.name,
+      a: { mean: ma.estimate.mean, se: ma.estimate.se },
+      b: { mean: mb.estimate.mean, se: mb.estimate.se },
+      difference: d.difference,
+      se: d.se,
+      z: d.z,
+      pValue: d.pValue,
+      relative: d.difference / ma.estimate.mean,
+      verdict: !Number.isFinite(d.z) ? 'undetermined' : Math.abs(d.z) > 3 ? 'DIFFERENT (|z| > 3)' : Math.abs(d.z) < 2 ? 'no significant difference' : 'marginal (2 < |z| < 3)',
+    };
+  });
+}
+
 interface Spec {
   side: 'a' | 'b';
   index: number;
@@ -121,22 +142,7 @@ export class ABTestExperiment extends SequentialExperiment<Spec, unknown> {
     const recB = this.expB.buildRecord();
     const mA = metricsOf(recA);
     const mB = metricsOf(recB);
-    const comparisons = mA.map((ma) => {
-      const mb = mB.find((m) => m.name === ma.name);
-      if (!ma.estimate || !mb?.estimate) return { metric: ma.name, a: ma.estimate, b: mb?.estimate ?? null, difference: null };
-      const d = difference(ma.estimate as Estimate, mb.estimate as Estimate);
-      return {
-        metric: ma.name,
-        a: { mean: ma.estimate.mean, se: ma.estimate.se },
-        b: { mean: mb.estimate.mean, se: mb.estimate.se },
-        difference: d.difference,
-        se: d.se,
-        z: d.z,
-        pValue: d.pValue,
-        relative: d.difference / ma.estimate.mean,
-        verdict: !Number.isFinite(d.z) ? 'undetermined' : Math.abs(d.z) > 3 ? 'DIFFERENT (|z| > 3)' : Math.abs(d.z) < 2 ? 'no significant difference' : 'marginal (2 < |z| < 3)',
-      };
-    });
+    const comparisons = compareMetrics(mA, mB);
     const checks: AcceptanceCheck[] = [
       check('side-A-valid', `Side A (${p.a.label}) passed its own checks`, 'status PASSED', recA.status, recA.status === 'PASSED', recA.status === 'FAILED' ? 'FAILED' : 'INCONCLUSIVE'),
       check('side-B-valid', `Side B (${p.b.label}) passed its own checks`, 'status PASSED', recB.status, recB.status === 'PASSED', recB.status === 'FAILED' ? 'FAILED' : 'INCONCLUSIVE'),
