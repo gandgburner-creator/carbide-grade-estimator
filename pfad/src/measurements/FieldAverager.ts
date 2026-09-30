@@ -1,3 +1,4 @@
+import type { CollisionLog } from '../core/CollisionLog';
 import type { Domain } from '../core/Domain';
 import type { ParticleStore } from '../core/ParticleStore';
 
@@ -13,8 +14,18 @@ import type { ParticleStore } from '../core/ParticleStore';
  *   kT   = (Σ ½m|v|² − ½|Σ m v|²/Σ m) / Σ count   (peculiar w.r.t. the averaged u)
  * The number of snapshots and the mean particles per cell per snapshot are
  * reported with every field so that noise is never mistaken for structure.
+ *
+ * Local stress (pressure and shear) is the particle stress tensor
+ *   P_αβ = [Σ m (v−u)_α (v−u)_β] / (snapshots · A_cell)          kinetic part
+ *        + [Σ_collisions d n_α J n_β] / (T_c · A_cell)            collisional part
+ * where each logged pair collision (contact normal n, impulse J, contact
+ * distance d) is assigned to the cell of its contact point and T_c is the time
+ * spanned by the consumed collision events (`addCollisions`). Pressure is
+ * (P_xx + P_yy)/2, shear is τ_xy = −P_xy. Without collision events only the
+ * kinetic part is present, which the caller must say. Wall impulses remain
+ * the measurement used for reported wall pressure and shear.
  */
-export type FieldName = 'occupancy' | 'occupancyGradient' | 'density' | 'speed' | 'ux' | 'uy' | 'kT';
+export type FieldName = 'occupancy' | 'occupancyGradient' | 'density' | 'speed' | 'ux' | 'uy' | 'kT' | 'pressure' | 'shear';
 
 export class FieldAverager {
   readonly nx: number;
@@ -29,6 +40,19 @@ export class FieldAverager {
   private readonly px: Float64Array;
   private readonly py: Float64Array;
   private readonly ke: Float64Array;
+  private readonly sxx: Float64Array;
+  private readonly syy: Float64Array;
+  private readonly sxy: Float64Array;
+  private readonly cxx: Float64Array;
+  private readonly cyy: Float64Array;
+  private readonly cxy: Float64Array;
+  private logCursor = -1;
+  private collisionStart = 0;
+  /** time spanned by the collision events consumed so far */
+  collisionTime = 0;
+  collisionsUsed = 0;
+  /** events that left the collision log's ring buffer before they were consumed */
+  collisionsLost = 0;
 
   constructor(domain: Domain, nx: number, ny: number) {
     this.domain = domain;
@@ -43,6 +67,48 @@ export class FieldAverager {
     this.px = new Float64Array(n);
     this.py = new Float64Array(n);
     this.ke = new Float64Array(n);
+    this.sxx = new Float64Array(n);
+    this.syy = new Float64Array(n);
+    this.sxy = new Float64Array(n);
+    this.cxx = new Float64Array(n);
+    this.cyy = new Float64Array(n);
+    this.cxy = new Float64Array(n);
+  }
+
+  private cellOf(px: number, py: number): number {
+    const d = this.domain;
+    let cx = Math.floor((px - d.xmin) / this.cellW);
+    let cy = Math.floor((py - d.ymin) / this.cellH);
+    if (cx < 0) cx = 0;
+    else if (cx >= this.nx) cx = this.nx - 1;
+    if (cy < 0) cy = 0;
+    else if (cy >= this.ny) cy = this.ny - 1;
+    return cy * this.nx + cx;
+  }
+
+  /**
+   * Consume pair-collision events logged since the previous call (the first
+   * call only sets the starting point). `diameter` is the contact distance.
+   */
+  addCollisions(log: CollisionLog, diameter: number, time: number): void {
+    if (this.logCursor < 0) {
+      this.logCursor = log.count;
+      this.collisionStart = time;
+      return;
+    }
+    const fresh = log.count - this.logCursor;
+    const avail = Math.min(fresh, log.retained);
+    this.collisionsLost += fresh - avail;
+    for (let k = 0; k < avail; k++) {
+      const e = log.recent(k);
+      const c = this.cellOf(e.x, e.y);
+      this.cxx[c] += diameter * e.nx * e.dpx;
+      this.cyy[c] += diameter * e.ny * e.dpy;
+      this.cxy[c] += diameter * e.nx * e.dpy;
+    }
+    this.collisionsUsed += avail;
+    this.logCursor = log.count;
+    this.collisionTime = time - this.collisionStart;
   }
 
   /** Grid with about `perCell` particles per cell per snapshot, matching the domain aspect ratio. */
@@ -72,6 +138,9 @@ export class FieldAverager {
       this.px[c] += m * vx[i];
       this.py[c] += m * vy[i];
       this.ke[c] += 0.5 * m * (vx[i] * vx[i] + vy[i] * vy[i]);
+      this.sxx[c] += m * vx[i] * vx[i];
+      this.syy[c] += m * vy[i] * vy[i];
+      this.sxy[c] += m * vx[i] * vy[i];
     }
     this.snapshots++;
   }
@@ -110,6 +179,19 @@ export class FieldAverager {
         case 'kT':
           out[c] = this.count[c] > 0 ? (this.ke[c] - (0.5 * (this.px[c] ** 2 + this.py[c] ** 2)) / M) / this.count[c] : 0;
           break;
+        case 'pressure':
+        case 'shear': {
+          const Ac = this.cellW * this.cellH;
+          const kxx = M > 0 ? (this.sxx[c] - M * ux * ux) / A : 0;
+          const kyy = M > 0 ? (this.syy[c] - M * uy * uy) / A : 0;
+          const kxy = M > 0 ? (this.sxy[c] - M * ux * uy) / A : 0;
+          const T = this.collisionTime;
+          const pxx = kxx + (T > 0 ? this.cxx[c] / (T * Ac) : 0);
+          const pyy = kyy + (T > 0 ? this.cyy[c] / (T * Ac) : 0);
+          const pxy = kxy + (T > 0 ? this.cxy[c] / (T * Ac) : 0);
+          out[c] = name === 'pressure' ? 0.5 * (pxx + pyy) : -pxy;
+          break;
+        }
       }
     }
     if (name === 'occupancyGradient') {

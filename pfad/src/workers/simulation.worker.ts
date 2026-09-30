@@ -50,6 +50,14 @@ function computeField(sim: Simulation) {
     averagerSim = sim;
   }
   averager.add(sim.store);
+  let note: string | undefined;
+  if (field === 'pressure' || field === 'shear') {
+    averager.addCollisions(sim.log, 2 * (sim.store.count > 0 ? sim.store.radius[0] : 0.5), sim.time);
+    note =
+      averager.collisionTime > 0
+        ? `kinetic + collisional stress (${averager.collisionsUsed} collisions over t = ${averager.collisionTime.toPrecision(3)}${averager.collisionsLost ? `, ${averager.collisionsLost} events lost from the log` : ''})`
+        : 'kinetic part only — the collisional part needs time-averaging over several frames';
+  }
   const f = averager.field(field === 'speed' ? 'speed' : field);
   const n = f.length;
   const values = new Float32Array(f);
@@ -71,6 +79,7 @@ function computeField(sim: Simulation) {
     mean: sum / n,
     snapshots: averager.snapshots,
     particlesPerCell: averager.meanParticlesPerCell(),
+    note,
   };
   if (!average) averager = null;
   return { data, ms: performance.now() - t0 };

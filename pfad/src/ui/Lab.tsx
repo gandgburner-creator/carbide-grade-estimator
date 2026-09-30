@@ -36,6 +36,8 @@ const FIELD_LABELS: Record<FieldKind, string> = {
   density: 'density ρ',
   speed: 'mean velocity |u|',
   kT: 'kT (peculiar)',
+  pressure: 'pressure (particle stress)',
+  shear: 'shear stress τ_xy (particle stress)',
 };
 
 export function Lab() {
@@ -254,6 +256,7 @@ export function Lab() {
               <div className="legend">
                 {FIELD_LABELS[frame.field.kind]} — measured, {frame.field.nx}×{frame.field.ny} cells, {frame.field.particlesPerCell.toFixed(1)} particles/cell,{' '}
                 {frame.field.snapshots} snapshot{frame.field.snapshots === 1 ? '' : 's'}
+                {frame.field.note && <div>{frame.field.note}</div>}
                 {frame.field.particlesPerCell * frame.field.snapshots < 100 && (
                   <div style={{ color: 'var(--inconclusive)' }}>fewer than 100 samples per cell: noise-dominated</div>
                 )}

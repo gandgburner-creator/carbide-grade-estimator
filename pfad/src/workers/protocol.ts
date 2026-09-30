@@ -4,7 +4,7 @@ import type { ValidationStatus } from '../validation/Status';
 
 /** Messages between the UI thread and the simulation worker. */
 
-export type FieldKind = 'none' | 'occupancy' | 'occupancyGradient' | 'density' | 'speed' | 'kT';
+export type FieldKind = 'none' | 'occupancy' | 'occupancyGradient' | 'density' | 'speed' | 'kT' | 'pressure' | 'shear';
 
 export type ToWorker =
   | { type: 'init'; experiment: ExperimentType; params: unknown; epoch: number }
@@ -59,6 +59,8 @@ export interface Frame {
     mean: number;
     /** snapshots in the time average (1 = instantaneous) */
     snapshots: number;
+    /** how the value was formed, when it needs saying (e.g. which stress parts are included) */
+    note?: string;
     /** mean particles per cell per snapshot */
     particlesPerCell: number;
   };
