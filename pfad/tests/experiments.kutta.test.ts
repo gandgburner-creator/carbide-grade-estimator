@@ -78,3 +78,19 @@ describe('scaling families', () => {
     expect((d.params as typeof KUTTA_REFERENCE).duration / (c.params as typeof KUTTA_REFERENCE).duration).toBeCloseTo(4, 12);
   });
 });
+
+describe('fixed-Knudsen scaling family', () => {
+  it('keeps the geometry and varies U, with convective times ∝ 1/U', async () => {
+    const { levelParams, SCALING_REFERENCE } = await import('../src/experiments/ScalingExperiment');
+    const p = { ...SCALING_REFERENCE, mode: 'fixed-knudsen' as const, referenceSize: 30, speeds: [0.5, 1] };
+    const a = levelParams(p, 30, 0.5);
+    const b = levelParams(p, 30, 1);
+    const pa = a.params as typeof KUTTA_REFERENCE;
+    const pb = b.params as typeof KUTTA_REFERENCE;
+    expect(pa.chord).toBe(30);
+    expect(pb.chord).toBe(30);
+    expect(pa.length).toBe(pb.length);
+    expect(a.speed).toBe(0.5);
+    expect(pa.duration / pb.duration).toBeCloseTo(2, 12);
+  });
+});

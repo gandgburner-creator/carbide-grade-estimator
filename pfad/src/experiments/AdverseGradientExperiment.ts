@@ -30,8 +30,14 @@ const EMPTY_SPACE_INTERVAL = 10;
  *                    from U to (1 − Δ)U over the middle of the plate, with the
  *                    outward drift v = H·ΔU/L_d that continuity requires there;
  *                    outlet stream (1 − Δ)U. The outer flow decelerates but stays
- *                    forward, as over the aft part of a wing.
- * Both are boundary conditions; no pressure-gradient or separation law is used.
+ *                    forward. Measured (separation_reference.json): it does so
+ *                    by suction — the wall pressure along the plate FALLS — so
+ *                    it imposes almost no adverse pressure gradient.
+ *   'back-pressure-open' (s = β) — open top reservoir (stated n₁, U) and an
+ *                    outlet reservoir at density β·n₁ with drift U/β: pressure
+ *                    builds toward the outlet while fluid can still leave
+ *                    through the top, so the whole channel need not reverse.
+ * All are boundary conditions; no pressure-gradient or separation law is used.
  * A near-wall reversal counts as SEPARATION only if the outer flow at that
  * station still moves forward (U_e > 0); otherwise it is BULK REVERSAL.
  *
@@ -63,7 +69,7 @@ export interface AdverseGradientParams {
   speed: number;
   accommodation: number;
   wallKT: number;
-  generator: 'back-pressure' | 'far-field';
+  generator: 'back-pressure' | 'far-field' | 'back-pressure-open';
   /** generator strengths: β for back-pressure, Δ for far-field */
   strengths: number[];
   /** far-field: deceleration zone as fractions of the plate */
@@ -177,7 +183,7 @@ class AGRun implements Run<AGRunResult> {
       seed: spec.seed,
       domain,
       flow: { x: p.speed, y: 0 },
-      extraCapacity: Math.round(Math.max(1, p.generator === 'back-pressure' ? strength : 1) * N0),
+      extraCapacity: Math.round(Math.max(1, p.generator === 'far-field' ? 1 : strength) * N0),
     });
     const res = { numberDensity: n1, kT: p.kT, mass: p.mass, radius: p.radius };
     const inlet: ReservoirBoundaryConfig = { side: 'left', ...res, velocity: { x: p.speed, y: 0 } };
@@ -192,6 +198,13 @@ class AGRun implements Run<AGRunResult> {
     if (p.generator === 'back-pressure') {
       walls = [floor, { side: 'top', accommodation: 0 }];
       boundaries = [inlet, { side: 'right', ...res, numberDensity: strength * n1, velocity: { x: p.speed / strength, y: 0 } }];
+    } else if (p.generator === 'back-pressure-open') {
+      walls = [floor];
+      boundaries = [
+        inlet,
+        { side: 'right', ...res, numberDensity: strength * n1, velocity: { x: p.speed / strength, y: 0 } },
+        { side: 'top', ...res, velocity: { x: p.speed, y: 0 } },
+      ];
     } else {
       const Lp = p.plateEnd - p.plateStart;
       const x0 = p.plateStart + p.decelerationFrom * Lp;

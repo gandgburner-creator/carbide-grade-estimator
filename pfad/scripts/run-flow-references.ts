@@ -3,7 +3,7 @@
  * MEASURED transport properties of other records (never from a formula):
  *   μ   — results/viscosity_reference.json (Couette, φ = 0.1)
  *   c_p — results/sound-speed_sweeps.json (Universe A case 'A φ=0.1')
- *   npx tsx scripts/run-flow-references.ts [threads] [boundary-layer|separation|kutta|scaling ...]
+ *   npx tsx scripts/run-flow-references.ts [threads] [experiment type or record name ...]
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { ADVERSE_GRADIENT_REFERENCE } from '../src/experiments/AdverseGradientExperiment';
@@ -60,9 +60,19 @@ function summary(rec: ExperimentRecord): string {
       { ...SCALING_REFERENCE, mode: 'fixed-reynolds', sizes: [30, 60], referenceSize: 30, referenceSpeed: 1, seeds: [311, 312, 313, 314, 315, 316, 317, 318], viscosity, base: { soundSpeed } },
       'scaling_fixed-reynolds',
     ],
+    [
+      'scaling',
+      { ...SCALING_REFERENCE, mode: 'fixed-knudsen', sizes: [30], speeds: [0.5, 0.75, 1], referenceSize: 30, referenceSpeed: 1, seeds: [321, 322, 323, 324, 325, 326, 327, 328], viscosity, base: { soundSpeed } },
+      'scaling_fixed-knudsen',
+    ],
+    [
+      'scaling',
+      { ...SCALING_REFERENCE, mode: 'fixed-mach', sizes: [30, 42, 60], referenceSize: 60, referenceSpeed: 0.5, seeds: [331, 332, 333, 334, 335, 336, 337, 338], viscosity, base: { soundSpeed } },
+      'scaling_fixed-mach-low',
+    ],
   ] as const;
   for (const [type, params, name] of jobs) {
-    if (!wanted(type)) continue;
+    if (!wanted(type) && !wanted(name)) continue;
     const t0 = Date.now();
     const rec = await runParallel(type, params, threads, (d, n) => process.stdout.write(`\r${type}: ${d}/${n}   `));
     writeFileSync(`results/${name}.json`, JSON.stringify(rec));

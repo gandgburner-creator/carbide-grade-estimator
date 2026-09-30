@@ -19,13 +19,15 @@ import { KUTTA_REFERENCE, type KuttaParams } from './KuttaExperiment';
  * not a solver input). The verdict per outcome is the shared convergence
  * judge (largest size vs the next): PASSED / NOT CONVERGED / INCONCLUSIVE.
  */
-export type ScalingMode = 'fixed-mach' | 'fixed-reynolds';
+export type ScalingMode = 'fixed-mach' | 'fixed-reynolds' | 'fixed-knudsen';
 
 export interface ScalingParams {
   experiment: 'kutta' | 'viscosity';
   mode: ScalingMode;
   /** sizes in particle diameters: chord (kutta) or channel height (viscosity), ascending */
   sizes: number[];
+  /** fixed-knudsen: stream speeds (ascending) at the one size `referenceSize` */
+  speeds?: number[];
   /** size and speed of the reference configuration the family is built from */
   referenceSize: number;
   referenceSpeed: number;
@@ -52,8 +54,8 @@ export const SCALING_REFERENCE: ScalingParams = {
 };
 
 /** Parameters of one level of the family. */
-export function levelParams(p: ScalingParams, size: number): { params: unknown; speed: number } {
-  const speed = p.mode === 'fixed-reynolds' ? (p.referenceSpeed * p.referenceSize) / size : p.referenceSpeed;
+export function levelParams(p: ScalingParams, size: number, speedOverride?: number): { params: unknown; speed: number } {
+  const speed = speedOverride ?? (p.mode === 'fixed-reynolds' ? (p.referenceSpeed * p.referenceSize) / size : p.referenceSpeed);
   if (p.experiment === 'kutta') {
     const b = { ...KUTTA_REFERENCE, ...(p.base as Partial<KuttaParams>) };
     const f = size / b.chord; // geometry factor relative to the base
@@ -139,8 +141,15 @@ export class ScalingExperiment extends SequentialExperiment<Spec, unknown> {
   constructor(p: ScalingParams) {
     if (!factory) throw new Error('scaling factory not registered');
     if (p.sizes.some((s, k) => k > 0 && !(s > p.sizes[k - 1]))) throw new Error('scaling sizes must be ascending');
-    const levels = p.sizes.map((size) => {
-      const { params, speed } = levelParams(p, size);
+    const plan =
+      p.mode === 'fixed-knudsen'
+        ? (p.speeds ?? []).map((u) => ({ size: p.referenceSize, speed: u }))
+        : p.sizes.map((size) => ({ size, speed: undefined as number | undefined }));
+    if (p.mode === 'fixed-knudsen' && !(plan.length >= 2 && plan.every((q, k) => k === 0 || q.speed! > plan[k - 1].speed!))) {
+      throw new Error('fixed-knudsen needs ≥ 2 ascending speeds');
+    }
+    const levels = plan.map(({ size, speed: u }) => {
+      const { params, speed } = levelParams(p, size, u);
       return { size, speed, exp: factory!(p.experiment, params) };
     });
     const specs: Spec[] = levels.flatMap((L, level) => L.exp.specs.map((_, index) => ({ level, index })));
@@ -203,25 +212,30 @@ export class ScalingExperiment extends SequentialExperiment<Spec, unknown> {
     );
     for (const m of perMetric) {
       if (m.status === 'NOT ASSESSED') continue;
-      checks.push(check(`scale-converged: ${m.metric}`, `${m.metric} converged across ${p.mode === 'fixed-mach' ? 'universe size at fixed Mp' : 'universe size at fixed Re'}`,
+      checks.push(check(`scale-converged: ${m.metric}`, `${m.metric} converged across ${p.mode === 'fixed-mach' ? 'universe size at fixed Mp' : p.mode === 'fixed-reynolds' ? 'universe size at fixed Re' : 'stream speed at fixed geometry (fixed Kn)'}`,
         `|HIGH − MEDIUM| within ${(100 * p.relTolerance).toFixed(0)} % or not significant`, m.verdict, m.status === 'PASSED', m.status === 'PASSED' ? 'PASSED' : (m.status as ValidationStatus)));
     }
     const last = recs[recs.length - 1];
     return {
       ...last,
-      ...recordHeader('scaling', `Scaling (${p.mode}): ${p.experiment} across sizes ${p.sizes.join(', ')} d`, p.seeds),
+      ...recordHeader('scaling', p.mode === 'fixed-knudsen' ? `Scaling (fixed-knudsen): ${p.experiment} at size ${p.referenceSize} d, U = ${(p.speeds ?? []).join(', ')}` : `Scaling (${p.mode}): ${p.experiment} across sizes ${p.sizes.join(', ')} d`, p.seeds),
       particleCount: last.particleCount,
       geometry: `${p.experiment} family scaled to sizes ${p.sizes.join(', ')} particle diameters`,
       reynolds: {
         simulation: levelRows[levelRows.length - 1].reynolds,
         effective: null,
         physical: null,
-        note: p.viscosity ? `Re = ρ_e U_e · size / μ per level (μ from ${p.viscosity.source}); ${p.mode === 'fixed-mach' ? 'Re grows with size' : 'Re held fixed by U ∝ 1/size'}.` : 'No measured μ supplied.',
+        note: p.viscosity ? `Re = ρ_e U_e · size / μ per level (μ from ${p.viscosity.source}); ${p.mode === 'fixed-mach' ? 'Re grows with size' : p.mode === 'fixed-reynolds' ? 'Re held fixed by U ∝ 1/size' : 'Re and Mp grow together with U at fixed geometry'}.` : 'No measured μ supplied.',
       },
       results: {
         experiment: p.experiment,
         mode: p.mode,
-        question: p.mode === 'fixed-mach' ? 'Do dimensionless results settle as the particle universe grows at fixed Mp (Re ∝ size, Kn ∝ 1/size)?' : 'At fixed Re, do universes of different size (Kn, Mp ∝ 1/size) give the same dimensionless results?',
+        question:
+          p.mode === 'fixed-mach'
+            ? 'Do dimensionless results settle as the particle universe grows at fixed Mp (Re ∝ size, Kn ∝ 1/size)?'
+            : p.mode === 'fixed-reynolds'
+              ? 'At fixed Re, do universes of different size (Kn, Mp ∝ 1/size) give the same dimensionless results?'
+              : 'In one universe (fixed Kn), how do dimensionless results change with stream speed (Re and Mp ∝ U)?',
         levels: levelRows,
         perMetric,
         records: recs,
