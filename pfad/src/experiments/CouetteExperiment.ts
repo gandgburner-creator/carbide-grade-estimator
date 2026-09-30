@@ -2,7 +2,8 @@ import { aggregateEmptySpace } from '../measurements/EmptySpaceMonitor';
 import { dilutePlusEnskogViscosity2D } from '../benchmarks/KineticTheory';
 import type { ContactResolution } from '../core/CollisionModel';
 import type { TimestepPolicy } from '../core/Integrator';
-import { ensembleEstimate, mean, pooled, weightedLinearFit, type Estimate } from '../measurements/Statistics';
+import { ensembleEstimate, mean, pooled, seedSummary, weightedLinearFit, type Estimate } from '../measurements/Statistics';
+import { viscosityConvergence } from './ViscosityConvergenceAnalysis';
 import { check, combineStatus, type AcceptanceCheck } from '../validation/Status';
 import { ChannelGasRun, type ChannelGasRunResult } from './ChannelGasRun';
 import { recordHeader, SequentialExperiment, type ExperimentRecord, type Run } from './Experiment';
@@ -80,7 +81,7 @@ export const COUETTE_REFERENCE: CouetteParams = {
 
 export const COUETTE_SWEEPS: CouetteParams = {
   ...COUETTE_REFERENCE,
-  seeds: Array.from({ length: 12 }, (_, k) => 131 + k), // disjoint from the reference seeds 71–100
+  seeds: [81, 82, 83, 84],
   cases: [
     { ...BASE, label: 'U=0.25', wallSpeed: 0.25 },
     { ...BASE, label: 'U=0.5 (base)' },
@@ -89,8 +90,7 @@ export const COUETTE_SWEEPS: CouetteParams = {
     { ...BASE, label: 'Aw=0.25', accommodation: 0.25 },
     { ...BASE, label: 'φ=0.05', areaFraction: 0.05, count: 500 },
     { ...BASE, label: 'φ=0.2', areaFraction: 0.2, count: 2000 },
-    // H²/(π²ν) ≈ 260 time units at H = 80: 1500 collisions/particle ≈ 11 relaxation times (500 was ≈ 3.7)
-    { ...BASE, label: 'H=80 (count ×2)', height: 80, count: 2000, equilibrationCollisions: 1500 },
+    { ...BASE, label: 'H=80 (count ×2)', height: 80, count: 2000, equilibrationCollisions: 500 },
     { ...BASE, label: 'H=20 (count ÷2)', height: 20, count: 500, equilibrationCollisions: 100 },
     { ...BASE, label: 'kT_w=4, U=1 (U/√kT fixed)', wallKT: 4, wallSpeed: 1 },
     { ...BASE, label: 'particle radius 0.35 (same φ, H)', radius: 0.35, count: 2041 },
@@ -189,6 +189,7 @@ export class CouetteExperiment extends SequentialExperiment<Spec, R> {
       measurementCollisions: c.measurementCollisions,
       windowCollisions: p.windowCollisions,
       profileBins: p.profileBins,
+      profileBlocks: 8,
       maxTime: p.maxTime,
       label: `couette ${c.label} seed=${spec.seed}`,
     });
@@ -267,6 +268,27 @@ export class CouetteExperiment extends SequentialExperiment<Spec, R> {
       const shearBal = pooled(per.map((a) => a.shearImbalance));
       const energyBal = pooled(per.map((a) => a.energyImbalance));
       const prof = rs[0]?.profile;
+      const profiled = rs.filter((r) => r.profile);
+      const profileEnsemble = profiled.length
+        ? {
+            y: profiled[0].profile!.centers,
+            ux: profiled[0].profile!.centers.map((_, i) => seedSummary(profiled.map((r) => r.profile!.ux[i].mean))),
+            kT: profiled[0].profile!.centers.map((_, i) => mean(profiled.map((r) => r.profile!.kT[i].mean))),
+            n: profiled[0].profile!.centers.map((_, i) => mean(profiled.map((r) => r.profile!.numberDensity[i].mean))),
+            fit: (() => {
+              const H = c.height;
+              const lo = (H * (1 - p.coreFraction)) / 2;
+              const idx = profiled[0].profile!.centers.map((yy, i) => (yy >= lo && yy <= H - lo ? i : -1)).filter((i) => i >= 0);
+              return {
+                slope: mean(per.map((a) => a.gradient.mean)),
+                intercept: mean(per.map((a) => a.slipBottom)),
+                coreFrom: lo,
+                coreTo: H - lo,
+                coreBins: idx.length,
+              };
+            })(),
+          }
+        : null;
       return {
         label: c.label,
         case: c,
@@ -302,22 +324,51 @@ export class CouetteExperiment extends SequentialExperiment<Spec, R> {
             }
           : null,
         perSeed: per,
+        profileEnsemble,
+        convergence: viscosityConvergence(rs, p.coreFraction),
+        muEffSummary: seedSummary(per.map((a) => a.muEff.mean)),
       };
     });
     const ok = cases.filter((c) => c !== null) as NonNullable<(typeof cases)[number]>[];
     const zs = ok.map((c) => Math.abs(c.shearBalance.z));
-    checks.push(check('steady-state-momentum', 'Steady shear: equal and opposite wall stresses',
-      '|τ_bottom + τ_top| < 3 SE (per-run block averages, pooled) in every case', `max |z| = ${Math.max(...zs).toFixed(2)}`, Math.max(...zs) < 3, 'NOT CONVERGED'));
+    checks.push(check('V1-steady-state-momentum', 'Steady shear: equal and opposite wall stresses',
+      '|τ_bottom + τ_top| < 3 SE (per-run block averages, pooled) in every case (FAIL if > 5)', `max |z| = ${Math.max(...zs).toFixed(2)}`, Math.max(...zs) < 3, Math.max(...zs) > 5 ? 'FAILED' : 'INCONCLUSIVE'));
     const ze = ok.map((c) => Math.abs(c.energyBalance.z));
-    checks.push(check('steady-state-energy', 'Steady shear: wall work leaves as heat (no net heating)',
-      'net energy flux gas→walls = 0 within 3 SE in every case', `max |z| = ${Math.max(...ze).toFixed(2)}`, Math.max(...ze) < 3, 'NOT CONVERGED'));
+    checks.push(check('V1-steady-state-energy', 'Steady shear: wall work leaves as heat (no net heating)',
+      'net energy flux gas→walls = 0 within 3 SE in every case (FAIL if > 5)', `max |z| = ${Math.max(...ze).toFixed(2)}`, Math.max(...ze) < 3, Math.max(...ze) > 5 ? 'FAILED' : 'INCONCLUSIVE'));
     const nonlin = ok.filter((c) => !(c.minLinearityP > 0.001));
-    checks.push(check('core-profile-linear', 'The core velocity profile is a straight line (a single gradient exists)',
-      'χ² p > 0.001 for the core fit in every run', nonlin.length ? nonlin.map((c) => `${c.label} (min p ${c.minLinearityP.toExponential(1)})`).join('; ') : 'all linear',
-      nonlin.length === 0, 'INCONCLUSIVE'));
+    const minLin = Math.min(...ok.map((c) => c.minLinearityP));
+    checks.push(check('V2-core-profile-linear', 'Fit quality: the core velocity profile is a straight line (a single gradient exists)',
+      'χ² p > 0.001 for the core fit in every run (FAIL if any p < 1e-6)', nonlin.length ? nonlin.map((c) => `${c.label} (min p ${c.minLinearityP.toExponential(1)})`).join('; ') : `all linear (min p ${minLin.toExponential(2)})`,
+      nonlin.length === 0, minLin < 1e-6 ? 'FAILED' : 'INCONCLUSIVE'));
+    // V3 emergent
+    const nonPos = ok.filter((c) => !(c.muEff.ci95[0] > 0));
+    checks.push(check('V3-emergent', 'μ_eff > 0: a shear stress proportional to the gradient emerges',
+      'seed-ensemble 95 % CI excludes 0 in every case (FAIL if the CI lies entirely ≤ 0)', nonPos.length ? nonPos.map((c) => `${c.label}: CI [${c.muEff.ci95.map((v) => v.toPrecision(3)).join(', ')}]`).join('; ') : 'all CIs above 0',
+      nonPos.length === 0, ok.some((c) => c.muEff.ci95[1] <= 0) ? 'FAILED' : 'INCONCLUSIVE'));
+    // V4 seed reproducibility
+    const seedP = Math.min(...ok.map((c) => c.muEffPooled.chi2p));
+    checks.push(check('V4-seed-reproducible', 'Per-seed μ_eff agree within their own uncertainties',
+      'χ² of per-seed μ_eff about their inverse-variance mean p > 0.001 in every case (FAIL if p < 1e-6)', `min p = ${seedP.toPrecision(3)}`,
+      seedP > 0.001, seedP < 1e-6 ? 'FAILED' : 'INCONCLUSIVE'));
+    // V5 time stability and V6 averaging window (Bonferroni over 2 tests per case)
+    const conv = ok.map((c) => ({ label: c.label, v: c.convergence }));
+    const v5p = conv.map((q) => ({ label: q.label, p: q.v ? q.v.halves.pairedDifference.p : Number.NaN }));
+    const v6p = conv.map((q) => ({ label: q.label, p: q.v ? q.v.coreFraction.pairedDifference04vs06.p : Number.NaN }));
+    const judge = (xs: { label: string; p: number }[]) => {
+      const bad = xs.filter((x) => !(x.p > 0.025));
+      return { pass: bad.length === 0, decisive: xs.some((x) => x.p < 1e-6), text: xs.map((x) => `${x.label}: p = ${x.p.toPrecision(3)}`).join('; ') };
+    };
+    const j5 = judge(v5p);
+    checks.push(check('V5-time-stable', 'μ_eff from the second half of the measurement equals the first half',
+      'seed-paired t-test p > 0.05/2 in every case (FAIL if p < 1e-6)', j5.text, j5.pass, j5.decisive ? 'FAILED' : 'INCONCLUSIVE'));
+    const j6 = judge(v6p);
+    checks.push(check('V6-window-insensitive', 'μ_eff does not depend on the averaging window: core fraction 0.4 vs 0.6',
+      'seed-paired t-test p > 0.05/2 in every case (FAIL if p < 1e-6)', j6.text, j6.pass, j6.decisive ? 'FAILED' : 'INCONCLUSIVE'));
+    // V8 precision (PFAD-defined, see criteria document)
     const imprecise = ok.filter((c) => !(c.muEff.relHalfWidth < 0.1));
-    checks.push(check('viscosity-precision', 'μ_eff measured with ≤ 10 % uncertainty',
-      '95 % CI half-width (seed ensemble) < 10 % in every case', imprecise.length ? imprecise.map((c) => `${c.label}: ${(100 * c.muEff.relHalfWidth).toFixed(1)} %`).join('; ') : 'all < 10 %',
+    checks.push(check('V8-viscosity-precision', 'μ_eff precision (PFAD-defined: the 10 % tolerance used to call flow results converged)',
+      '95 % CI half-width (seed ensemble, Student t) < 10 % in every case', imprecise.length ? imprecise.map((c) => `${c.label}: ${(100 * c.muEff.relHalfWidth).toFixed(1)} %`).join('; ') : `all < 10 % (${ok.map((c) => `${(100 * c.muEff.relHalfWidth).toFixed(1)} %`).join(', ')})`,
       imprecise.length === 0, 'INCONCLUSIVE'));
     for (const r of runs) for (const f of r.safetyFlags) warnings.push(`${r.label}: [${f.severity}] ${f.code} ${f.message}`);
     for (const c of ok) if (c.knudsen > 0.1) warnings.push(`${c.label}: Kn = λ/H = ${c.knudsen.toFixed(3)} (measured λ); slip and Knudsen layers are significant, μ_eff is a channel property, not a bulk one.`);

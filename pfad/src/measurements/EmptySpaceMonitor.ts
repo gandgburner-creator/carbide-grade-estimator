@@ -29,6 +29,8 @@ export interface EmptySpaceSummary {
   /** index of dispersion Var(N_cell)/⟨N_cell⟩: 1 for Poisson, < 1 for excluded-area gases, ≫ 1 when clustering */
   dispersionFinal: number;
   dispersionMax: number;
+  /** index of dispersion at every sample, with the simulation time (for stationarity tests) */
+  dispersionSeries: { t: number[]; d: number[] };
   samples: number;
   /** cells left out of the statistics (occupied by a solid body) */
   excludedCells: number;
@@ -71,6 +73,8 @@ export class EmptySpaceMonitor {
   private longestRun = 0;
   private dispersionFinal = Number.NaN;
   private dispersionMax = 0;
+  private readonly dispT: number[] = [];
+  private readonly dispD: number[] = [];
   /** 1 = cell counted, 0 = excluded */
   private readonly mask: Uint8Array;
   private readonly excluded: number;
@@ -122,6 +126,8 @@ export class EmptySpaceMonitor {
     v /= Math.max(1, used - 1);
     this.dispersionFinal = m > 0 ? v / m : Number.NaN;
     this.dispersionMax = Math.max(this.dispersionMax, this.dispersionFinal);
+    this.dispT.push(this.sim.time);
+    this.dispD.push(this.dispersionFinal);
     if (s.phiMin < this.collapseFraction * s.phiMean) {
       this.collapsedSamples++;
       this.run++;
@@ -169,6 +175,7 @@ export class EmptySpaceMonitor {
       longestCollapseRun: this.longestRun,
       dispersionFinal: this.dispersionFinal,
       dispersionMax: this.dispersionMax,
+      dispersionSeries: { t: this.dispT.slice(), d: this.dispD.slice() },
       samples: this.nSamples,
       flag: this.longestRun >= this.sustainSamples ? 'POTENTIAL MODEL / NUMERICAL FAILURE' : null,
     };

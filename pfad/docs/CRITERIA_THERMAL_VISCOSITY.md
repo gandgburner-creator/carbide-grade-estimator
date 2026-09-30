@@ -1,0 +1,121 @@
+# Acceptance criteria: thermal equilibrium and effective viscosity
+
+Written and committed **before** the reruns they judge (Phase 0 item 1). Once
+the reruns start, the criteria here are not changed; if a criterion turns out
+to be ill-posed, that is reported, not repaired.
+
+## 1. Why the two experiments were INCONCLUSIVE
+
+**Thermal** (`results/thermal_reference.json`, 5 seeds × 50 collisions/particle).
+Every check passed except `eos-precision`: "95 % CI half-width < 2 % at every
+φ". Worst case φ = 0.2: Z = 1.5833 ± 0.0170 → 2.10 %. That uncertainty was
+the inverse-variance pool of each run's own block-averaging SE. The data
+contradict those per-run SEs: the five independent seeds agree far better
+than the SEs allow (χ² consistency p = 0.995, 0.990, 0.969, 0.997 at
+φ = 0.02, 0.05, 0.1, 0.2), and the seed-ensemble SE is 4–6× smaller
+(φ = 0.2: ± 0.0026 instead of ± 0.0170). The same holds for the static box
+(φ = 0.05, 10 seeds): per-run block SE ≈ 8.5 × 10⁻⁴ with a flat blocking
+plateau, while the run means scatter with SD 2.3 × 10⁻⁴. The window pressures
+look uncorrelated up to the deepest blocking level (16 windows), but the run
+means vary much less than that implies — consistent with pressure oscillations
+(box acoustic modes, period ~ L/c ≈ 40 windows) longer than the deepest block,
+which cancel over a whole run. **Diagnosis: the per-run blocking SE
+overstates the uncertainty for closed-box wall pressure; the check failed
+because of an over-conservative estimator, not imprecise data.** This is an
+analysis defect, not a physics defect. The independent-seed ensemble is the
+assumption-free estimator (Master prompt §21: ensemble averaging, multiple
+seeds) and is what the static-box check already uses.
+
+**Viscosity** (`results/viscosity_reference.json`, 5 seeds × 300
+collisions/particle). Every check passed except `viscosity-precision`: "95 % CI
+half-width (seed ensemble) < 10 %". Measured 23.3 %: μ_eff = 0.325 ± 0.027
+(SE) with 4 degrees of freedom (Student t = 2.78). Here the per-run SEs are
+consistent with the seed scatter (χ² p = 0.24): per-run μ_eff carries ~17 %
+statistical noise, dominated by the wall shear stress (τ ≈ 0.0038 ± 0.0006 per
+run). **Diagnosis: genuine statistical noise; more independent seeds and a
+longer measurement are the remedy.** No defect found.
+
+## 2. What the specification defines
+
+Neither the Bible nor the Master prompt gives a numeric precision threshold
+for these two experiments.
+
+- Master prompt §11 (thermal): test equilibrium; temperature, density and
+  initial-distribution dependence; document the temperature proxy.
+- Master prompt §16 / Bible §15 (Couette): measure V(y), wall shear momentum
+  flux, μ_eff from their measured relation; determine whether viscosity is
+  emergent, stable, resolution-, wall-model- and temperature-dependent.
+- Bible §20: "Pressure differences of less than 1 % require adequate
+  averaging." (the only number)
+- Bible §37: falsified if "viscosity cannot be measured consistently" or
+  "results depend strongly on random seed".
+- Bible §31: "If results change materially: NOT CONVERGED" (no number).
+
+The earlier thresholds (2 % for Z, 10 % for μ_eff) were PFAD implementation
+choices. Below, each criterion states its source.
+
+## 3. Statistical conventions
+
+- **Statistical uncertainty** = independent-seed ensemble: mean, sample
+  variance, SD, SE = SD/√n, 95 % CI with Student t (n − 1 dof), between-seed
+  coefficient of variation. Per-run SEs are reported but not used for
+  aggregate CIs (thermal: shown to be unreliable; viscosity: used only in the
+  seed-consistency χ²).
+- **Systematic / numerical error** is reported separately and never folded
+  into the statistical CI: timestep and grid (convergence studies / timestep
+  A/B), finite-size wall effects, Knudsen layers, analysis-window choice.
+- **Multiple tests**: where a criterion is a family of m tests, each passes at
+  p > 0.05/m (Bonferroni; family-wise false-alarm ≤ 5 %).
+- **Outcomes**: every test has a PASS region, a FAIL region (decisive
+  evidence against the property: p < 10⁻⁶, |z| > 5, or the stated failure
+  condition) and an INCONCLUSIVE region between. Precision criteria can only
+  PASS or be INCONCLUSIVE (more data can fix them). The experiment is
+  **PASS** if every criterion passes, **FAIL** if any criterion fails,
+  otherwise **INCONCLUSIVE**.
+
+## 4. Thermal equilibrium — criteria
+
+Question: does the particle model reach a reproducible thermal/statistical
+equilibrium? Configuration unchanged (2000 disks, closed specular box, φ = 0.05
+unless varied; kT ∈ {0.25, 0.5, 1, 2, 4}; φ ∈ {0.02, 0.05, 0.1, 0.2}; four
+initial velocity distributions); only seeds (10: 21–30) and duration
+(200 collisions/particle of measurement, 80 for relaxation runs) change.
+
+| ID | Criterion | PASS | FAIL | Source |
+|---|---|---|---|---|
+| E1 | Energy proxy (kT = KE/N) conserved | max relative ledger residual < 10⁻⁹ | ≥ 10⁻⁹ | numerical safety (§34) |
+| E2 | Stationarity: late half = early half of the measurement for Z, a₂, kurtosis, anisotropy and the spatial dispersion index, in every configuration | seed-paired t-test p > 0.05/m for all m tests | any p < 10⁻⁶ | §11 "equilibrium" |
+| E3 | Equilibrium independent of initial distribution (Z, late a₂) and of temperature class (Z) | one-way ANOVA p > 0.05/3 each | any p < 10⁻⁶ | §11 dependence tests; Bible §37 |
+| E4 | Precision: seed-ensemble 95 % half-width of Z | < 0.71 % in every configuration | — (INCONCLUSIVE only) | Bible §20: resolving a 1 % difference between two measurements needs each half-width < 1 %/√2 |
+| E5 | Spatial uniformity: no sustained near-zero-occupancy region | no flag | flag raised | Bible §19 / Master prompt §20 |
+| E6 | Relaxation from every initial distribution completes within the run | last > 4σ excursion in the first half of every relaxation run | — (INCONCLUSIVE / NOT CONVERGED) | §11 initial-distribution test |
+
+Reported, not judged: the temperature proxy kT_x, kT_y and their ratio;
+dispersion index against the hard-disk compressibility; kurtosis, a₂ and a
+KS test against the 2D Maxwellian; Z against the Henderson equation of state;
+relaxation times; per-seed tables; convergence curves; averaging-window
+sensitivity (Z from the last 75 %, 50 %, 25 % of the measurement).
+
+## 5. Effective viscosity — criteria
+
+Question: is μ_eff reproducible? Configuration unchanged (φ = 0.1, H = 40,
+U = 0.5, Aw = 1, 1000 disks, core fraction 0.6); only seeds (30: 71–100) and
+duration (600 collisions/particle of measurement) change. The velocity
+profile is additionally accumulated in 8 consecutive time blocks
+(measurement only) for the convergence analysis.
+
+| ID | Criterion | PASS | FAIL | Source |
+|---|---|---|---|---|
+| V1 | Steady state: wall stresses equal and opposite; no net heating | pooled \|z\| < 3 each | \|z\| > 5 | §16 (walls must not heat the gas indefinitely) |
+| V2 | Fit quality: core profile linear | χ² p > 0.001 in every run | any p < 10⁻⁶ | §16 "regression diagnostics" |
+| V3 | Emergent: μ_eff > 0 | seed-ensemble 95 % CI excludes 0 | CI entirely ≤ 0 | §16 / Bible §15 "emergent" |
+| V4 | Reproducible across seeds | χ² of per-seed μ_eff about their mean, using per-run SEs: p > 0.001 | p < 10⁻⁶ | Bible §37 "depend strongly on random seed" |
+| V5 | Stable in time: second half = first half of the measurement | seed-paired t-test p > 0.05/2 | p < 10⁻⁶ | Bible §15 "stable" |
+| V6 | Averaging-window insensitive: core fraction 0.4 vs 0.6 | seed-paired t-test p > 0.05/2 | p < 10⁻⁶ | §31 "averaging convergence" |
+| V7 | Timestep: Courant 0.05 (30 seeds, 101–130) vs 0.025 (the reference, seeds 71–100) | \|z\| < 3 | — (a significant difference is reported as a numerical systematic → INCONCLUSIVE) | §23 timestep convergence |
+| V8 | Precision: seed-ensemble 95 % half-width of μ_eff | < 10 % | — (INCONCLUSIVE only) | PFAD-defined (no Bible number): equals the 10 % relative tolerance PFAD uses to call flow results converged, so μ-based Re is known at least as well as the changes it is used to detect |
+
+Core fraction 0.8 reaches within 0.1 H = 4 ≈ 1.7 mean free paths of the walls,
+inside the Knudsen layers; it is reported as a diagnostic of the wall layers,
+not tested. Reported, not judged: Enskog benchmark ratio, slip at each wall,
+Knudsen number, per-seed table, velocity profile, convergence curves.

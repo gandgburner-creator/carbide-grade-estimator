@@ -61,7 +61,7 @@ describe('thermal experiment (small)', () => {
 
   it('confirms the rigid-disk model has no hidden energy scale (exact kT rescaling)', () => {
     expect(byId['no-hidden-energy-scale']).toBe('PASSED');
-    expect(byId['temperature-scaling']).toBe('PASSED');
+    expect(byId['E3-temperature-scaling']).toBe('PASSED');
   });
 
   it('relaxes a two-beam start to the same state as a Maxwellian start', () => {
@@ -70,6 +70,6 @@ describe('thermal experiment (small)', () => {
     const beam = rows.find((r: { distribution: string }) => r.distribution === 'two-beam');
     expect(beam.initial.anisotropy).toBeGreaterThan(0.8);
     expect(Math.abs(beam.equilibrium_a2_pooled.mean)).toBeLessThan(0.1);
-    expect(byId['equilibrium-independent-of-initial-distribution']).toBe('PASSED');
+    expect(byId['E3-independent-of-initial-distribution']).toBe('PASSED');
   });
 });

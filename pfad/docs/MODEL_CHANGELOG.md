@@ -150,17 +150,36 @@ was then applied unchanged to fresh reference runs.
 
 ### Configuration changes after the first Phase 0 reference runs (no model change)
 
-Statistics only; every acceptance criterion is unchanged.
+Statistics and duration only; the physical configuration of each experiment
+is unchanged. Criteria for the reruns were fixed beforehand in
+`docs/CRITERIA_THERMAL_VISCOSITY.md`.
 
-- **Couette reference:** 30 seeds (was 5) and 600 collisions/particle of
-  measurement (was 300). The first reference met every check except the
-  pre-stated precision (95 % half-width 23 % vs < 10 %).
-- **Couette sweeps:** 12 seeds (was 4; seeds 131–142, disjoint from the
-  reference). **H = 80 case:** equilibration 1500 collisions/particle (was
-  500). The profile's slowest relaxation time H²/(π²ν) is ≈ 260 time units at
-  H = 80 (ν = μ/ρ ≈ 2.5); 500 collisions/particle is ≈ 3.7 of those, and that
-  case failed the core-linearity check (χ² p = 3 × 10⁻⁵). 1500 is ≈ 11.
-- **Thermal reference:** 8 seeds (was 5) and 100 collisions/particle of
-  measurement (was 50). The first reference met every check except the
-  equation-of-state precision at φ = 0.2 (2.10 % vs < 2 %).
+- **Couette reference:** 30 seeds (71–100; was 5) and 600 collisions/particle
+  of measurement (was 300). The first reference met every check except the
+  precision check (95 % half-width 23 % vs < 10 %); its per-run SEs were
+  consistent with the seed scatter (χ² p = 0.24): genuine noise. The velocity
+  profile is additionally accumulated in 8 consecutive blocks (measurement
+  only) for convergence and averaging-window analyses. A second run at
+  Courant 0.05 (seeds 101–130) tests the timestep.
+- **Thermal reference:** 10 seeds (21–30; was 5), 200 collisions/particle of
+  measurement (was 50), 80 for the relaxation runs (was 40).
+- **Couette sweeps:** unchanged (not part of this rerun).
+
+### Analysis-method revision 8: thermal uncertainty from the seed ensemble (no model change)
+
+- **Was:** the thermal record's Z(φ) uncertainty (and its 2 % precision check)
+  used the inverse-variance pool of each run's block-averaging SE.
+- **Evidence it was wrong:** the independent seeds scatter 4–6× less than
+  those SEs imply (χ² consistency p = 0.995, 0.990, 0.969, 0.997 at
+  φ = 0.02, 0.05, 0.1, 0.2; φ = 0.2: ± 0.0026 from seeds vs ± 0.0170 pooled).
+  The same holds for the static box (per-run block SE 8.5 × 10⁻⁴ vs run-to-run
+  SD 2.3 × 10⁻⁴ over 10 seeds). Window pressures look uncorrelated up to the
+  deepest blocking level, but run means vary far less — consistent with
+  box-mode pressure oscillations longer than the deepest block, which cancel
+  over a run.
+- **Now:** the seed ensemble (Student t) is the uncertainty; the pooled
+  per-run figure is kept in the record as `perRunSePooled` for reference. The
+  2 % threshold is replaced by the pre-registered criteria E1–E6 (E4:
+  0.71 %, derived from Bible §20). Made before the rerun; the rerun is judged
+  by it unchanged.
 

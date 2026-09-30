@@ -12,6 +12,7 @@ import {
   pooled,
   std,
 } from '../measurements/Statistics';
+import { thermalEquilibriumAnalysis } from './ThermalEquilibriumAnalysis';
 import { check, combineStatus, type AcceptanceCheck } from '../validation/Status';
 import { BoxGasRun, type BoxGasRunParams, type BoxGasRunResult } from './BoxGasRun';
 import { recordHeader, SequentialExperiment, type ExperimentRecord, type Run } from './Experiment';
@@ -55,14 +56,15 @@ export const THERMAL_REFERENCE: ThermalParams = {
   kT: 1,
   contact: 'rewind-to-contact',
   timestep: { kind: 'adaptive', courant: 0.025, dtMax: 1, dtMin: 1e-7 },
-  seeds: [21, 22, 23, 24, 25, 26, 27, 28],
+  // 10 seeds × 200 collisions/particle (first reference: 5 × 50); criteria in docs/CRITERIA_THERMAL_VISCOSITY.md
+  seeds: [21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
   temperatures: [0.25, 0.5, 1, 2, 4],
   areaFractions: [0.02, 0.05, 0.1, 0.2],
   distributions: ['maxwell', 'uniform-speed', 'uniform-box', 'two-beam'],
   equilibrationCollisions: 10,
-  measurementCollisions: 100,
+  measurementCollisions: 200,
   windowCollisions: 0.25,
-  relaxationCollisions: 40,
+  relaxationCollisions: 80,
   relaxationWindowCollisions: 0.1,
   maxTime: 1e7,
 };
@@ -213,18 +215,22 @@ export class ThermalExperiment extends SequentialExperiment<Spec, ThermalRunResu
       }
       return m;
     };
-    /** pooled over runs (inverse variance of per-run block SEs) + seed ensemble as a cross-check */
+    /**
+     * Seed ensemble (independent runs, Student t) is the uncertainty. The
+     * inverse-variance pool of per-run block SEs is kept for reference only:
+     * for closed-box wall pressure those SEs overstate the run-to-run scatter
+     * 4–6× (χ² p ≈ 0.99), see docs/CRITERIA_THERMAL_VISCOSITY.md §1.
+     */
     const zSummary = (rs: ThermalRunResult[]) => {
       const pz = pooled(rs.map(Z));
       const ens = ensembleEstimate(rs.map((r) => Z(r).mean));
       return {
-        mean: pz.mean,
-        se: pz.se,
-        ci95: [pz.mean - 1.96 * pz.se, pz.mean + 1.96 * pz.se] as [number, number],
-        relHalfWidth: (1.96 * pz.se) / pz.mean,
-        runs: pz.runs,
-        runConsistencyP: pz.chi2p,
-        seedEnsemble: { mean: ens.mean, se: ens.se, n: ens.n },
+        mean: ens.mean,
+        se: ens.se,
+        ci95: ens.ci95,
+        relHalfWidth: ens.relHalfWidth,
+        seeds: ens.n,
+        perRunSePooled: { mean: pz.mean, se: pz.se, runs: pz.runs, chi2p: pz.chi2p, note: 'reference only: per-run SEs overstate the scatter' },
       };
     };
 
@@ -235,12 +241,12 @@ export class ThermalExperiment extends SequentialExperiment<Spec, ThermalRunResu
         halted.length ? halted.map((r) => r.label).join('; ') : 'none', halted.length === 0),
     );
     const empty = aggregateEmptySpace(runs.map((r) => r.emptySpace));
-    checks.push(check('no-empty-space', 'No sustained near-zero-occupancy region (Master prompt §20)', 'no POTENTIAL MODEL / NUMERICAL FAILURE flag',
+    checks.push(check('E5-no-empty-space', 'No sustained near-zero-occupancy region (Master prompt §20)', 'no POTENTIAL MODEL / NUMERICAL FAILURE flag',
       empty.flaggedRuns ? `${empty.flaggedRuns} run(s) flagged` : `none (φ ${empty.phiMin.toPrecision(3)} … ${empty.phiMax.toPrecision(3)}, mean ${empty.phiMean.toPrecision(3)})`, empty.flaggedRuns === 0));
     results.emptySpace = empty;
 
     const maxE = Math.max(...runs.map((r) => r.conservation.maxAbsRelativeEnergyResidual));
-    checks.push(check('energy-conservation', 'Elastic runs conserve energy', 'max |relative residual| < 1e-9',
+    checks.push(check('E1-energy-conservation', 'Elastic runs conserve energy (the kT proxy is fixed by it)', 'max |relative residual| < 1e-9',
       maxE.toExponential(2), maxE < 1e-9));
     const missing = runs.filter((r) => !r.equilibrium);
     if (missing.length) warnings.push(`${missing.length} run(s) had too few windows for equilibrium averages`);
@@ -291,9 +297,9 @@ export class ThermalExperiment extends SequentialExperiment<Spec, ThermalRunResu
           'relative spread < 1e-12', `${maxClassSpread.toExponential(2)} over ${classPairs} pair(s)`, maxClassSpread < 1e-12));
       }
       if (repZ.length >= 2) {
-        checks.push(check('temperature-scaling', 'P/(nkT) is the same at every temperature class (independent realisations)',
-          'one-way ANOVA over independent runs (one kT per class) p > 0.001',
-          `p = ${cons.pValue.toPrecision(3)} over ${repZ.length} classes`, cons.pValue > 0.001));
+        checks.push(check('E3-temperature-scaling', 'P/(nkT) is the same at every temperature class (independent realisations)',
+          'one-way ANOVA over independent runs (one kT per class) p > 0.05/3 (FAIL if p < 1e-6)',
+          `p = ${cons.pValue.toPrecision(3)} over ${repZ.length} classes`, cons.pValue > 0.05 / 3, cons.pValue < 1e-6 ? 'FAILED' : 'INCONCLUSIVE'));
       }
     }
 
@@ -316,9 +322,6 @@ export class ThermalExperiment extends SequentialExperiment<Spec, ThermalRunResu
         table,
         fit: { model: '(Z − 1)/φ = B + C·φ', B: reg.intercept, seB: reg.seIntercept, C: reg.slope, seC: reg.seSlope, r2: reg.r2 },
       };
-      const worst = Math.max(...table.map((t) => t.dimensionlessPressure.relHalfWidth));
-      checks.push(check('eos-precision', 'Measured Z(φ) at every density is precise enough to compare',
-        '95 % CI half-width < 2 % at every φ', `worst ${(100 * worst).toFixed(2)} %`, worst < 0.02, 'INCONCLUSIVE'));
       benchmarks.equationOfState = {
         note: 'Comparison only. Hard-disk Henderson EOS; ideal gas has Z = 1 at every φ.',
         points: table.map((t) => ({
@@ -375,14 +378,15 @@ export class ThermalExperiment extends SequentialExperiment<Spec, ThermalRunResu
         const cz = oneWayAnova(groupsZ);
         const ca = oneWayAnova(groupsA2);
         (results.distributionDependence as Record<string, unknown>).anova = { Z: cz, a2: ca };
-        checks.push(check('equilibrium-independent-of-initial-distribution',
+        const pmin = Math.min(cz.pValue, ca.pValue);
+        checks.push(check('E3-independent-of-initial-distribution',
           'Every initial distribution reaches the same equilibrium pressure and velocity-distribution shape',
-          'one-way ANOVA over independent runs, p > 0.001, for P/(nkT) and for late-time a2 across distributions',
+          'one-way ANOVA over independent runs, p > 0.05/3, for P/(nkT) and for late-time a2 across distributions (FAIL if p < 1e-6)',
           `p(Z) = ${cz.pValue.toPrecision(3)}, p(a2) = ${ca.pValue.toPrecision(3)}`,
-          cz.pValue > 0.001 && ca.pValue > 0.001));
+          pmin > 0.05 / 3, pmin < 1e-6 ? 'FAILED' : 'INCONCLUSIVE'));
       }
       const unsettled = rows.filter((r) => !r.settled);
-      checks.push(check('relaxation-settled', 'Relaxation completes within the recorded time',
+      checks.push(check('E6-relaxation-settled', 'Relaxation completes within the recorded time',
         'last > 4σ excursion in the first half of every run', unsettled.length ? unsettled.map((r) => r.distribution).join(', ') : 'all settled',
         unsettled.length === 0, 'NOT CONVERGED'));
 
@@ -400,7 +404,11 @@ export class ThermalExperiment extends SequentialExperiment<Spec, ThermalRunResu
       };
     }
 
-    uncertainty.note = 'Ensemble over seeds for every tabulated estimate; per-run pressures are block-averaged.';
+    // E2 stationarity, E4 precision, per-seed tables, convergence curves, window sensitivity
+    const eq = thermalEquilibriumAnalysis(p, ok as Parameters<typeof thermalEquilibriumAnalysis>[1]);
+    results.equilibrium = eq.results;
+    checks.push(...eq.checks);
+    uncertainty.note = 'Statistical: independent-seed ensembles (Student t). Per-run block SEs are reported only as perRunSePooled and are not used (they overstate closed-box pressure scatter). Systematic/numerical errors (timestep, grid, finite size) are in the static-box convergence records, not in these intervals.';
     for (const r of runs) for (const f of r.safetyFlags) warnings.push(`${r.label}: [${f.severity}] ${f.code} ${f.message}`);
     const duration = runs.reduce((a, r) => ({ time: a.time + r.totals.time, steps: a.steps + r.totals.steps, collisionsPerParticle: a.collisionsPerParticle + r.totals.collisionsPerParticle }), { time: 0, steps: 0, collisionsPerParticle: 0 });
     return {

@@ -412,3 +412,70 @@ export function weightedLinearFit(x: number[], y: number[], se: number[]) {
     pValue: dof > 0 ? chi2UpperP(chi2, dof) : Number.NaN,
   };
 }
+
+/**
+ * Paired / one-sample t-test on per-seed differences (H0: mean difference 0).
+ * Each element comes from one independent seed, so no per-run SE is needed.
+ */
+export function pairedTTest(diffs: number[]) {
+  const d = diffs.filter(Number.isFinite);
+  const n = d.length;
+  if (n < 2) return { n, mean: Number.NaN, se: Number.NaN, t: Number.NaN, dof: 0, p: Number.NaN };
+  const m = mean(d);
+  const se = std(d) / Math.sqrt(n);
+  const t = se > 0 ? m / se : m === 0 ? 0 : Number.POSITIVE_INFINITY;
+  return { n, mean: m, se, t, dof: n - 1, p: Number.isFinite(t) ? tTwoSidedP(t, n - 1) : 0 };
+}
+
+/** Seed-ensemble summary: mean, sample variance, SD, SE, Student-t 95 % CI, coefficient of variation. */
+export function seedSummary(perSeed: number[]) {
+  const e = ensembleEstimate(perSeed.filter(Number.isFinite));
+  return {
+    n: e.n,
+    mean: e.mean,
+    variance: e.sd * e.sd,
+    sd: e.sd,
+    se: e.se,
+    ci95: e.ci95,
+    relHalfWidth95: e.relHalfWidth,
+    betweenSeedCV: e.sd / Math.abs(e.mean),
+  };
+}
+
+/** Mean of the first and second halves of a series (for stationarity tests). */
+export function halfMeans(xs: ArrayLike<number>): { first: number; second: number } {
+  const n = xs.length;
+  const h = Math.floor(n / 2);
+  let a = 0;
+  let b = 0;
+  for (let i = 0; i < h; i++) a += xs[i];
+  for (let i = h; i < n; i++) b += xs[i];
+  return { first: h > 0 ? a / h : Number.NaN, second: n - h > 0 ? b / (n - h) : Number.NaN };
+}
+
+/** Running (cumulative) mean, sampled at ≤ `points` evenly spaced indices (always including the last). */
+export function cumulativeMean(xs: ArrayLike<number>, points = 60): { index: number[]; value: number[] } {
+  const n = xs.length;
+  const index: number[] = [];
+  const value: number[] = [];
+  if (n === 0) return { index, value };
+  const step = Math.max(1, Math.floor(n / points));
+  let s = 0;
+  for (let i = 0; i < n; i++) {
+    s += xs[i];
+    if ((i + 1) % step === 0 || i === n - 1) {
+      index.push(i);
+      value.push(s / (i + 1));
+    }
+  }
+  return { index, value };
+}
+
+/** Mean of the last `fraction` of a series. */
+export function tailMean(xs: ArrayLike<number>, fraction: number): number {
+  const n = xs.length;
+  const k = Math.max(1, Math.round(n * fraction));
+  let s = 0;
+  for (let i = n - k; i < n; i++) s += xs[i];
+  return s / k;
+}

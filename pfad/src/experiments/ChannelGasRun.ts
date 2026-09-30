@@ -44,6 +44,12 @@ export interface ChannelGasRunParams {
   measurementCollisions: number;
   windowCollisions: number;
   profileBins: number;
+  /**
+   * Also accumulate the profile separately in this many consecutive, equal
+   * blocks of the measurement (by collisions/particle), for convergence and
+   * averaging-window analyses. Measurement only; default 0 (off).
+   */
+  profileBlocks?: number;
   /** record windows from t = 0 (transient studies) */
   recordFromStart?: boolean;
   maxTime: number;
@@ -89,6 +95,8 @@ export interface ChannelGasRunResult {
   walls: { bottom: Tally; top: Tally };
   measurementTime: number;
   profile: Profile | null;
+  /** the profile per consecutive measurement block (empty when profileBlocks is 0) */
+  profileBlocks: { cFrom: number; cTo: number; profile: Profile | null }[];
   totals: { time: number; steps: number; collisionsPerParticle: number };
   conservation: ReturnType<ConservationMonitor['summary']>;
   collisions: ReturnType<Simulation['log']['summary']>;
@@ -106,6 +114,7 @@ export class ChannelGasRun implements Run<ChannelGasRunResult> {
   private phase: 'equilibrate' | 'measure';
   private sampler: WallPressureSampler | null = null;
   private readonly profiles: ProfileSampler;
+  private readonly blockProfiles: ProfileSampler[];
   private readonly conservation: ConservationMonitor;
   private readonly empty: EmptySpaceMonitor;
   private readonly geometry: ChannelGasRunResult['geometry'];
@@ -154,6 +163,7 @@ export class ChannelGasRun implements Run<ChannelGasRunResult> {
       numberDensity: info.numberDensity,
     };
     this.profiles = new ProfileSampler(this.sim.domain, p.profileBins);
+    this.blockProfiles = Array.from({ length: Math.max(0, p.profileBlocks ?? 0) }, () => new ProfileSampler(this.sim.domain, p.profileBins));
     this.conservation = new ConservationMonitor(this.sim);
     this.empty = new EmptySpaceMonitor(this.sim);
     this.phase = p.equilibrationCollisions > 0 && !p.recordFromStart ? 'equilibrate' : 'measure';
@@ -163,6 +173,14 @@ export class ChannelGasRun implements Run<ChannelGasRunResult> {
 
   private cpp(): number {
     return (2 * this.sim.log.count) / this.sim.store.count;
+  }
+
+  private sampleBlock(c: number): void {
+    const K = this.blockProfiles.length;
+    if (K === 0 || this.phase !== 'measure') return;
+    const f = (c - this.measureStartC) / this.p.measurementCollisions;
+    const b = Math.min(K - 1, Math.max(0, Math.floor(f * K)));
+    this.blockProfiles[b].sample(this.sim.store);
   }
 
   private startMeasurement(): void {
@@ -189,6 +207,7 @@ export class ChannelGasRun implements Run<ChannelGasRunResult> {
       if (this.sampler && this.sampler.update()) {
         this.windows++;
         this.profiles.sample(sim.store);
+        this.sampleBlock(c);
         this.conservation.sample();
         if (this.windows % 4 === 0) this.empty.sample();
       }
@@ -203,7 +222,10 @@ export class ChannelGasRun implements Run<ChannelGasRunResult> {
   private finish(reason: string): void {
     if (this.done) return;
     this.sim.checkSafety();
-    if (this.sampler?.finish()) this.profiles.sample(this.sim.store);
+    if (this.sampler?.finish()) {
+      this.profiles.sample(this.sim.store);
+      this.sampleBlock(this.cpp());
+    }
     this.conservation.sample();
     this.empty.sample();
     this.stopReason = this.sim.halted ? `halted by safety monitor (${reason})` : reason;
@@ -280,6 +302,11 @@ export class ChannelGasRun implements Run<ChannelGasRunResult> {
       walls,
       measurementTime: this.sim.time - this.measureStartT,
       profile: this.profiles.samples >= 4 ? this.profiles.result() : null,
+      profileBlocks: this.blockProfiles.map((s, b) => ({
+        cFrom: this.measureStartC + (b * this.p.measurementCollisions) / this.blockProfiles.length,
+        cTo: this.measureStartC + ((b + 1) * this.p.measurementCollisions) / this.blockProfiles.length,
+        profile: s.samples >= 4 ? s.result() : null,
+      })),
       totals: { time: this.sim.time, steps: this.steps, collisionsPerParticle: this.cpp() },
       conservation: this.conservation.summary(),
       collisions: this.sim.log.summary(),

@@ -6,6 +6,12 @@ export interface Series {
   err?: number[];
   color: string;
   dashed?: boolean;
+  /** thin, translucent, unlabelled (e.g. one line per seed under an ensemble curve) */
+  thin?: boolean;
+  /** draw point markers */
+  markers?: boolean;
+  /** no line between points */
+  noLine?: boolean;
 }
 
 export function svgPlot(opts: {
@@ -52,11 +58,14 @@ export function svgPlot(opts: {
   parts.push(`<line x1="${m.l}" x2="${W - m.r}" y1="${H - m.b}" y2="${H - m.b}" stroke="#333"/>`);
   parts.push(`<text x="${W / 2}" y="${H - 12}" text-anchor="middle">${opts.xLabel}</text>`);
   parts.push(`<text transform="translate(16 ${H / 2}) rotate(-90)" text-anchor="middle">${opts.yLabel}</text>`);
-  opts.series.forEach((s, k) => {
+  opts.series.forEach((s) => {
     const pts = s.x.map((xv, i) => `${px(xv).toFixed(1)},${py(s.y[i]).toFixed(1)}`).join(' ');
-    parts.push(
-      `<polyline points="${pts}" fill="none" stroke="${s.color}" stroke-width="1.8"${s.dashed ? ' stroke-dasharray="6 4"' : ''}/>`,
-    );
+    if (!s.noLine) {
+      parts.push(
+        `<polyline points="${pts}" fill="none" stroke="${s.color}" stroke-width="${s.thin ? 0.8 : 1.8}"${s.thin ? ' opacity="0.45"' : ''}${s.dashed ? ' stroke-dasharray="6 4"' : ''}/>`,
+      );
+    }
+    if (s.markers) s.x.forEach((xv, i) => parts.push(`<circle cx="${px(xv).toFixed(1)}" cy="${py(s.y[i]).toFixed(1)}" r="3" fill="${s.color}"/>`));
     if (s.err) {
       s.x.forEach((xv, i) => {
         const e = s.err![i];
@@ -66,9 +75,13 @@ export function svgPlot(opts: {
         );
       });
     }
-    parts.push(`<rect x="${W - m.r - 190}" y="${m.t + 6 + k * 18}" width="14" height="3" fill="${s.color}"/>`);
-    parts.push(`<text x="${W - m.r - 170}" y="${m.t + 11 + k * 18}">${s.label}</text>`);
   });
+  opts.series
+    .filter((s) => !s.thin && s.label)
+    .forEach((s, k) => {
+      parts.push(`<rect x="${W - m.r - 230}" y="${m.t + 6 + k * 18}" width="14" height="3" fill="${s.color}"/>`);
+      parts.push(`<text x="${W - m.r - 210}" y="${m.t + 11 + k * 18}">${s.label}</text>`);
+    });
   parts.push('</svg>');
   return parts.join('\n');
 }
