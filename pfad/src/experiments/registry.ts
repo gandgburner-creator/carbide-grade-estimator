@@ -1,5 +1,6 @@
 import { ABTestExperiment, setABFactory, type ABTestParams } from './ABTestExperiment';
 import type { ExperimentRecord, ExperimentType, SequentialExperiment } from './Experiment';
+import { ADVERSE_GRADIENT_REFERENCE, AdverseGradientExperiment, type AdverseGradientParams } from './AdverseGradientExperiment';
 import { BOUNDARY_LAYER_REFERENCE, BoundaryLayerExperiment, type BoundaryLayerParams } from './BoundaryLayerExperiment';
 import { COUETTE_REFERENCE, COUETTE_SWEEPS, CouetteExperiment, type CouetteParams } from './CouetteExperiment';
 import { PULSE_REFERENCE, PULSE_SWEEPS, PressurePulseExperiment, type PulseParams } from './PressurePulseExperiment';
@@ -132,6 +133,27 @@ const boundaryLayer: ExperimentEntry<BoundaryLayerParams> = {
   create: (p) => new BoundaryLayerExperiment(p) as unknown as SequentialExperiment<unknown, unknown>,
 };
 
+const separation: ExperimentEntry<AdverseGradientParams> = {
+  type: 'separation',
+  title: 'Adverse-gradient separation',
+  defaults: ADVERSE_GRADIENT_REFERENCE,
+  quick: {
+    ...ADVERSE_GRADIENT_REFERENCE,
+    length: 160,
+    height: 40,
+    plateStart: 20,
+    plateEnd: 150,
+    strengths: [0, 0.3, 0.5, 0.7],
+    trainingIndices: [0, 2],
+    seeds: [1, 2],
+    startupTime: 200,
+    measurementTime: 200,
+    cellX: 8,
+    cellY: 2,
+  },
+  create: (p) => new AdverseGradientExperiment(p) as unknown as SequentialExperiment<unknown, unknown>,
+};
+
 const abBase = { ...STATIC_BOX_REFERENCE, restitutions: [1], count: 1000, measurementCollisions: 60 };
 export const AB_PRESETS: Record<string, ABTestParams> = {
   'null test: disjoint seeds (expect no difference)': {
@@ -171,6 +193,7 @@ export const EXPERIMENTS: Partial<Record<ExperimentType, ExperimentEntry<any>>> 
   'viscosity-sweeps': viscositySweeps,
   'ab-test': abTest,
   'boundary-layer': boundaryLayer,
+  separation,
 };
 
 setABFactory((type, params) => {

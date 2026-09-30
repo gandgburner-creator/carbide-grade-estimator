@@ -61,6 +61,7 @@ function printRecord(rec: ExperimentRecord): void {
   if (rec.experimentType === 'viscosity' || rec.experimentType === 'viscosity-sweeps') printCouette(rec);
   if (rec.experimentType === 'ab-test') printAB(rec);
   if (rec.experimentType === 'boundary-layer') printBL(rec);
+  if (rec.experimentType === 'separation') printSeparation(rec);
   if (rec.warnings.length) {
     console.log('warnings:');
     for (const w of rec.warnings.slice(0, 20)) console.log('  - ' + w);
@@ -201,6 +202,20 @@ function printBL(rec: any): void {
   }
   for (const v of r.vonKarman) console.log(`  von Kármán ${v.from} → ${v.to}: dθ/dx ${fmt(v.dThetaDx, 3)} vs τ/(ρU²) − (2θ+δ*)U'/U ${fmt(v.rhs, 3)} (ratio ${fmt(v.ratio, 3)})`);
   console.log(`  Re: ${rec.reynolds.note} → simulation ${fmt(rec.reynolds.simulation, 4)}, effective ${fmt(rec.reynolds.effective, 4)}; Mp ${fmt(rec.mach.Mp, 3)}`);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function printSeparation(rec: any): void {
+  const r = rec.results;
+  console.log(`\nMEASURED separation (${r.generator}):`);
+  for (const c of r.configurations) {
+    console.log(`  s=${c.strength} [${c.role}] ${c.classification}${c.separated ? ` at x=${fmt(c.onset, 4)}` : ''}; S at onset ${fmt(c.indicatorsAtOnset.slowMomentum, 3)}, H at onset ${fmt(c.indicatorsAtOnset.shapeFactor, 3)}; min S ${fmt(c.minSlowMomentum, 3)}, max H ${fmt(c.maxShapeFactor, 3)}, max reverse fraction ${fmt(c.maxReverseFraction, 3)}, outer deceleration ${fmt(100 * c.outerDeceleration, 3)} %`);
+    console.log(`     τ_w(x): ${c.rows.map((w: any) => fmt(w.tau.mean, 2)).join(' ')}`);
+  }
+  for (const h of r.thresholdHypotheses) {
+    console.log(`  hypothesis ${h.indicator}: critical ${h.critical === null ? 'n/a' : fmt(h.critical, 4)} (trained on ${h.trainedOn}); test accuracy ${h.classificationAccuracy ?? 'n/a'}, mean |Δx| ${h.meanAbsPositionError ?? 'n/a'} ${h.note ?? ''}`);
+  }
+  console.log(`  Re: ${rec.reynolds.note} → simulation ${rec.reynolds.simulation === null ? 'n/a' : fmt(rec.reynolds.simulation, 4)}; Mp ${rec.mach.Mp === null ? 'n/a' : fmt(rec.mach.Mp, 3)}`);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

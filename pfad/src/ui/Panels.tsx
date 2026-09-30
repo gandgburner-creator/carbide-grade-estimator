@@ -432,6 +432,78 @@ function Headline({ record }: { record: ExperimentRecord }) {
       </table>
     );
   }
+  if (record.experimentType === 'boundary-layer' && Array.isArray(r.stations)) {
+    return (
+      <>
+        <div className="note" style={{ marginTop: 8 }}>
+          {r.determination}
+        </div>
+        <table className="results" style={{ marginTop: 6 }}>
+          <thead>
+            <tr>
+              <th>station</th>
+              <th>MEASURED U_e</th>
+              <th>wall deficit</th>
+              <th>δ*</th>
+              <th>τ_w</th>
+            </tr>
+          </thead>
+          <tbody>
+            {r.stations.map((st: any, i: number) => (
+              <tr key={i}>
+                <td>{st.label}</td>
+                <td>{fmt(st.Ue.mean, 3)}</td>
+                <td>
+                  {fmt(st.deficitAtWall.mean, 2)} ± {fmt(st.deficitAtWall.se, 1)}
+                </td>
+                <td>
+                  {fmt(st.displacementThickness.mean, 3)} ± {fmt(st.displacementThickness.se, 1)}
+                </td>
+                <td>{fmt(st.wallShear.mean, 2)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </>
+    );
+  }
+  if (record.experimentType === 'separation' && Array.isArray(r.configurations)) {
+    return (
+      <>
+        <table className="results" style={{ marginTop: 8 }}>
+          <thead>
+            <tr>
+              <th>strength</th>
+              <th>set</th>
+              <th>MEASURED outcome</th>
+              <th>outer decel.</th>
+              <th>max reverse frac.</th>
+            </tr>
+          </thead>
+          <tbody>
+            {r.configurations.map((c: any, i: number) => (
+              <tr key={i}>
+                <td>{c.strength}</td>
+                <td>{c.role}</td>
+                <td>
+                  {c.classification}
+                  {c.separated ? ` at x = ${fmt(c.onset, 3)}` : ''}
+                </td>
+                <td>{fmt(100 * c.outerDeceleration, 2)} %</td>
+                <td>{fmt(c.maxReverseFraction, 2)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {r.thresholdHypotheses.map((h: any) => (
+          <div className="note" key={h.indicator}>
+            Hypothesis {h.indicator}:{' '}
+            {h.critical === null ? h.note : `critical ${fmt(h.critical, 3)} from ${h.trainedOn} training config(s); test accuracy ${h.classificationAccuracy ?? 'n/a'}`}
+          </div>
+        ))}
+      </>
+    );
+  }
   return null;
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */

@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest';
+import type { HardDiskCollider } from '../src/core/CollisionModel';
+import { Domain } from '../src/core/Domain';
+import { Ledger } from '../src/core/Ledger';
+import { ParticleStore } from '../src/core/ParticleStore';
 import { Rng } from '../src/core/Random';
 import { Simulation } from '../src/core/Simulation';
 import { createGas } from '../src/gas/InitialConditions';
 import { reservoirFluxPerDensity, sampleCrossingNormal } from '../src/gas/InflowSampling';
+import { ReservoirBoundary } from '../src/walls/ReservoirBoundary';
 
 /** E[s] and E[s²] of p(s) ∝ s exp(−(s−a)²/2), s > 0, by quadrature. */
 function moments(a: number) {
@@ -126,5 +131,51 @@ describe('open reservoir boundaries', () => {
     expect(Math.abs(uSum / k - 0.6)).toBeLessThan(0.05);
     expect(Math.abs(S.relativeEnergyResidual())).toBeLessThan(1e-9);
     expect(S.relativeMomentumResidual()).toBeLessThan(1e-9);
+  });
+});
+
+describe('reservoir velocity profile (model p0.3)', () => {
+  it('entrant positions follow the local crossing flux; re-drawn entrants are counted', () => {
+    // bottom boundary, left half drifts inward (+1), right half outward (−1),
+    // with a linear ramp between x = 90 and 110: entrants per half ∝ flux
+    const domain = new Domain({ xmin: 0, xmax: 200, ymin: 0, ymax: 50, periodicX: false, periodicY: false });
+    const B = new ReservoirBoundary(
+      {
+        side: 'bottom',
+        numberDensity: 0.2,
+        kT: 1,
+        velocity: { x: 0, y: 0 },
+        mass: 1,
+        radius: 0.5,
+        velocityProfile: { at: [90, 110], x: [0, 0], y: [1, -1] },
+      },
+      domain,
+    );
+    expect(B.velocityAt(0)).toEqual({ x: 0, y: 1 });
+    expect(B.velocityAt(100).y).toBeCloseTo(0, 12);
+    expect(B.velocityAt(200)).toEqual({ x: 0, y: -1 });
+    const store = new ParticleStore(200_000);
+    const ledger = new Ledger();
+    const collider = { moveParticle() {}, resetParticle() {} } as unknown as HardDiskCollider;
+    const rng = new Rng(11, 6);
+    let left = 0;
+    let right = 0;
+    for (let k = 0; k < 2000; k++) {
+      const before = store.count;
+      B.apply(store, 0.5, rng, ledger, collider);
+      for (let i = before; i < store.count; i++) {
+        if (store.x[i] < 90) left++;
+        else if (store.x[i] > 110) right++;
+        expect(store.y[i]).toBeGreaterThanOrEqual(0);
+        expect(store.vy[i]).toBeGreaterThan(0);
+      }
+      store.count = 0; // entrants leave the test region at once: keep the boundary band empty
+    }
+    const expected = reservoirFluxPerDensity(1, 1, 1) / reservoirFluxPerDensity(-1, 1, 1);
+    const ratio = left / right;
+    // Poisson counts: relative SE of the ratio ≈ sqrt(1/left + 1/right)
+    expect(Math.abs(ratio / expected - 1)).toBeLessThan(4 * Math.sqrt(1 / left + 1 / right));
+    expect(right).toBeGreaterThan(1000);
+    expect(ledger.particlesIn).toBe(B.injected);
   });
 });

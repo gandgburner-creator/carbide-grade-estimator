@@ -64,6 +64,17 @@ was then applied unchanged to fresh reference runs.
    was split into mechanical work (U·momentum) and wall-frame heat, which the
    first version conflated.
 
+6. **Block-averaging SE (all time-series estimates).** Originally the largest
+   SE over all blocking levels with ≥ 16 blocks. For anti-correlated series
+   (wall impulse in a closed elastic box: the virial bounds the integrated
+   impulse, so level SEs *fall* with block size) the maximum is the naive
+   level-0 SE and overstates the uncertainty several-fold, which made
+   reference ensembles look inconsistent with their own block estimates.
+   Revised: the SE is read at the deepest level that still has ≥ 16 blocks
+   (the Flyvbjerg–Petersen plateau value, whether approached from below or
+   above); the maximum is kept in the output as `conservativeSe`, and the
+   plateau test (`reliable`) is unchanged.
+
 ## 0.2.0-p0.2 — collisions evaluated at the contact instant when forces act
 
 - **Change:** with continuous forces present (occupancy hypothesis, soft
@@ -85,3 +96,32 @@ was then applied unchanged to fresh reference runs.
 - Also new in p0.2 (all OFF by default): occupancy force F = −k_s∇φ (A-15),
   soft-contact deformation model F = Kδ (A-13 resolved as a model option),
   Universe B reservoir release (A-16).
+
+## 0.2.0-p0.3 — open (reservoir) boundaries
+
+- **New component (OFF unless an experiment declares it):** open boundaries
+  (A-18, `walls/ReservoirBoundary`). Outflow removes particles whose centre
+  crosses the plane; inflow injects from a stated reservoir (n, kT, U) at the
+  kinetic crossing rate with the exact flux-weighted drifting-Maxwellian
+  crossing velocity. Energy, momentum and particle number crossing the
+  boundary are ledgered, so the conservation residuals stay at round-off with
+  open boundaries. Segmented planar walls (a diffuse plate set in a specular
+  floor) were added with it. These entered the code in the step-12 commit
+  under the p0.2 label; no experiment record was produced with them before
+  this version, and the label is corrected here.
+- **Optional drift profile along a boundary** (piecewise-linear in position);
+  entrant positions are then sampled in proportion to the local crossing flux.
+  Used by the adverse-gradient experiment to impose a far-field deceleration.
+- **Sampling order:** an entrant's crossing velocity is now drawn together
+  with each placement attempt (previously once, before the attempts), so a
+  re-drawn position also re-draws the velocity. Both are exact samples of the
+  same distribution when the first attempt succeeds; the change matters only
+  for re-draws and makes re-draws unbiased with a position-dependent drift.
+  Trajectories of open-boundary runs differ from the step-12 code; runs
+  without open boundaries are unaffected (verified:
+  `results/static-box_reference_seed7.json`, model p0.1, replays bit-for-bit
+  under p0.3).
+- **Measured limitation:** a kinetic-only reservoir leaves a dense interior
+  below the stated density (≈ 7 % at φ = 0.05, ≈ 21 % at φ = 0.2). Experiments
+  measure and normalise with the realised state.
+
