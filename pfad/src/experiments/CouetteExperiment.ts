@@ -66,8 +66,9 @@ const BASE: Omit<CouetteCase, 'label'> = {
 };
 
 export const COUETTE_REFERENCE: CouetteParams = {
-  cases: [{ ...BASE, label: 'base: φ=0.1, H=40, U=0.5, Aw=1' }],
-  seeds: [71, 72, 73, 74, 75],
+  // 30 seeds and a doubled measurement window (was 5 seeds × 300 collisions/particle, 23 % half-width)
+  cases: [{ ...BASE, label: 'base: φ=0.1, H=40, U=0.5, Aw=1', measurementCollisions: 600 }],
+  seeds: Array.from({ length: 30 }, (_, k) => 71 + k),
   profileBins: 20,
   coreFraction: 0.6,
   windowCollisions: 0.5,
@@ -79,7 +80,7 @@ export const COUETTE_REFERENCE: CouetteParams = {
 
 export const COUETTE_SWEEPS: CouetteParams = {
   ...COUETTE_REFERENCE,
-  seeds: [81, 82, 83, 84],
+  seeds: Array.from({ length: 12 }, (_, k) => 131 + k), // disjoint from the reference seeds 71–100
   cases: [
     { ...BASE, label: 'U=0.25', wallSpeed: 0.25 },
     { ...BASE, label: 'U=0.5 (base)' },
@@ -88,7 +89,8 @@ export const COUETTE_SWEEPS: CouetteParams = {
     { ...BASE, label: 'Aw=0.25', accommodation: 0.25 },
     { ...BASE, label: 'φ=0.05', areaFraction: 0.05, count: 500 },
     { ...BASE, label: 'φ=0.2', areaFraction: 0.2, count: 2000 },
-    { ...BASE, label: 'H=80 (count ×2)', height: 80, count: 2000, equilibrationCollisions: 500 },
+    // H²/(π²ν) ≈ 260 time units at H = 80: 1500 collisions/particle ≈ 11 relaxation times (500 was ≈ 3.7)
+    { ...BASE, label: 'H=80 (count ×2)', height: 80, count: 2000, equilibrationCollisions: 1500 },
     { ...BASE, label: 'H=20 (count ÷2)', height: 20, count: 500, equilibrationCollisions: 100 },
     { ...BASE, label: 'kT_w=4, U=1 (U/√kT fixed)', wallKT: 4, wallSpeed: 1 },
     { ...BASE, label: 'particle radius 0.35 (same φ, H)', radius: 0.35, count: 2041 },

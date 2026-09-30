@@ -148,3 +148,19 @@ was then applied unchanged to fresh reference runs.
   no penetration, zero mean force, and face pressure equal to the planar-wall
   pressure within statistics.
 
+### Configuration changes after the first Phase 0 reference runs (no model change)
+
+Statistics only; every acceptance criterion is unchanged.
+
+- **Couette reference:** 30 seeds (was 5) and 600 collisions/particle of
+  measurement (was 300). The first reference met every check except the
+  pre-stated precision (95 % half-width 23 % vs < 10 %).
+- **Couette sweeps:** 12 seeds (was 4; seeds 131–142, disjoint from the
+  reference). **H = 80 case:** equilibration 1500 collisions/particle (was
+  500). The profile's slowest relaxation time H²/(π²ν) is ≈ 260 time units at
+  H = 80 (ν = μ/ρ ≈ 2.5); 500 collisions/particle is ≈ 3.7 of those, and that
+  case failed the core-linearity check (χ² p = 3 × 10⁻⁵). 1500 is ≈ 11.
+- **Thermal reference:** 8 seeds (was 5) and 100 collisions/particle of
+  measurement (was 50). The first reference met every check except the
+  equation-of-state precision at φ = 0.2 (2.10 % vs < 2 %).
+
