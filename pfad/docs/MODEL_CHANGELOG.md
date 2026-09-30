@@ -63,3 +63,25 @@ was then applied unchanged to fresh reference runs.
    use a Student-t-scaled threshold 2·t₀.₉₇₅(n−1)·SE. The "heat removed" figure
    was split into mechanical work (U·momentum) and wall-frame heat, which the
    first version conflated.
+
+## 0.2.0-p0.2 — collisions evaluated at the contact instant when forces act
+
+- **Change:** with continuous forces present (occupancy hypothesis, soft
+  contact is separate), the hard-collision law is evaluated with the velocity
+  at the contact instant, v_c = v_½ + (F/m)(dt/2 − τ), instead of the stored
+  half-step velocity v_½. The resulting impulse is applied to v_½. The law
+  J = −(1+e)v_n/(1/m₁+1/m₂) itself is unchanged.
+- **Why:** measured, not assumed. With the occupancy force on, the total
+  energy error did not converge with dt (≈10⁻³ at dt = 0.04 … 0.005). For a
+  single two-particle collision the error was O(dt) with a sign that depended
+  on where in the step the contact fell (1.5 × 10⁻² at dt = 0.02). Algebra:
+  kick–drift–kick leaves an error F·Δv·(τ₁ − τ₂)/2 per collision when the
+  impulse uses v_½. After the change: per-collision error 1.8 × 10⁻⁶,
+  3.7 × 10⁻⁷, 2.4 × 10⁻⁸, 2.4 × 10⁻⁹ (dt = 0.02 … 0.0025); many-body error
+  converges at second order (6.1 × 10⁻⁴ → 5.8 × 10⁻⁶ from dt = 0.04 to 0.005).
+- **Effect on earlier results:** none. Without forces the correction is
+  exactly zero; `results/static-box_reference_seed7.json` (model p0.1)
+  replays bit-for-bit under p0.2.
+- Also new in p0.2 (all OFF by default): occupancy force F = −k_s∇φ (A-15),
+  soft-contact deformation model F = Kδ (A-13 resolved as a model option),
+  Universe B reservoir release (A-16).

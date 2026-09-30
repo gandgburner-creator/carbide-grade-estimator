@@ -380,6 +380,58 @@ function Headline({ record }: { record: ExperimentRecord }) {
       </table>
     );
   }
+  if ((record.experimentType === 'sound-speed' || record.experimentType === 'sound-speed-sweeps') && Array.isArray(r.cases)) {
+    return (
+      <table className="results" style={{ marginTop: 8 }}>
+        <thead>
+          <tr>
+            <th>case</th>
+            <th>MEASURED c_p</th>
+            <th>hard-disk ref.</th>
+          </tr>
+        </thead>
+        <tbody>
+          {r.cases.map((c: any, i: number) =>
+            c ? (
+              <tr key={i}>
+                <td>{c.label}</td>
+                <td>{c.speed ? `${fmt(c.speed.mean)} ± ${fmt(c.speed.se, 2)}` : c.track.reason}</td>
+                <td>{fmt(b.perCase?.[i]?.hardDiskAdiabatic ?? b.perCase?.[i]?.occupancyMeanFieldOnly)}</td>
+              </tr>
+            ) : null,
+          )}
+        </tbody>
+      </table>
+    );
+  }
+  if ((record.experimentType === 'viscosity' || record.experimentType === 'viscosity-sweeps') && Array.isArray(r.cases)) {
+    return (
+      <table className="results" style={{ marginTop: 8 }}>
+        <thead>
+          <tr>
+            <th>case</th>
+            <th>MEASURED μ_eff</th>
+            <th>Kn</th>
+            <th>Re_sim</th>
+            <th>Enskog ref.</th>
+          </tr>
+        </thead>
+        <tbody>
+          {r.cases.map((c: any, i: number) => (
+            <tr key={i}>
+              <td>{c.label}</td>
+              <td>
+                {fmt(c.muEff.mean)} ± {fmt(c.muEff.se, 2)}
+              </td>
+              <td>{fmt(c.knudsen, 3)}</td>
+              <td>{fmt(c.reynolds.simulation, 3)}</td>
+              <td>{fmt(b.perCase?.[i]?.enskogEta)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  }
   return null;
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */

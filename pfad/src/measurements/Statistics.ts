@@ -111,11 +111,15 @@ export interface BlockLevel {
 
 /**
  * Flyvbjerg–Petersen blocking analysis of a correlated series.
- * The reported SE is the largest SE among levels that still have ≥ minBlocks
- * blocks (conservative). `reliable` is true when the two deepest usable levels
- * agree within their own uncertainty, i.e. the SE has reached a plateau.
+ * The reported SE is the plateau value read at the DEEPEST level that still
+ * has ≥ minBlocks blocks. For positively correlated data the level SEs rise to
+ * that plateau; for anti-correlated data (e.g. wall impulse in a closed elastic
+ * box, where the virial bounds the integrated impulse) they fall to it, and
+ * the naive SE would overstate the uncertainty. `conservativeSe` (the largest
+ * level SE) is kept for reference. `reliable` is true when the two deepest
+ * usable levels agree within their own uncertainty (plateau reached).
  */
-export function blockAverage(xs: ArrayLike<number>, minBlocks = 16): Estimate & { levels: BlockLevel[] } {
+export function blockAverage(xs: ArrayLike<number>, minBlocks = 16): Estimate & { levels: BlockLevel[]; conservativeSe: number } {
   const n = xs.length;
   const m = mean(xs);
   const sd = n > 1 ? std(xs) : Number.NaN;
@@ -133,19 +137,20 @@ export function blockAverage(xs: ArrayLike<number>, minBlocks = 16): Estimate & 
   }
   if (levels.length === 0) {
     const e = independentEstimate(xs);
-    return { ...e, reliable: false, levels };
+    return { ...e, reliable: false, levels, conservativeSe: e.se };
   }
-  let best = levels[0];
-  for (const L of levels) if (L.se > best.se) best = L;
+  const deepest = levels[levels.length - 1];
+  let conservativeSe = 0;
+  for (const L of levels) conservativeSe = Math.max(conservativeSe, L.se);
   let reliable = false;
   if (levels.length >= 3) {
     const a = levels[levels.length - 1];
     const b = levels[levels.length - 2];
     reliable = Math.abs(a.se - b.se) <= 2 * Math.hypot(a.seError, b.seError);
   }
-  const nInd = best.se > 0 ? (sd * sd) / (best.se * best.se) : n;
-  const est = finish(m, best.se, best.nBlocks - 1, sd, n, Math.min(n, nInd), 'block-average', reliable);
-  return { ...est, levels };
+  const nInd = deepest.se > 0 ? (sd * sd) / (deepest.se * deepest.se) : n;
+  const est = finish(m, deepest.se, deepest.nBlocks - 1, sd, n, Math.min(n, nInd), 'block-average', reliable);
+  return { ...est, levels, conservativeSe };
 }
 
 /** Combine per-seed estimates: the spread between seeds defines the uncertainty. */
@@ -370,5 +375,40 @@ export function oneWayAnova(groups: number[][]) {
     pValue: df1 > 0 && df2 > 0 ? fUpperP(F, df1, df2) : Number.NaN,
     grandMean: grand,
     withinSd: df2 > 0 ? Math.sqrt(ssw / df2) : Number.NaN,
+  };
+}
+
+/**
+ * Weighted least squares y = a + b x with known per-point standard errors,
+ * plus the χ² goodness of fit (is a straight line an adequate description?).
+ */
+export function weightedLinearFit(x: number[], y: number[], se: number[]) {
+  let S = 0;
+  let Sx = 0;
+  let Sy = 0;
+  let Sxx = 0;
+  let Sxy = 0;
+  for (let i = 0; i < x.length; i++) {
+    const w = 1 / (se[i] * se[i]);
+    S += w;
+    Sx += w * x[i];
+    Sy += w * y[i];
+    Sxx += w * x[i] * x[i];
+    Sxy += w * x[i] * y[i];
+  }
+  const D = S * Sxx - Sx * Sx;
+  const intercept = (Sxx * Sy - Sx * Sxy) / D;
+  const slope = (S * Sxy - Sx * Sy) / D;
+  let chi2 = 0;
+  for (let i = 0; i < x.length; i++) chi2 += ((y[i] - intercept - slope * x[i]) / se[i]) ** 2;
+  const dof = x.length - 2;
+  return {
+    slope,
+    intercept,
+    seSlope: Math.sqrt(S / D),
+    seIntercept: Math.sqrt(Sxx / D),
+    chi2,
+    dof,
+    pValue: dof > 0 ? chi2UpperP(chi2, dof) : Number.NaN,
   };
 }

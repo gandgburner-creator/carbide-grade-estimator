@@ -11,11 +11,14 @@ export type ExperimentType =
   | 'thermal'
   | 'wall-accommodation'
   | 'sound-speed'
+  | 'sound-speed-sweeps'
   | 'viscosity'
+  | 'viscosity-sweeps'
   | 'boundary-layer'
   | 'separation'
   | 'kutta'
-  | 'scaling';
+  | 'scaling'
+  | 'ab-test';
 
 /**
  * Serializable experiment record (Master prompt §24, Bible §33).
@@ -145,6 +148,25 @@ export abstract class SequentialExperiment<Spec, R> {
     }
     this.totalSteps += taken;
     return taken;
+  }
+
+  /** Run one specification to completion, independently of the others (parallel execution). */
+  runSpecToCompletion(i: number, chunk = 5000): R {
+    const run = this.createRun(this.specs[i], i);
+    while (!run.done) {
+      const k = run.advance(chunk);
+      if (!run.done && k === 0) break;
+    }
+    return run.result();
+  }
+
+  /** Install results computed elsewhere (e.g. worker threads), in specification order. */
+  setResults(results: R[]): void {
+    if (results.length !== this.specs.length) throw new Error(`expected ${this.specs.length} results, got ${results.length}`);
+    this.results.length = 0;
+    this.results.push(...results);
+    this.current = null;
+    this.index = this.specs.length;
   }
 
   progress(): number {

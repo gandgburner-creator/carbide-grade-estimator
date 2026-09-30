@@ -199,6 +199,7 @@ export class Simulation {
         this.log,
         this.ledger,
         this.contactCutoff,
+        hasForces,
       );
     }
     let wallInteractions = 0;

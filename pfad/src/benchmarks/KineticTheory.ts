@@ -88,3 +88,20 @@ export function enskogMeanFreePath2D(n: number, sigma: number, phi: number): num
 export function idealSoundSpeed2D(kT: number, mass: number): number {
   return Math.sqrt((2 * kT) / mass);
 }
+
+/**
+ * Shear viscosity of the 2D hard-disk gas (BENCHMARK ONLY).
+ * Dilute (Chapman–Enskog, first Sonine approximation, with the ≈2.2 % higher-
+ * order correction): η₀ = 1.022 · (1/(2σ)) · sqrt(m kT / π).
+ * Enskog dense-gas correction for hard disks (Gass 1971):
+ *   η/η₀ = 1/g(σ) + 2φ + (1 + 8/π) g(σ) φ²,   g(σ) from the Henderson EOS.
+ * The Enskog form neglects correlated-collision effects; in a finite channel
+ * the measured effective viscosity also includes wall slip / Knudsen-layer
+ * effects. It is a reference, not a target.
+ */
+export function dilutePlusEnskogViscosity2D(sigma: number, mass: number, kT: number, phi: number) {
+  const eta0 = (1.022 / (2 * sigma)) * Math.sqrt((mass * kT) / Math.PI);
+  const g = hendersonContactValue(phi);
+  const ratio = 1 / g + 2 * phi + (1 + 8 / Math.PI) * g * phi * phi;
+  return { eta0, enskogFactor: ratio, eta: eta0 * ratio };
+}

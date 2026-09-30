@@ -13,16 +13,18 @@ import type { ExperimentRecord, ExperimentType } from '../src/experiments/Experi
 import { EXPERIMENTS, runFromRecord } from '../src/experiments/registry';
 import { runConvergenceStudy } from '../src/validation/Convergence';
 import { CONVERGENCE_STUDIES } from '../src/validation/studies';
+import { runParallel } from './parallel';
 import { svgPlot, type Series } from './svgPlot';
 
 const COLORS = ['#1f6feb', '#d1242f', '#1a7f37', '#9a6700', '#8250df', '#57606a'];
 
 function parseArgs(argv: string[]) {
-  const args = { type: argv[0], quick: false, set: {} as Record<string, unknown>, out: 'results', name: '', file: '' };
+  const args = { type: argv[0], quick: false, set: {} as Record<string, unknown>, out: 'results', name: '', file: '', parallel: 1 };
   for (let i = 1; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--quick') args.quick = true;
     else if (a === '--out') args.out = argv[++i];
+    else if (a === '--parallel') args.parallel = Number(argv[++i]);
     else if (a === '--name') args.name = argv[++i];
     else if (a === '--set') {
       const kv = argv[++i];
@@ -41,8 +43,8 @@ function parseArgs(argv: string[]) {
   return args;
 }
 
-function fmt(v: unknown): string {
-  if (typeof v === 'number') return Number.isInteger(v) ? String(v) : v.toPrecision(5);
+function fmt(v: unknown, digits = 5): string {
+  if (typeof v === 'number') return Number.isInteger(v) ? String(v) : v.toPrecision(digits);
   return String(v);
 }
 
@@ -55,6 +57,9 @@ function printRecord(rec: ExperimentRecord): void {
   if (rec.experimentType === 'static-box') printStaticBox(rec);
   if (rec.experimentType === 'thermal') printThermal(rec);
   if (rec.experimentType === 'wall-accommodation') printWall(rec);
+  if (rec.experimentType === 'sound-speed' || rec.experimentType === 'sound-speed-sweeps') printPulse(rec);
+  if (rec.experimentType === 'viscosity' || rec.experimentType === 'viscosity-sweeps') printCouette(rec);
+  if (rec.experimentType === 'ab-test') printAB(rec);
   if (rec.warnings.length) {
     console.log('warnings:');
     for (const w of rec.warnings.slice(0, 20)) console.log('  - ' + w);
@@ -148,6 +153,43 @@ function printWall(rec: any): void {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+function printPulse(rec: any): void {
+  console.log('\nMEASURED disturbance propagation:');
+  rec.results.cases.forEach((c: any, i: number) => {
+    if (!c) return console.log(`  case ${i}: no data`);
+    const b = rec.benchmarks.perCase[i];
+    const refs = [b.hardDiskAdiabatic && `hard-disk ${fmt(b.hardDiskAdiabatic)}`, b.hardDiskPlusOccupancyMeanField && `HD+occ MF ${fmt(b.hardDiskPlusOccupancyMeanField)}`, b.occupancyMeanFieldOnly && `occ MF ${fmt(b.occupancyMeanFieldOnly)}`, `ideal ${fmt(b.idealGas_sqrt2kT_m)}`].filter(Boolean).join(', ');
+    console.log(`  ${c.label.padEnd(38)} c_p = ${c.speed ? `${fmt(c.speed.mean)} ± ${fmt(c.speed.se)}` : 'n/a'}  (r² ${fmt(c.track.r2)}, ${c.track.usedSnapshots} snapshots, ${c.seeds} seeds; kT ${fmt(c.kTStart)}→${fmt(c.kTEnd)}; attenuation ${fmt(c.attenuation.value)} ± ${fmt(c.attenuation.se)}/length; width² growth ${fmt(c.widthGrowth.value)})   | benchmarks: ${refs}`);
+  });
+  for (const cmp of rec.results.comparisonsToFirstCase ?? []) if (cmp) console.log(`  Δ(${cmp.label} − ${cmp.versus}) = ${fmt(cmp.difference)} ± ${fmt(cmp.se)} (z ${fmt(cmp.z)})`);
+  if (rec.results.ksCalibration) {
+    const k = rec.results.ksCalibration;
+    console.log(`  ks calibration: c_p² vs ks φ/m slope ${fmt(k.fit.slope)} ± ${fmt(k.fit.seSlope)}, intercept ${fmt(k.fit.intercept)} ± ${fmt(k.fit.seIntercept)}, through-origin slope ${fmt(k.slopeThroughOrigin)}`);
+  }
+  for (const c of rec.results.cases) if (c && c.model.dissipationTarget === 'internal') console.log(`  reservoir (${c.label}): E_int/KE at pulse start = ${fmt(c.internalOverKinetic)}, phase-1 settled ${c.equilibrationSettled}`);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function printCouette(rec: any): void {
+  const est = (e: any) => (e && Number.isFinite(e.mean) ? `${fmt(e.mean)} ± ${fmt(e.se)}` : 'n/a');
+  console.log('\nMEASURED Couette flow:');
+  rec.results.cases.forEach((c: any, i: number) => {
+    const b = rec.benchmarks.perCase[i];
+    console.log(`  ${c.label.padEnd(34)} μ_eff = ${est(c.muEff)} (95% ±${fmt(100 * c.muEff.relHalfWidth, 3)} %)  τ = ${est(c.shearStress)}  γ = ${est(c.gradient)}  slip ${fmt(c.slipBottom.mean, 3)}/${fmt(c.slipTop.mean, 3)}  core kT ${fmt(c.coreKT)}  λ ${fmt(c.meanFreePath, 3)} Kn ${fmt(c.knudsen, 3)}  Re_sim ${fmt(c.reynolds.simulation, 3)}  Mp ${c.mach.Mp === null ? 'n/a' : fmt(c.mach.Mp, 3)}   | benchmark Enskog ${fmt(b.enskogEta)} (ratio ${fmt(b.measuredOverEnskog)})`);
+  });
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function printAB(rec: any): void {
+  const r = rec.results;
+  console.log(`\nA/B on ${r.experiment}: A = ${r.a.label} [${r.a.status}], B = ${r.b.label} [${r.b.status}]`);
+  for (const c of r.comparisons) {
+    if (c.difference === null) console.log(`  ${c.metric}: not comparable`);
+    else console.log(`  ${c.metric}: A ${fmt(c.a.mean)} ± ${fmt(c.a.se, 3)}, B ${fmt(c.b.mean)} ± ${fmt(c.b.se, 3)}; B − A = ${fmt(c.difference)} ± ${fmt(c.se, 3)} (z ${fmt(c.z, 3)}, ${(100 * c.relative).toFixed(2)} %) → ${c.verdict}`);
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function plotStaticBox(rec: any): string | null {
   const curves = rec.results.pressureVsCollisions?.curves;
   if (!curves) return null;
@@ -168,7 +210,7 @@ function plotStaticBox(rec: any): string | null {
   });
 }
 
-function main(): void {
+async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   mkdirSync(args.out, { recursive: true });
   let record: ExperimentRecord;
@@ -208,10 +250,16 @@ function main(): void {
       process.exit(1);
     }
     const params = { ...(args.quick ? entry.quick : entry.defaults), ...args.set };
-    const exp = entry.create(params);
-    record = exp.runToCompletion((f, label) => {
-      process.stdout.write(`\r${(100 * f).toFixed(0).padStart(3)}%  ${label.padEnd(50)}`);
-    });
+    if (args.parallel > 1) {
+      record = await runParallel(args.type as ExperimentType, params, args.parallel, (d, n) =>
+        process.stdout.write(`\r${d}/${n} runs finished on ${args.parallel} threads   `),
+      );
+    } else {
+      const exp = entry.create(params);
+      record = exp.runToCompletion((f, label) => {
+        process.stdout.write(`\r${(100 * f).toFixed(0).padStart(3)}%  ${label.padEnd(50)}`);
+      });
+    }
     process.stdout.write('\n');
   }
   const secs = (Date.now() - t0) / 1000;
@@ -229,4 +277,7 @@ function main(): void {
   }
 }
 
-main();
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
