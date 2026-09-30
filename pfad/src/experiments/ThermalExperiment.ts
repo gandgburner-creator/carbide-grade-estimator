@@ -1,3 +1,4 @@
+import { aggregateEmptySpace } from '../measurements/EmptySpaceMonitor';
 import { hendersonCompressibility, maxwellSpeedPdf2D } from '../benchmarks/KineticTheory';
 import type { ContactResolution } from '../core/CollisionModel';
 import type { TimestepPolicy } from '../core/Integrator';
@@ -233,6 +234,11 @@ export class ThermalExperiment extends SequentialExperiment<Spec, ThermalRunResu
       check('numerical-safety', 'No run halted by the safety monitor', 'zero failures',
         halted.length ? halted.map((r) => r.label).join('; ') : 'none', halted.length === 0),
     );
+    const empty = aggregateEmptySpace(runs.map((r) => r.emptySpace));
+    checks.push(check('no-empty-space', 'No sustained near-zero-occupancy region (Master prompt §20)', 'no POTENTIAL MODEL / NUMERICAL FAILURE flag',
+      empty.flaggedRuns ? `${empty.flaggedRuns} run(s) flagged` : `none (φ ${empty.phiMin.toPrecision(3)} … ${empty.phiMax.toPrecision(3)}, mean ${empty.phiMean.toPrecision(3)})`, empty.flaggedRuns === 0));
+    results.emptySpace = empty;
+
     const maxE = Math.max(...runs.map((r) => r.conservation.maxAbsRelativeEnergyResidual));
     checks.push(check('energy-conservation', 'Elastic runs conserve energy', 'max |relative residual| < 1e-9',
       maxE.toExponential(2), maxE < 1e-9));

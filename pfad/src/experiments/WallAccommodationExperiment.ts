@@ -1,3 +1,4 @@
+import { aggregateEmptySpace } from '../measurements/EmptySpaceMonitor';
 import type { ContactResolution } from '../core/CollisionModel';
 import type { TimestepPolicy } from '../core/Integrator';
 import { consistency, ensembleEstimate, pooled, tScaledDeviation, type Estimate } from '../measurements/Statistics';
@@ -171,6 +172,9 @@ export class WallAccommodationExperiment extends SequentialExperiment<Spec, AccR
     const halted = runs.filter((r) => r.halted);
     checks.push(check('numerical-safety', 'No run halted by the safety monitor', 'zero failures',
       halted.length ? halted.map((r) => r.label).join('; ') : 'none', halted.length === 0));
+    const empty = aggregateEmptySpace(runs.map((r) => r.emptySpace));
+    checks.push(check('no-empty-space', 'No sustained near-zero-occupancy region (Master prompt §20)', 'no POTENTIAL MODEL / NUMERICAL FAILURE flag',
+      empty.flaggedRuns ? `${empty.flaggedRuns} run(s) flagged` : `none (φ ${empty.phiMin.toPrecision(3)} … ${empty.phiMax.toPrecision(3)}, mean ${empty.phiMean.toPrecision(3)})`, empty.flaggedRuns === 0));
     const maxE = Math.max(...runs.map((r) => r.conservation.maxAbsRelativeEnergyResidual));
     const maxP = Math.max(...runs.map((r) => r.conservation.maxRelativeMomentumResidual));
     checks.push(check('energy-accounting', 'Energy ledger (incl. wall heat) closes', 'max |relative residual| < 1e-9', maxE.toExponential(2), maxE < 1e-9));
@@ -315,7 +319,7 @@ export class WallAccommodationExperiment extends SequentialExperiment<Spec, AccR
         benchmark: null,
         note: `Wall speed U = ${p.shearWallSpeed} (model units); Mp = U/c_p needs the measured disturbance speed (pressure-pulse experiment).`,
       },
-      results: { thermal, shear },
+      results: { thermal, shear, emptySpace: empty },
       uncertainty: { note: 'Ensemble over seeds (independent) for every tabulated value; stresses per run are block-averaged.' },
       convergence: { status: 'NOT ASSESSED', note: 'Single resolution.' },
       benchmarks: {

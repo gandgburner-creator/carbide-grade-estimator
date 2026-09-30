@@ -4,12 +4,16 @@ import type { TimestepPolicy } from '../core/Integrator';
 import type { SafetyFlag } from '../core/Safety';
 import { Simulation } from '../core/Simulation';
 import { createGas } from '../gas/InitialConditions';
+import { aggregateEmptySpace, EmptySpaceMonitor, type EmptySpaceSummary } from '../measurements/EmptySpaceMonitor';
 import { ConservationMonitor } from '../measurements/EnergyMonitor';
 import { FieldAverager } from '../measurements/FieldAverager';
 import { ensembleEstimate, linearRegression, mean, type Estimate } from '../measurements/Statistics';
 import { check, combineStatus, type AcceptanceCheck } from '../validation/Status';
 import { recordHeader, SequentialExperiment, type ExperimentRecord, type Run } from './Experiment';
 
+
+/** time between no-empty-space samples (Master prompt §20) */
+const EMPTY_SPACE_INTERVAL = 10;
 /**
  * FLAT-WALL BOUNDARY LAYER (Master prompt §17, Bible §16).
  *
@@ -115,6 +119,7 @@ interface BLRunResult {
   particleCountMean: number;
   boundaryStats: unknown[];
   conservation: ReturnType<ConservationMonitor['summary']>;
+  emptySpace: EmptySpaceSummary;
   safetyFlags: SafetyFlag[];
   halted: boolean;
 }
@@ -127,6 +132,8 @@ class BoundaryLayerRun implements Run<BLRunResult> {
   private readonly seed: number;
   private readonly field: FieldAverager;
   private readonly conservation: ConservationMonitor;
+  private readonly empty: EmptySpaceMonitor;
+  private nextEmpty = 0;
   private measuring = false;
   private nextSample = 0;
   private tally0: { tan: Float64Array; nor: Float64Array } | null = null;
@@ -180,6 +187,7 @@ class BoundaryLayerRun implements Run<BLRunResult> {
     );
     this.field = new FieldAverager(this.sim.domain, Math.round(p.length / p.cellX), Math.round(p.height / p.cellY));
     this.conservation = new ConservationMonitor(this.sim);
+    this.empty = new EmptySpaceMonitor(this.sim);
   }
 
   private wallTally() {
@@ -197,6 +205,10 @@ class BoundaryLayerRun implements Run<BLRunResult> {
       }
       k++;
       const t = this.sim.time;
+      if (t >= this.nextEmpty) {
+        this.empty.sample();
+        this.nextEmpty += EMPTY_SPACE_INTERVAL;
+      }
       if (!this.measuring && t >= p.startupTime) {
         this.measuring = true;
         this.tally0 = this.wallTally();
@@ -274,6 +286,7 @@ class BoundaryLayerRun implements Run<BLRunResult> {
       particleCountMean: this.countN > 0 ? this.countSum / this.countN : Number.NaN,
       boundaryStats: this.sim.boundaries.map((b) => b.stats()),
       conservation: this.conservation.summary(),
+      emptySpace: this.empty.summary(),
       safetyFlags: [...this.sim.flags],
       halted: this.sim.halted,
     };
@@ -330,6 +343,9 @@ export class BoundaryLayerExperiment extends SequentialExperiment<Spec, BLRunRes
     const maxP = Math.max(...this.results.map((r) => r.conservation.maxRelativeMomentumResidual));
     checks.push(check('energy-accounting', 'Energy ledger incl. wall heat and open-boundary fluxes closes', 'max |relative residual| < 1e-9', maxE.toExponential(2), maxE < 1e-9));
     checks.push(check('momentum-accounting', 'Momentum ledger incl. wall and open-boundary fluxes closes', 'max relative residual < 1e-9', maxP.toExponential(2), maxP < 1e-9));
+    const empty = aggregateEmptySpace(this.results.map((r) => r.emptySpace));
+    checks.push(check('no-empty-space', 'No sustained near-zero-occupancy region (Master prompt §20)', 'no POTENTIAL MODEL / NUMERICAL FAILURE flag',
+      empty.flaggedRuns ? `${empty.flaggedRuns} run(s) flagged` : `none (φ ${empty.phiMin.toPrecision(3)} … ${empty.phiMax.toPrecision(3)}, mean ${empty.phiMean.toPrecision(3)})`, empty.flaggedRuns === 0));
     if (runs.length === 0) {
       return this.emptyRecord(checks, warnings);
     }
@@ -464,6 +480,7 @@ export class BoundaryLayerExperiment extends SequentialExperiment<Spec, BLRunRes
         ? { Mp: UeMean / p.soundSpeed.value, benchmark: null, note: `Mp = U_e/c_p, c_p from ${p.soundSpeed.source} (measured at the stated, not the realised, density)` }
         : { Mp: null, benchmark: null, note: 'No measured c_p supplied.' },
       results: {
+        emptySpace: empty,
         determination,
         stations,
         growthExponent: growth,

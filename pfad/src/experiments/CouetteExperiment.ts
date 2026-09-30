@@ -1,3 +1,4 @@
+import { aggregateEmptySpace } from '../measurements/EmptySpaceMonitor';
 import { dilutePlusEnskogViscosity2D } from '../benchmarks/KineticTheory';
 import type { ContactResolution } from '../core/CollisionModel';
 import type { TimestepPolicy } from '../core/Integrator';
@@ -242,6 +243,9 @@ export class CouetteExperiment extends SequentialExperiment<Spec, R> {
     const warnings: string[] = [];
     const halted = runs.filter((r) => r.halted);
     checks.push(check('numerical-safety', 'No run halted by the safety monitor', 'zero failures', halted.length ? `${halted.length} run(s)` : 'none', halted.length === 0));
+    const empty = aggregateEmptySpace(runs.map((r) => r.emptySpace));
+    checks.push(check('no-empty-space', 'No sustained near-zero-occupancy region (Master prompt §20)', 'no POTENTIAL MODEL / NUMERICAL FAILURE flag',
+      empty.flaggedRuns ? `${empty.flaggedRuns} run(s) flagged` : `none (φ ${empty.phiMin.toPrecision(3)} … ${empty.phiMax.toPrecision(3)}, mean ${empty.phiMean.toPrecision(3)})`, empty.flaggedRuns === 0));
     const maxE = Math.max(...runs.map((r) => r.conservation.maxAbsRelativeEnergyResidual));
     const maxP = Math.max(...runs.map((r) => r.conservation.maxRelativeMomentumResidual));
     checks.push(check('energy-accounting', 'Energy ledger (incl. wall work and heat) closes', 'max |relative residual| < 1e-9', maxE.toExponential(2), maxE < 1e-9));
@@ -348,7 +352,7 @@ export class CouetteExperiment extends SequentialExperiment<Spec, R> {
       mach: base && base.mach.Mp !== null
         ? { Mp: base.mach.Mp, benchmark: null, note: `Mp = U/c_p with c_p measured (${(base.mach as { soundSpeedSource: string }).soundSpeedSource})` }
         : { Mp: null, benchmark: null, note: 'No measured c_p supplied for this configuration.' },
-      results: { cases: ok, coreFraction: p.coreFraction },
+      results: { cases: ok, coreFraction: p.coreFraction, emptySpace: empty },
       uncertainty: { note: 'μ_eff: ensemble over independent seeds (t-based CI); per-run μ_eff SE from block-averaged wall stress and batch-means profile fit, pooled as a cross-check.' },
       convergence: { status: 'NOT ASSESSED', note: 'Channel height, particle scale and U dependence are cases of the sweep experiment.' },
       benchmarks: { note: 'Chapman–Enskog + Enskog (Gass 1971) hard-disk viscosity, comparison only; the channel value includes slip/Knudsen effects.', perCase: bench },

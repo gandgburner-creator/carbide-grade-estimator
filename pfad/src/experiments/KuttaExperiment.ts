@@ -4,6 +4,7 @@ import type { TimestepPolicy } from '../core/Integrator';
 import type { SafetyFlag } from '../core/Safety';
 import { Simulation } from '../core/Simulation';
 import { createGas } from '../gas/InitialConditions';
+import { aggregateEmptySpace, EmptySpaceMonitor, type EmptySpaceSummary } from '../measurements/EmptySpaceMonitor';
 import { ConservationMonitor } from '../measurements/EnergyMonitor';
 import { FieldAverager } from '../measurements/FieldAverager';
 import { ensembleEstimate, linearRegression, mean } from '../measurements/Statistics';
@@ -12,6 +13,9 @@ import type { ReservoirBoundaryConfig } from '../walls/ReservoirBoundary';
 import { PolygonBody, type PolygonBodyConfig } from '../walls/SolidBody';
 import { recordHeader, SequentialExperiment, type ExperimentRecord, type Run } from './Experiment';
 
+
+/** time between no-empty-space samples (Master prompt §20) */
+const EMPTY_SPACE_INTERVAL = 10;
 /**
  * KUTTA DISCOVERY (Master prompt §19, Bible §18).
  *
@@ -204,6 +208,7 @@ interface KuttaRunResult {
   };
   lateLiftSeries: number[];
   conservation: ReturnType<ConservationMonitor['summary']>;
+  emptySpace: EmptySpaceSummary;
   insideDetections: number;
   lateContacts: number;
   safetyFlags: SafetyFlag[];
@@ -288,6 +293,8 @@ class KuttaRun implements Run<KuttaRunResult> {
   private readonly sides: Side[];
   private readonly tails: { lower: number; upper: number };
   private readonly conservation: ConservationMonitor;
+  private readonly empty: EmptySpaceMonitor;
+  private nextEmpty = 0;
   private readonly nxCells: number;
   private readonly nyCells: number;
   private readonly contour: { i0: number; i1: number; j0: number; j1: number };
@@ -362,6 +369,9 @@ class KuttaRun implements Run<KuttaRunResult> {
     this.sides = edgeSides(this.body, this.geom.chordDir);
     this.tails = tailBins(this.body, this.sides, this.geom.le, this.geom.chordDir);
     this.conservation = new ConservationMonitor(this.sim);
+    // cells the body touches are geometry, not empty space
+    const body = this.sim.bodies[0];
+    this.empty = new EmptySpaceMonitor(this.sim, 40, 0.1, 5, (x0, y0, x1, y1) => x1 > body.xmin - 1 && x0 < body.xmax + 1 && y1 > body.ymin - 1 && y0 < body.ymax + 1);
     this.nxCells = Math.round(p.length / p.cell);
     this.nyCells = Math.round(p.height / p.cell);
     this.winField = new FieldAverager(this.sim.domain, this.nxCells, this.nyCells);
@@ -473,6 +483,10 @@ class KuttaRun implements Run<KuttaRunResult> {
       }
       k++;
       const t = this.sim.time;
+      if (t >= this.nextEmpty) {
+        this.empty.sample();
+        this.nextEmpty += EMPTY_SPACE_INTERVAL;
+      }
       if (t >= this.nextSample) {
         this.winField.add(this.sim.store);
         if (this.lateStarted) this.lateField.add(this.sim.store);
@@ -556,6 +570,7 @@ class KuttaRun implements Run<KuttaRunResult> {
       },
       lateLiftSeries: this.lateLift,
       conservation: this.conservation.summary(),
+      emptySpace: this.empty.summary(),
       insideDetections: b.insideDetections,
       lateContacts: b.lateContacts,
       safetyFlags: [...this.sim.flags],
@@ -836,6 +851,9 @@ export class KuttaExperiment extends SequentialExperiment<Spec, KuttaRunResult> 
     const maxP = Math.max(...this.results.map((r) => r.conservation.maxRelativeMomentumResidual));
     checks.push(check('energy-accounting', 'Energy ledger incl. body and open-boundary fluxes closes', 'max |relative residual| < 1e-9', maxE.toExponential(2), maxE < 1e-9));
     checks.push(check('momentum-accounting', 'Momentum ledger incl. body impulse and open-boundary fluxes closes', 'max relative residual < 1e-9', maxP.toExponential(2), maxP < 1e-9));
+    const empty = aggregateEmptySpace(this.results.map((r) => r.emptySpace));
+    checks.push(check('no-empty-space', 'No sustained near-zero-occupancy region (Master prompt §20)', 'no POTENTIAL MODEL / NUMERICAL FAILURE flag',
+      empty.flaggedRuns ? `${empty.flaggedRuns} run(s) flagged` : `none (φ ${empty.phiMin.toPrecision(3)} … ${empty.phiMax.toPrecision(3)}, mean ${empty.phiMean.toPrecision(3)})`, empty.flaggedRuns === 0));
 
     const cases = p.cases.map((_, k) => this.analyseCase(k));
     cases.forEach((c, k) => {
@@ -887,6 +905,7 @@ export class KuttaExperiment extends SequentialExperiment<Spec, KuttaRunResult> 
         ? { Mp: UE / p.soundSpeed.value, benchmark: null, note: `Mp = U_e/c_p, c_p from ${p.soundSpeed.source}` }
         : { Mp: null, benchmark: null, note: 'No measured c_p supplied.' },
       results: {
+        emptySpace: empty,
         cases,
         conventions: 'Flow along +x. Lift = +y force on the body, drag = +x force. Circulation counter-clockwise positive (a body lifting upward in +x flow has negative Γ in this convention). Angles in degrees; departure angle measured from the trailing-edge bisector, positive toward the upper side.',
       },

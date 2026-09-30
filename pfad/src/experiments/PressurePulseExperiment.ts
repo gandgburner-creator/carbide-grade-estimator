@@ -1,3 +1,4 @@
+import { aggregateEmptySpace, EmptySpaceMonitor, type EmptySpaceSummary } from '../measurements/EmptySpaceMonitor';
 import { hendersonCompressibility, idealSoundSpeed2D } from '../benchmarks/KineticTheory';
 import type { ContactResolution, DissipationTarget } from '../core/CollisionModel';
 import { SoftContactForce } from '../core/DeformationModel';
@@ -173,6 +174,8 @@ interface Spec {
 }
 
 interface PulseRunResult {
+  /** no-empty-space summary over the pulse phase (Master prompt §20) */
+  emptySpace: EmptySpaceSummary | null;
   caseIndex: number;
   seed: number;
   times: number[];
@@ -241,6 +244,7 @@ class PulseRun implements Run<Result> {
   private readonly outward: number[][] = [];
   private readonly outwardDensity: number[][] = [];
   private conservation: ConservationMonitor | null = null;
+  private empty: EmptySpaceMonitor | null = null;
   private readonly meanDensity: number;
   private readonly extra: number;
   private kTStart = Number.NaN;
@@ -322,6 +326,7 @@ class PulseRun implements Run<Result> {
     // fresh simulation (and ledger) for the pulse phase; same particles, derived seed
     this.sim2 = new Simulation(simConfig(this.p, c, this.domain, this.seed * 8 + 1), s, forceModels(c.model));
     this.conservation = new ConservationMonitor(this.sim2);
+    this.empty = new EmptySpaceMonitor(this.sim2);
     this.phase = 'pulse';
     this.snapshot();
   }
@@ -377,6 +382,7 @@ class PulseRun implements Run<Result> {
       if (sim.time >= this.nextSnapshot) {
         this.snapshot();
         this.conservation!.sample();
+        this.empty!.sample();
       }
       if (sim.time >= this.c.duration) this.done = true;
     }
@@ -408,6 +414,7 @@ class PulseRun implements Run<Result> {
     const flags = [...this.sim1.flags, ...(this.sim2?.flags ?? [])];
     const cons = this.conservation ?? new ConservationMonitor(this.sim);
     return {
+      emptySpace: this.empty ? this.empty.summary() : null,
       caseIndex: this.caseIndex,
       seed: this.seed,
       times: this.times,
@@ -554,6 +561,9 @@ export class PressurePulseExperiment extends SequentialExperiment<Spec, Result> 
     const halted = runs.filter((r) => r.halted);
     checks.push(check('numerical-safety', 'No run halted by the safety monitor', 'zero failures',
       halted.length ? `${halted.length} run(s)` : 'none', halted.length === 0));
+    const empty = aggregateEmptySpace(runs.map((r) => r.emptySpace).filter((e): e is EmptySpaceSummary => e !== null));
+    checks.push(check('no-empty-space', 'No sustained near-zero-occupancy region during the pulse (Master prompt §20)', 'no POTENTIAL MODEL / NUMERICAL FAILURE flag',
+      empty.flaggedRuns ? `${empty.flaggedRuns} run(s) flagged` : `none (φ ${empty.phiMin.toPrecision(3)} … ${empty.phiMax.toPrecision(3)}, mean ${empty.phiMean.toPrecision(3)})`, empty.flaggedRuns === 0));
     // energy accounting: exact for rigid, O(dt²) for force-integrated models
     const rigid = cases.filter((c) => c && !c.model.occupancy && !c.model.softContactK) as CaseAnalysis[];
     const forced = cases.filter((c) => c && (c.model.occupancy || c.model.softContactK)) as CaseAnalysis[];
@@ -658,6 +668,7 @@ export class PressurePulseExperiment extends SequentialExperiment<Spec, Result> 
         note: 'This experiment MEASURES c_p. Later experiments report Mp = V/c_p using the c_p measured here for the matching configuration.',
       },
       results: {
+        emptySpace: empty,
         cases,
         comparisonsToFirstCase: comparisons,
         ksCalibration,
