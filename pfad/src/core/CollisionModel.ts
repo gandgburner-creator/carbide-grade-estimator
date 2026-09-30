@@ -45,15 +45,18 @@ export const COLLISION_MODEL_VERSION = 'hard-disk-impulse/1';
 
 export class HardDiskCollider {
   readonly config: CollisionConfig;
-  /** step index of each particle's most recent collision (multi-collision diagnostic) */
+  /** step index of each particle's most recent pair collision (multi-collision diagnostic) */
   private lastStep: Int32Array;
+  /** step index of each particle's most recent pair OR wall event (shared with walls) */
+  readonly lastEventStep: Int32Array;
 
   constructor(config: CollisionConfig, capacity: number) {
     if (!(config.restitution >= 0 && config.restitution <= 1)) {
       throw new Error(`restitution must be in [0, 1], got ${config.restitution}`);
     }
     this.config = config;
-    this.lastStep = new Int32Array(capacity).fill(-1);
+    this.lastStep = new Int32Array(capacity).fill(-10);
+    this.lastEventStep = new Int32Array(capacity).fill(-10);
   }
 
   /**
@@ -76,6 +79,7 @@ export class HardDiskCollider {
     const toInternal = this.config.dissipationTarget === 'internal';
     const { x, y, vx, vy, mass, radius, energy, collisions } = store;
     const lastStep = this.lastStep;
+    const lastEvent = this.lastEventStep;
     let processed = 0;
 
     grid.forEachPairWithin(store, contactCutoff, (i, j, dx0, dy0, r2) => {
@@ -102,6 +106,7 @@ export class HardDiskCollider {
         if (!(tau <= dt)) {
           tau = dt;
           log.lateContacts++;
+          if (lastEvent[i] < step - 1 && lastEvent[j] < step - 1) log.lateContactsUnexplained++;
         }
         x[i] -= vx[i] * tau;
         y[i] -= vy[i] * tau;
@@ -113,6 +118,8 @@ export class HardDiskCollider {
       if (lastStep[i] === step || lastStep[j] === step) log.multiCollisions++;
       lastStep[i] = step;
       lastStep[j] = step;
+      lastEvent[i] = step;
+      lastEvent[j] = step;
 
       const dist = Math.sqrt(dx * dx + dy * dy);
       const nx = dx / dist;

@@ -130,7 +130,14 @@ export class PlaneWall {
    * Resolve every particle that overlaps this wall and moves into it.
    * Returns the number of interactions.
    */
-  interact(store: ParticleStore, dt: number, rng: Rng, ledger: Ledger): number {
+  interact(
+    store: ParticleStore,
+    dt: number,
+    rng: Rng,
+    ledger: Ledger,
+    eventStep?: Int32Array,
+    step = 0,
+  ): number {
     const { x, y, vx, vy, mass, radius, wallHits } = store;
     const { nx, ny, tx, ty } = this;
     const Aw = this.config.accommodation;
@@ -187,6 +194,7 @@ export class PlaneWall {
       ledger.wallImpulseY += dpy;
       ledger.wallEnergyOut += dE;
       wallHits[i]++;
+      if (eventStep) eventStep[i] = step;
       count++;
     }
     return count;

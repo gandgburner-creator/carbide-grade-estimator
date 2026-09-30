@@ -202,7 +202,9 @@ export class Simulation {
       );
     }
     let wallInteractions = 0;
-    for (const w of this.walls) wallInteractions += w.interact(s, dt, this.wallRng, this.ledger);
+    for (const w of this.walls) {
+      wallInteractions += w.interact(s, dt, this.wallRng, this.ledger, this.collider.lastEventStep, this.stepCount);
+    }
     this.wrap();
 
     if (hasForces) {
@@ -310,6 +312,13 @@ export class Simulation {
       this.flag('EXCESSIVE_OVERLAP', 'failure', `overlap reached ${(100 * ov).toFixed(1)}% of contact distance`);
     } else if (ov > L.overlapWarning) {
       this.flag('EXCESSIVE_OVERLAP', 'warning', `overlap reached ${(100 * ov).toFixed(1)}% of contact distance`);
+    }
+    if (this.log.lateContactsUnexplained > 0) {
+      this.flag(
+        'LATE_CONTACT_UNEXPLAINED',
+        'warning',
+        `${this.log.lateContactsUnexplained} contacts older than one step without a preceding event`,
+      );
     }
     if (this.log.degenerateContacts > 0) {
       this.flag('DEGENERATE_CONTACT', 'failure', `${this.log.degenerateContacts} contacts with coincident centres`);

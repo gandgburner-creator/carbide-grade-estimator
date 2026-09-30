@@ -59,6 +59,12 @@ export class CollisionLog {
   sumVn2 = 0;
   /** contacts whose overlap predates the current step (rewind τ clamped to dt) */
   lateContacts = 0;
+  /**
+   * late contacts where neither particle had a pair or wall event in this or
+   * the previous step — i.e. NOT explained by within-step event ordering.
+   * Should be zero; anything else points to a defect.
+   */
+  lateContactsUnexplained = 0;
   /** collisions in which a participant had already collided earlier in the same step */
   multiCollisions = 0;
   /** coincident centres — normal undefined, collision NOT resolved, flagged */
@@ -171,6 +177,7 @@ export class CollisionLog {
       sumDKE: this.sumDKE,
       meanVn2: this.count > 0 ? this.sumVn2 / this.count : 0,
       lateContacts: this.lateContacts,
+      lateContactsUnexplained: this.lateContactsUnexplained,
       multiCollisions: this.multiCollisions,
       degenerateContacts: this.degenerateContacts,
       maxOverlapFraction: this.maxOverlapFraction,
