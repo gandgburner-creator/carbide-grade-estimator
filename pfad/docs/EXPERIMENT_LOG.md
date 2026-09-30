@@ -481,6 +481,10 @@ proportionally larger universe in particle diameters (particle count ∝ Re² in
   is specific to its Kn and Mp as well as its Re.
 - **Occupancy force and Universe B** are hypotheses with calibrated
   parameters; nothing here validates them.
+- **λ/Kn in Couette records** depend at the 5 × 10⁻⁴ level on the step-batch
+  size (parallel vs serial replay): the collision-rate interval starts at a
+  batch boundary. All other fields replay bit-for-bit
+  (`REPORT_THERMAL_VISCOSITY.md` §1).
 - The analysis-method revisions made after seeing data are listed, with
   reasons, in `MODEL_CHANGELOG.md`; a sign error in the A/B difference
   (magnitudes and verdicts unaffected) was fixed and those records regenerated.

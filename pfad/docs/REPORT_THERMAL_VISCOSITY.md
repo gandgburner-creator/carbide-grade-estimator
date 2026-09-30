@@ -32,6 +32,19 @@ Script `results/logs/item1_run.sh`; timings `results/logs/item1_timings.txt`.
 | `results/viscosity_courant-0.05.json` | `npx tsx scripts/run-experiment.ts viscosity --parallel 4 --set 'timestep={"kind":"adaptive","courant":0.05,"dtMax":1,"dtMin":1e-7}' --set 'seeds=[101,…,130]' --out results --name viscosity_courant-0.05` | 101–130 (30) | as reference; Courant 0.05 instead of 0.025 | 158 s |
 | `results/thermal_reference.json` | `npx tsx scripts/run-experiment.ts thermal --parallel 4 --out results --name thermal_reference` | 21–30 (10) | 200 collisions/particle (temperature and density studies); 80 for the relaxation runs | 967 s |
 
+**Replay check.** `npm run exp -- replay results/viscosity_courant-0.05.json`
+(single-threaded, 561 s) reproduces the committed record bit-for-bit in
+every field except one diagnostic: the mean free path λ, and Kn = λ/H derived
+from it, differ by up to 5 × 10⁻⁴ relative (29 of 30 seeds). The cause is
+measurement bookkeeping, not the trajectory. The Couette wrapper starts the
+collision-rate interval used for λ at the first step-batch boundary after the
+measurement phase begins. Parallel runs advance in batches of 5000 steps,
+serial replays in batches of 2000. μ_eff, the profiles, the stresses, the
+ledgers and every check are identical. λ and Kn are reported, not judged. A
+fix would be to take the interval start from the run's own measurement-start
+marker. It was not made here, because it changes no result of this task and
+the analysis code stays as it was when the runs were made.
+
 Report and diagnosis (read records only, run nothing):
 
 ```
