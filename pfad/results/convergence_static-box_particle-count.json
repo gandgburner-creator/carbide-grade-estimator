@@ -1,0 +1,83 @@
+{
+ "study": "static-box/particle-count",
+ "extrapolation": {
+  "model": "metric = M∞ + a·N^(−1/2)  (fixed occupancy: N^(−1/2) ∝ 1/L)",
+  "infinite": 1.108667320999744,
+  "seInfinite": 0.002280293945582979,
+  "slope": 0.30031105278097875,
+  "seSlope": 0.08023179135241185
+ },
+ "experiment": "static-box",
+ "dimension": "particle-count",
+ "metricName": "P·A/(N·kT)",
+ "relTolerance": 0.01,
+ "levels": [
+  {
+   "name": "LOW",
+   "overrides": {
+    "count": 500
+   },
+   "estimate": {
+    "mean": 1.122298045299674,
+    "se": 0.0016860150206097569,
+    "ci95": [
+     1.1176176676024614,
+     1.1269784229968867
+    ],
+    "n": 5
+   },
+   "status": "PASSED",
+   "wallSeconds": 42.754
+  },
+  {
+   "name": "MEDIUM",
+   "overrides": {
+    "count": 1000
+   },
+   "estimate": {
+    "mean": 1.1177874697622194,
+    "se": 0.0014873489858554382,
+    "ci95": [
+     1.1136585889774846,
+     1.121916350546954
+    ],
+    "n": 5
+   },
+   "status": "PASSED",
+   "wallSeconds": 81.92
+  },
+  {
+   "name": "HIGH",
+   "overrides": {
+    "count": 2000
+   },
+   "estimate": {
+    "mean": 1.1154430870833032,
+    "se": 0.0007796677065955732,
+    "ci95": [
+     1.113278729529794,
+     1.1176074446368125
+    ],
+    "n": 5
+   },
+   "status": "PASSED",
+   "wallSeconds": 187.967
+  }
+ ],
+ "highVsMedium": {
+  "difference": -0.0023443826789162348,
+  "se": 0.0016793119836508049,
+  "z": -1.3960376045310972,
+  "relative": -0.0021017501529785824,
+  "resolution": 0.0030110222620894525
+ },
+ "mediumVsLow": {
+  "difference": -0.0045105755374545975,
+  "se": 0.0022483001702279255,
+  "z": -2.0062158946495696,
+  "relative": -0.004035271157954657,
+  "resolution": 0.0040227686050304245
+ },
+ "status": "PASSED",
+ "verdict": "HIGH vs MEDIUM change -0.21 % (z = -1.40); converged within 1.00 %"
+}

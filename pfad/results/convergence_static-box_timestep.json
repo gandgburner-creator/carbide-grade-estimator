@@ -1,0 +1,92 @@
+{
+ "study": "static-box/timestep",
+ "extrapolation": null,
+ "experiment": "static-box",
+ "dimension": "timestep",
+ "metricName": "P·A/(N·kT)",
+ "relTolerance": 0.01,
+ "levels": [
+  {
+   "name": "LOW",
+   "overrides": {
+    "timestep": {
+     "kind": "adaptive",
+     "courant": 0.1,
+     "dtMax": 1,
+     "dtMin": 1e-7
+    }
+   },
+   "estimate": {
+    "mean": 1.1141880528685393,
+    "se": 0.0009659903259046226,
+    "ci95": [
+     1.1115064637238279,
+     1.1168696420132507
+    ],
+    "n": 5
+   },
+   "status": "INCONCLUSIVE",
+   "wallSeconds": 52.205
+  },
+  {
+   "name": "MEDIUM",
+   "overrides": {
+    "timestep": {
+     "kind": "adaptive",
+     "courant": 0.05,
+     "dtMax": 1,
+     "dtMin": 1e-7
+    }
+   },
+   "estimate": {
+    "mean": 1.1142021440082985,
+    "se": 0.0011532140240635854,
+    "ci95": [
+     1.111000821877498,
+     1.1174034661390992
+    ],
+    "n": 5
+   },
+   "status": "INCONCLUSIVE",
+   "wallSeconds": 94.456
+  },
+  {
+   "name": "HIGH",
+   "overrides": {
+    "timestep": {
+     "kind": "adaptive",
+     "courant": 0.025,
+     "dtMax": 1,
+     "dtMin": 1e-7
+    }
+   },
+   "estimate": {
+    "mean": 1.1154430870833032,
+    "se": 0.0007796677065955732,
+    "ci95": [
+     1.113278729529794,
+     1.1176074446368125
+    ],
+    "n": 5
+   },
+   "status": "PASSED",
+   "wallSeconds": 183.353
+  }
+ ],
+ "highVsMedium": {
+  "difference": 0.0012409430750046635,
+  "se": 0.0013920432170033113,
+  "z": 0.8914544173966631,
+  "relative": 0.0011125113323796033,
+  "resolution": 0.002495946647790469
+ },
+ "mediumVsLow": {
+  "difference": 0.00001409113975925358,
+  "se": 0.0015043403521272196,
+  "z": 0.009366989151974776,
+  "relative": 0.000012646843155911777,
+  "resolution": 0.002700300587675077
+ },
+ "status": "PASSED",
+ "verdict": "HIGH vs MEDIUM change 0.11 % (z = 0.89); converged within 1.00 %"
+}

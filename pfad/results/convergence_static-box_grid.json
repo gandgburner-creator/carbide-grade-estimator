@@ -1,0 +1,75 @@
+{
+ "study": "static-box/grid",
+ "extrapolation": null,
+ "experiment": "static-box",
+ "dimension": "grid",
+ "metricName": "P·A/(N·kT)",
+ "relTolerance": 0.01,
+ "levels": [
+  {
+   "name": "LOW",
+   "overrides": {
+    "gridCellSize": 1
+   },
+   "estimate": {
+    "mean": 1.1152897270692352,
+    "se": 0.0015190640596089982,
+    "ci95": [
+     1.1110728052397607,
+     1.1195066488987098
+    ],
+    "n": 5
+   },
+   "status": "PASSED",
+   "wallSeconds": 273.14
+  },
+  {
+   "name": "MEDIUM",
+   "overrides": {
+    "gridCellSize": 2.5
+   },
+   "estimate": {
+    "mean": 1.1132800033210062,
+    "se": 0.001364401457441807,
+    "ci95": [
+     1.1094924248751477,
+     1.1170675817668645
+    ],
+    "n": 5
+   },
+   "status": "PASSED",
+   "wallSeconds": 101.818
+  },
+  {
+   "name": "HIGH",
+   "overrides": {},
+   "estimate": {
+    "mean": 1.1154430870833032,
+    "se": 0.0007796677065955732,
+    "ci95": [
+     1.113278729529794,
+     1.1176074446368125
+    ],
+    "n": 5
+   },
+   "status": "PASSED",
+   "wallSeconds": 94.821
+  }
+ ],
+ "highVsMedium": {
+  "difference": 0.0021630837622970134,
+  "se": 0.001571455716772613,
+  "z": 1.3764840709221258,
+  "relative": 0.0019392148172733,
+  "resolution": 0.002817634955955855
+ },
+ "mediumVsLow": {
+  "difference": -0.002009723748229053,
+  "se": 0.0020418489058363493,
+  "z": -0.9842666332873746,
+  "relative": -0.001805227563805944,
+  "resolution": 0.00366816775608175
+ },
+ "status": "PASSED",
+ "verdict": "HIGH vs MEDIUM change 0.19 % (z = 1.38); converged within 1.00 %"
+}

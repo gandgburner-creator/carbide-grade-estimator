@@ -1,0 +1,77 @@
+{
+ "study": "static-box/averaging",
+ "extrapolation": null,
+ "experiment": "static-box",
+ "dimension": "averaging",
+ "metricName": "P·A/(N·kT)",
+ "relTolerance": 0.01,
+ "levels": [
+  {
+   "name": "LOW",
+   "overrides": {
+    "measurementCollisions": 25
+   },
+   "estimate": {
+    "mean": 1.109140822353657,
+    "se": 0.0025141531058741336,
+    "ci95": [
+     1.1021615333317505,
+     1.1161201113755634
+    ],
+    "n": 5
+   },
+   "status": "PASSED",
+   "wallSeconds": 62.503
+  },
+  {
+   "name": "MEDIUM",
+   "overrides": {
+    "measurementCollisions": 50
+   },
+   "estimate": {
+    "mean": 1.1149438567267596,
+    "se": 0.0014286806162738341,
+    "ci95": [
+     1.1109778393359833,
+     1.1189098741175356
+    ],
+    "n": 5
+   },
+   "status": "PASSED",
+   "wallSeconds": 103.723
+  },
+  {
+   "name": "HIGH",
+   "overrides": {
+    "measurementCollisions": 100
+   },
+   "estimate": {
+    "mean": 1.1154430870833032,
+    "se": 0.0007796677065955732,
+    "ci95": [
+     1.113278729529794,
+     1.1176074446368125
+    ],
+    "n": 5
+   },
+   "status": "PASSED",
+   "wallSeconds": 175.129
+  }
+ ],
+ "highVsMedium": {
+  "difference": 0.0004992303565436451,
+  "se": 0.0016275779661892031,
+  "z": 0.3067320687023914,
+  "relative": 0.0004475623743825863,
+  "resolution": 0.0029182626797124127
+ },
+ "mediumVsLow": {
+  "difference": 0.005803034373102589,
+  "se": 0.002891728573551317,
+  "z": 2.006770077309127,
+  "relative": 0.005204777207472201,
+  "resolution": 0.005187218273108071
+ },
+ "status": "PASSED",
+ "verdict": "HIGH vs MEDIUM change 0.04 % (z = 0.31); converged within 1.00 %"
+}
