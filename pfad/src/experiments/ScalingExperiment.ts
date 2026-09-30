@@ -243,6 +243,7 @@ export class ScalingExperiment extends SequentialExperiment<Spec, unknown> {
 
 function LEVEL_NAMES(n: number): string[] {
   if (n === 3) return ['LOW', 'MEDIUM', 'HIGH'];
-  if (n === 2) return ['LOW', 'HIGH'];
+  // two levels: named to match the convergence verdict, which compares HIGH with MEDIUM
+  if (n === 2) return ['MEDIUM', 'HIGH'];
   return Array.from({ length: n }, (_, k) => `L${k + 1}`);
 }

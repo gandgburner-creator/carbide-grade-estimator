@@ -54,10 +54,10 @@ function summary(rec: ExperimentRecord): string {
     ['boundary-layer', { ...BOUNDARY_LAYER_REFERENCE, viscosity, soundSpeed }, 'boundary-layer_reference'],
     ['separation', { ...ADVERSE_GRADIENT_REFERENCE, viscosity, soundSpeed }, 'separation_reference'],
     ['kutta', { ...KUTTA_REFERENCE, viscosity, soundSpeed }, 'kutta_reference'],
-    ['scaling', { ...SCALING_REFERENCE, viscosity }, 'scaling_fixed-mach'],
+    ['scaling', { ...SCALING_REFERENCE, viscosity, base: { soundSpeed } }, 'scaling_fixed-mach'],
     [
       'scaling',
-      { ...SCALING_REFERENCE, mode: 'fixed-reynolds', sizes: [30, 60], referenceSize: 30, referenceSpeed: 1, seeds: [311, 312, 313, 314, 315, 316, 317, 318], viscosity },
+      { ...SCALING_REFERENCE, mode: 'fixed-reynolds', sizes: [30, 60], referenceSize: 30, referenceSpeed: 1, seeds: [311, 312, 313, 314, 315, 316, 317, 318], viscosity, base: { soundSpeed } },
       'scaling_fixed-reynolds',
     ],
   ] as const;
