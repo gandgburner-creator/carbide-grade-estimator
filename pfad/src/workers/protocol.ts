@@ -39,6 +39,8 @@ export interface Frame {
   walls: WallGeometry[];
   /** sides that are open reservoir boundaries */
   openSides: string[];
+  /** solid polygon bodies: interleaved vertices and mean accommodation */
+  bodies: { vertices: number[]; accommodation: number }[];
   count: number;
   /** interleaved x, y */
   positions: Float32Array;

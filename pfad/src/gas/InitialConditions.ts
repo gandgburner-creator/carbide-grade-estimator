@@ -49,6 +49,12 @@ export interface GasInit {
   flow?: { x: number; y: number };
   /** extra capacity to reserve (e.g. for particles injected later) */
   extraCapacity?: number;
+  /**
+   * Positions to keep free (e.g. a solid body in the flow): a candidate disk
+   * centre (x, y) with radius r is rejected when this returns true.
+   * Random placement only.
+   */
+  exclude?: (x: number, y: number, r: number) => boolean;
 }
 
 export interface GasInitInfo {
@@ -149,6 +155,7 @@ function placeRandom(store: ParticleStore, init: GasInit): number {
     }
     const x = rng.uniform(x0, x1);
     const y = rng.uniform(y0, y1);
+    if (init.exclude && init.exclude(x, y, r)) continue;
     const [cx, cy] = cellOf(x, y);
     let ok = true;
     for (let oy = -reach; oy <= reach && ok; oy++) {
@@ -187,6 +194,7 @@ function placeRandom(store: ParticleStore, init: GasInit): number {
 }
 
 function placeLattice(store: ParticleStore, init: GasInit): number {
+  if (init.exclude) throw new Error("excluded regions are supported by 'random' placement only");
   const rng = new Rng(init.seed, RNG_STREAM.positions);
   const { x0, x1, y0, y1 } = bounds(init);
   const w = x1 - x0;

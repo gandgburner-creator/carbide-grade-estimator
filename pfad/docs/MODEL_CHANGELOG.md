@@ -125,3 +125,20 @@ was then applied unchanged to fresh reference runs.
   below the stated density (≈ 7 % at φ = 0.05, ≈ 21 % at φ = 0.2). Experiments
   measure and normalise with the realised state.
 
+## 0.2.0-p0.4 — solid polygon bodies
+
+- **New component (OFF unless an experiment declares a body):** fixed polygon
+  bodies with Maxwell-accommodating faces (A-19, `walls/SolidBody`), exact
+  earliest-contact timing against faces and vertices, per-edge surface bins
+  (pressure, shear), per-vertex tallies, and whole-body impulse and moment.
+  Needed for Step 14 (Kutta discovery). The gas initial condition can now
+  exclude a region (the body) from random placement.
+- **Effect on earlier results:** none; runs without bodies execute exactly the
+  same operations in the same order (`INSIDE_BODY` is a new safety code that
+  can only fire when a body exists).
+- **Tests:** exact specular reflection from an inclined face at the contact
+  instant, head-on and off-centre vertex contacts, no interaction for a disk
+  already leaving, and a diffuse body in a closed gas at rest: ledgers close,
+  no penetration, zero mean force, and face pressure equal to the planar-wall
+  pressure within statistics.
+

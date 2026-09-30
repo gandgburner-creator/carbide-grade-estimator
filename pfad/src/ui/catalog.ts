@@ -88,7 +88,13 @@ export const CATALOG: CatalogEntry[] = [
     step: 'Step 13',
     summary: 'The boundary-layer rig with a controlled deceleration imposed only through the far-field reservoir (top boundary bleeds mass, outlet slower). Looks for sustained wall-shear reversal under forward outer flow; separation-onset hypotheses are trained on some gradient strengths and scored on held-out ones. Bulk reversal is not counted as separation.',
   },
-  { key: 'kutta', label: 'KUTTA DISCOVERY', engine: null, step: 'Step 14', summary: 'Sharp trailing edge from a cold start, nothing imposed. Not implemented yet.' },
+  {
+    key: 'kutta',
+    label: 'KUTTA DISCOVERY',
+    engine: 'kutta',
+    step: 'Step 14',
+    summary: 'A uniform stream starts impulsively past a fixed polygon body with a sharp trailing edge (open reservoirs on all sides). Nothing about circulation or the trailing edge is imposed. Measures lift and drag from wall impulses, circulation from the particle velocity field, the starting vortex, the direction in which gas leaves the trailing edge, near-wall reversal and the wake. A blunt-edged body is the comparison case.',
+  },
   { key: 'scaling', label: 'SCALING', engine: null, step: 'Step 15', summary: 'Do results converge across scaled particle universes? Not implemented yet.' },
   {
     key: 'ab',
@@ -110,7 +116,7 @@ export const PHASE0_CRITERIA: { text: string; engine: ExperimentType | null }[] 
   { text: 'demonstrate wall momentum transfer', engine: 'wall-accommodation' },
   { text: 'show a boundary layer', engine: 'boundary-layer' },
   { text: 'investigate adverse-gradient separation', engine: 'separation' },
-  { text: 'test Kutta emergence', engine: null },
+  { text: 'test Kutta emergence', engine: 'kutta' },
   { text: 'report Re/Mach', engine: 'viscosity' },
   { text: 'perform resolution tests', engine: 'static-box' },
   { text: 'reproduce experiments from saved configurations', engine: 'static-box' },

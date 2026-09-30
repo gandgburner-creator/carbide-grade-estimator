@@ -62,6 +62,7 @@ function printRecord(rec: ExperimentRecord): void {
   if (rec.experimentType === 'ab-test') printAB(rec);
   if (rec.experimentType === 'boundary-layer') printBL(rec);
   if (rec.experimentType === 'separation') printSeparation(rec);
+  if (rec.experimentType === 'kutta') printKutta(rec);
   if (rec.warnings.length) {
     console.log('warnings:');
     for (const w of rec.warnings.slice(0, 20)) console.log('  - ' + w);
@@ -216,6 +217,31 @@ function printSeparation(rec: any): void {
     console.log(`  hypothesis ${h.indicator}: critical ${h.critical === null ? 'n/a' : fmt(h.critical, 4)} (trained on ${h.trainedOn}); test accuracy ${h.classificationAccuracy ?? 'n/a'}, mean |Δx| ${h.meanAbsPositionError ?? 'n/a'} ${h.note ?? ''}`);
   }
   console.log(`  Re: ${rec.reynolds.note} → simulation ${rec.reynolds.simulation === null ? 'n/a' : fmt(rec.reynolds.simulation, 4)}; Mp ${rec.mach.Mp === null ? 'n/a' : fmt(rec.mach.Mp, 3)}`);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function printKutta(rec: any): void {
+  const est = (e: any, d = 3) => (e ? `${fmt(e.mean, d)} ± ${fmt(e.se, 2)}` : 'n/a');
+  console.log(`\nMEASURED (late window, seed ensemble; ${rec.results.conventions})`);
+  for (const c of rec.results.cases) {
+    if (!c) continue;
+    console.log(`  ${c.label}`);
+    console.log(`     ${c.determination}`);
+    console.log(`     L = ${est(c.lift)}, D = ${est(c.drag)}, Γ_body = ${est(c.gammaBody)}, Γ_domain = ${est(c.gammaDomain)}; late drift ΔL = ${est(c.liftDriftLateHalves)}`);
+    console.log(`     departure angle to bisector ${est(c.departure.angleToBisectorDeg)}° (band ±${fmt(c.departure.toleranceDeg, 3)}°), cross-bisector velocity ${est(c.departure.crossVelocity)}, along ${est(c.departure.alongVelocity)}`);
+    console.log(`     tail near-wall velocity (downstream +): upper ${est(c.tailVelocity.upper)}, lower ${est(c.tailVelocity.lower)}; TE loading Δp ${c.trailingEdgeLoading ? `${fmt(c.trailingEdgeLoading.deltaP, 3)} ± ${fmt(c.trailingEdgeLoading.se, 2)} (mean loading ${fmt(c.trailingEdgeLoading.meanLoading, 3)})` : 'n/a'}`);
+    console.log(`     near-wall reversal: upper ${c.surfaceReversal.upper.reversedBins}/${c.surfaceReversal.upper.bins} bins${c.surfaceReversal.upper.firstReversedAt !== null ? ` from x/c = ${fmt(c.surfaceReversal.upper.firstReversedAt, 3)}` : ''}, lower ${c.surfaceReversal.lower.reversedBins}/${c.surfaceReversal.lower.bins}`);
+    console.log(`     early departure (t ≤ ${fmt(c.earlyDeparture.until, 3)}): angle ${est(c.earlyDeparture.angleToBisectorDeg)}°, cross-bisector velocity ${est(c.earlyDeparture.crossVelocity)}`);
+    console.log(`     starting vortex (sign ${c.startingVortex.sign}): slab peaks ${c.startingVortex.slabs.map((q: any) => `t=${fmt(q.peakTime, 3)} Γ=${fmt(q.peakCirculation, 3)}${q.significant ? '' : ' (n.s.)'}`).join(', ')}; convection speed ${c.startingVortex.convectionSpeed ? `${fmt(c.startingVortex.convectionSpeed.value, 3)} ± ${fmt(c.startingVortex.convectionSpeed.se, 2)}` : 'n/a'}`);
+    console.log(`     shedding: ${c.shedding.seedsWithPeriodicLift}/${c.shedding.perSeed.length} seeds with periodic lift (${c.shedding.criterion})`);
+    console.log(`     wake: ${c.wake.map((w: any) => `x−x_TE=${fmt(w.xBehindTE, 3)}: deficit ${fmt(w.maxDeficit, 2)}, width ${fmt(w.halfDeficitWidth, 3)}, D_wake ${fmt(w.momentumDeficitDrag, 3)}`).join('; ')}`);
+    console.log(`     realised free stream U_e ${fmt(c.realised.freeStreamU, 3)}, ρ_e ${fmt(c.realised.density, 3)}; occupancy min/mean/max ${fmt(c.occupancy.min, 3)}/${fmt(c.occupancy.mean, 3)}/${fmt(c.occupancy.max, 3)}`);
+  }
+  console.log(`  Re: ${rec.reynolds.note} → ${rec.reynolds.simulation === null ? 'n/a' : fmt(rec.reynolds.simulation, 4)}; Mp ${rec.mach.Mp === null ? 'n/a' : fmt(rec.mach.Mp, 3)}`);
+  console.log('\nBENCHMARK (shown after the measurement; not used by the run):');
+  for (const b of rec.benchmarks.perCase ?? []) {
+    console.log(`  ${b.label}: thin-airfoil Γ ${fmt(b.thinAirfoilCirculation, 3)}, L ${fmt(b.thinAirfoilLift, 3)}; measured/benchmark Γ ${fmt(b.measuredCirculationOverThinAirfoil, 3)}, L ${fmt(b.measuredLiftOverThinAirfoil, 3)}; Kutta–Joukowski lift from measured Γ ${fmt(b.kuttaJoukowskiLiftFromMeasuredCirculation, 3)}`);
+  }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

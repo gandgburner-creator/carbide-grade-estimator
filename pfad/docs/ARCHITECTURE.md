@@ -46,7 +46,8 @@ npm run build
 core/          vectors, RNG, particle store, spatial grid, collision law, integrator
 gas/           initial conditions, thermal statistics, parcel/reservoir models
 occupancy/     occupancy field + the F = -ks ∇φ hypothesis (switchable, default OFF)
-walls/         wall interaction models (specular / diffuse / Maxwell accommodation)
+walls/         wall interaction models (specular / diffuse / Maxwell accommodation):
+               planar walls, open reservoir boundaries, solid polygon bodies
 measurements/  estimators that only READ simulation state (pressure, energy, ...)
 experiments/   experiment definitions: setup + measurement + acceptance criteria
 benchmarks/    classical / kinetic-theory reference values — COMPARISON ONLY

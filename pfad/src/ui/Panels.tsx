@@ -467,6 +467,40 @@ function Headline({ record }: { record: ExperimentRecord }) {
       </>
     );
   }
+  if (record.experimentType === 'kutta' && Array.isArray(r.cases)) {
+    return (
+      <table className="results" style={{ marginTop: 8 }}>
+        <thead>
+          <tr>
+            <th>case</th>
+            <th>MEASURED lift</th>
+            <th>Γ_body</th>
+            <th>TE departure</th>
+            <th>finding</th>
+          </tr>
+        </thead>
+        <tbody>
+          {r.cases.map((c: any, i: number) =>
+            c ? (
+              <tr key={i}>
+                <td>{c.label}</td>
+                <td>
+                  {fmt(c.lift.mean, 3)} ± {fmt(c.lift.se, 2)}
+                </td>
+                <td>
+                  {fmt(c.gammaBody.mean, 3)} ± {fmt(c.gammaBody.se, 2)}
+                </td>
+                <td>
+                  {fmt(c.departure.angleToBisectorDeg.mean, 2)}° ± {fmt(c.departure.angleToBisectorDeg.se, 2)}
+                </td>
+                <td>{String(c.determination).split(':')[0]}</td>
+              </tr>
+            ) : null,
+          )}
+        </tbody>
+      </table>
+    );
+  }
   if (record.experimentType === 'separation' && Array.isArray(r.configurations)) {
     return (
       <>

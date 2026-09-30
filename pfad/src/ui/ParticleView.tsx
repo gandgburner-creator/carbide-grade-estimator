@@ -178,6 +178,19 @@ export function ParticleView({ frame, options, selected, onPick }: Props) {
         g.stroke();
       }
     }
+    // solid bodies: filled polygons, outline coloured by accommodation
+    for (const b of frame.bodies ?? []) {
+      const v = b.vertices;
+      g.beginPath();
+      g.moveTo(T.X(v[0]), T.Y(v[1]));
+      for (let k = 2; k < v.length; k += 2) g.lineTo(T.X(v[k]), T.Y(v[k + 1]));
+      g.closePath();
+      g.fillStyle = '#2a3440';
+      g.fill();
+      g.strokeStyle = b.accommodation > 0 ? `rgba(255, 150, 60, ${0.5 + 0.5 * b.accommodation})` : '#c9d1d9';
+      g.lineWidth = 2;
+      g.stroke();
+    }
     // open reservoir boundaries: dashed blue
     g.setLineDash([6, 4]);
     g.strokeStyle = 'rgba(88,166,255,0.8)';

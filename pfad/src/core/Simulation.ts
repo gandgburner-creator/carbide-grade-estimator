@@ -1,4 +1,5 @@
 import { ReservoirBoundary, type ReservoirBoundaryConfig } from '../walls/ReservoirBoundary';
+import { PolygonBody, type PolygonBodyConfig } from '../walls/SolidBody';
 import { PlaneWall, type PlaneWallConfig } from '../walls/WallModel';
 import { CollisionLog } from './CollisionLog';
 import { HardDiskCollider, type CollisionConfig } from './CollisionModel';
@@ -27,6 +28,8 @@ export interface SimulationConfig {
   walls: PlaneWallConfig[];
   /** open (reservoir) boundaries on bounded sides without a wall */
   boundaries?: ReservoirBoundaryConfig[];
+  /** fixed solid bodies inside the domain (A-19) */
+  bodies?: PolygonBodyConfig[];
   collision: CollisionConfig;
   timestep: TimestepPolicy;
   /** seed for dynamical randomness (wall re-emission) */
@@ -56,6 +59,7 @@ export class Simulation {
   readonly domain: Domain;
   readonly walls: PlaneWall[];
   readonly boundaries: ReservoirBoundary[];
+  readonly bodies: PolygonBody[];
   readonly collider: HardDiskCollider;
   readonly grid: SpatialGrid;
   readonly ledger = new Ledger();
@@ -92,6 +96,7 @@ export class Simulation {
     this.domain = new Domain(config.domain);
     this.walls = config.walls.map((w) => new PlaneWall(w, this.domain));
     this.boundaries = (config.boundaries ?? []).map((b) => new ReservoirBoundary(b, this.domain));
+    this.bodies = (config.bodies ?? []).map((b) => new PolygonBody(b));
     const sideList = [...config.walls.map((w) => w.side), ...(config.boundaries ?? []).map((b) => b.side)];
     const sides = new Set(sideList);
     if (sides.size !== sideList.length) throw new Error('duplicate wall/boundary side');
@@ -214,6 +219,9 @@ export class Simulation {
     for (const w of this.walls) {
       wallInteractions += w.interact(s, dt, this.wallRng, this.ledger, this.collider.lastEventStep, this.stepCount);
     }
+    for (const b of this.bodies) {
+      wallInteractions += b.interact(s, dt, this.wallRng, this.ledger, this.collider.lastEventStep, this.stepCount);
+    }
     for (const b of this.boundaries) b.apply(s, dt, this.boundaryRng, this.ledger, this.collider);
     this.wrap();
 
@@ -254,7 +262,7 @@ export class Simulation {
 
   /** Overlapping disks at t = 0 are reported (the collision law assumes they never start overlapped). */
   private checkInitialOverlaps(): void {
-    if (this.store.count < 2) return;
+    if (this.store.count < 1) return;
     this.grid.build(this.store);
     let n = 0;
     const r = this.store.radius;
@@ -263,6 +271,11 @@ export class Simulation {
       if (r2 < R * R) n++;
     });
     if (n > 0) this.flag('INITIAL_OVERLAP', 'warning', `${n} overlapping pairs in the initial condition`);
+    let nb = 0;
+    for (const b of this.bodies) {
+      for (let i = 0; i < this.store.count; i++) if (b.closest(this.store.x[i], this.store.y[i]).d < this.store.radius[i]) nb++;
+    }
+    if (nb > 0) this.flag('INITIAL_OVERLAP', 'warning', `${nb} particles overlap a solid body in the initial condition`);
   }
 
   private flag(code: SafetyCode, severity: 'warning' | 'failure', message: string): void {
@@ -329,6 +342,9 @@ export class Simulation {
         'warning',
         `${this.log.lateContactsUnexplained} contacts older than one step without a preceding event`,
       );
+    }
+    for (const b of this.bodies) {
+      if (b.insideDetections > 0) this.flag('INSIDE_BODY', 'failure', `${b.insideDetections} particle centre(s) found inside body '${b.config.name}'`);
     }
     if (this.log.degenerateContacts > 0) {
       this.flag('DEGENERATE_CONTACT', 'failure', `${this.log.degenerateContacts} contacts with coincident centres`);

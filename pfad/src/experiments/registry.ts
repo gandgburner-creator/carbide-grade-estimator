@@ -3,6 +3,7 @@ import type { ExperimentRecord, ExperimentType, SequentialExperiment } from './E
 import { ADVERSE_GRADIENT_REFERENCE, AdverseGradientExperiment, type AdverseGradientParams } from './AdverseGradientExperiment';
 import { BOUNDARY_LAYER_REFERENCE, BoundaryLayerExperiment, type BoundaryLayerParams } from './BoundaryLayerExperiment';
 import { COUETTE_REFERENCE, COUETTE_SWEEPS, CouetteExperiment, type CouetteParams } from './CouetteExperiment';
+import { KUTTA_REFERENCE, KuttaExperiment, type KuttaParams } from './KuttaExperiment';
 import { PULSE_REFERENCE, PULSE_SWEEPS, PressurePulseExperiment, type PulseParams } from './PressurePulseExperiment';
 import { STATIC_BOX_REFERENCE, StaticBoxExperiment, type StaticBoxParams } from './StaticBoxExperiment';
 import { THERMAL_REFERENCE, ThermalExperiment, type ThermalParams } from './ThermalExperiment';
@@ -154,6 +155,27 @@ const separation: ExperimentEntry<AdverseGradientParams> = {
   create: (p) => new AdverseGradientExperiment(p) as unknown as SequentialExperiment<unknown, unknown>,
 };
 
+const kutta: ExperimentEntry<KuttaParams> = {
+  type: 'kutta',
+  title: 'Kutta discovery',
+  defaults: KUTTA_REFERENCE,
+  quick: {
+    ...KUTTA_REFERENCE,
+    length: 160,
+    height: 90,
+    chord: 30,
+    thickness: 3,
+    leadingEdgeX: 40,
+    cases: [KUTTA_REFERENCE.cases[0], KUTTA_REFERENCE.cases[1]],
+    seeds: [1, 2],
+    duration: 120,
+    lateFrom: 70,
+    contourMargin: 8,
+    wakeSlabs: 3,
+  },
+  create: (p) => new KuttaExperiment(p) as unknown as SequentialExperiment<unknown, unknown>,
+};
+
 const abBase = { ...STATIC_BOX_REFERENCE, restitutions: [1], count: 1000, measurementCollisions: 60 };
 export const AB_PRESETS: Record<string, ABTestParams> = {
   'null test: disjoint seeds (expect no difference)': {
@@ -194,6 +216,7 @@ export const EXPERIMENTS: Partial<Record<ExperimentType, ExperimentEntry<any>>> 
   'ab-test': abTest,
   'boundary-layer': boundaryLayer,
   separation,
+  kutta,
 };
 
 setABFactory((type, params) => {

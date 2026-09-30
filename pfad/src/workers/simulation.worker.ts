@@ -171,6 +171,7 @@ function sendFrame() {
         segments: w.config.segments.map((sg) => ({ from: sg.from, to: sg.to, accommodation: sg.accommodation })),
       })),
       openSides: sim.boundaries.map((b) => b.config.side),
+      bodies: sim.bodies.map((b) => ({ vertices: b.config.vertices, accommodation: b.accommodation.reduce((a, v) => a + v, 0) / b.accommodation.length })),
       count: n,
       positions,
       velocities,

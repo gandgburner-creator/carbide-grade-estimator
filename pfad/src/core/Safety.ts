@@ -17,7 +17,8 @@ export type SafetyCode =
   | 'INITIAL_OVERLAP'
   | 'LATE_CONTACT_UNEXPLAINED'
   | 'OCCUPANCY_COLLAPSE'
-  | 'TIMESTEP_FLOOR';
+  | 'TIMESTEP_FLOOR'
+  | 'INSIDE_BODY';
 
 export interface SafetyFlag {
   code: SafetyCode;
