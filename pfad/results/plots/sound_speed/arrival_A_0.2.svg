@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="440" font-family="sans-serif" font-size="12">
+<rect width="720" height="440" fill="#fff"/>
+<text x="360" y="22" text-anchor="middle" font-size="14" font-weight="600">A = 0.2: arrival delay against distance (primary), R² 0.99921</text>
+<line x1="70" x2="700" y1="385" y2="385" stroke="#e5e5e5"/>
+<text x="64" y="389" text-anchor="end">-0.207</text>
+<text x="70" y="403" text-anchor="middle">30.0</text>
+<line x1="70" x2="700" y1="316" y2="316" stroke="#e5e5e5"/>
+<text x="64" y="320" text-anchor="end">14.2</text>
+<text x="196" y="403" text-anchor="middle">62.0</text>
+<line x1="70" x2="700" y1="247" y2="247" stroke="#e5e5e5"/>
+<text x="64" y="251" text-anchor="end">28.5</text>
+<text x="322" y="403" text-anchor="middle">94.0</text>
+<line x1="70" x2="700" y1="178" y2="178" stroke="#e5e5e5"/>
+<text x="64" y="182" text-anchor="end">42.9</text>
+<text x="448" y="403" text-anchor="middle">126</text>
+<line x1="70" x2="700" y1="109" y2="109" stroke="#e5e5e5"/>
+<text x="64" y="113" text-anchor="end">57.2</text>
+<text x="574" y="403" text-anchor="middle">158</text>
+<line x1="70" x2="700" y1="40" y2="40" stroke="#e5e5e5"/>
+<text x="64" y="44" text-anchor="end">71.6</text>
+<text x="700" y="403" text-anchor="middle">190</text>
+<line x1="70" x2="70" y1="40" y2="385" stroke="#333"/>
+<line x1="70" x2="700" y1="385" y2="385" stroke="#333"/>
+<text x="360" y="428" text-anchor="middle">probe distance d</text>
+<text transform="translate(16 220) rotate(-90)" text-anchor="middle">delay relative to the first probe</text>
+<circle cx="70.0" cy="381.4" r="3" fill="#1f6feb"/>
+<circle cx="109.4" cy="362.1" r="3" fill="#1f6feb"/>
+<circle cx="148.8" cy="341.0" r="3" fill="#1f6feb"/>
+<circle cx="188.1" cy="321.5" r="3" fill="#1f6feb"/>
+<circle cx="227.5" cy="304.4" r="3" fill="#1f6feb"/>
+<circle cx="266.9" cy="276.5" r="3" fill="#1f6feb"/>
+<circle cx="306.3" cy="261.4" r="3" fill="#1f6feb"/>
+<circle cx="345.6" cy="237.6" r="3" fill="#1f6feb"/>
+<circle cx="385.0" cy="215.8" r="3" fill="#1f6feb"/>
+<circle cx="424.4" cy="194.3" r="3" fill="#1f6feb"/>
+<circle cx="463.8" cy="167.5" r="3" fill="#1f6feb"/>
+<circle cx="503.1" cy="148.9" r="3" fill="#1f6feb"/>
+<circle cx="542.5" cy="133.8" r="3" fill="#1f6feb"/>
+<circle cx="581.9" cy="110.4" r="3" fill="#1f6feb"/>
+<circle cx="621.3" cy="83.4" r="3" fill="#1f6feb"/>
+<circle cx="660.6" cy="67.1" r="3" fill="#1f6feb"/>
+<circle cx="700.0" cy="40.0" r="3" fill="#1f6feb"/>
+<line x1="70" x2="70" y1="383.32901258779253" y2="379.4387792843178" stroke="#1f6feb" opacity="0.6"/>
+<line x1="109.375" x2="109.375" y1="362.74287456939095" y2="361.5140925322789" stroke="#1f6feb" opacity="0.6"/>
+<line x1="148.75" x2="148.75" y1="341.6592966572448" y2="340.25579947392816" stroke="#1f6feb" opacity="0.6"/>
+<line x1="188.125" x2="188.125" y1="323.82632730139693" y2="319.15570429111557" stroke="#1f6feb" opacity="0.6"/>
+<line x1="227.5" x2="227.5" y1="310.07220500486034" y2="298.8005421258139" stroke="#1f6feb" opacity="0.6"/>
+<line x1="266.875" x2="266.875" y1="282.7778312816206" y2="270.3169427739251" stroke="#1f6feb" opacity="0.6"/>
+<line x1="306.25" x2="306.25" y1="263.5815346092153" y2="259.1901880387053" stroke="#1f6feb" opacity="0.6"/>
+<line x1="345.625" x2="345.625" y1="238.7166078014397" y2="236.55010252135727" stroke="#1f6feb" opacity="0.6"/>
+<line x1="385" x2="385" y1="223.25830359505827" y2="208.3859595953015" stroke="#1f6feb" opacity="0.6"/>
+<line x1="424.375" x2="424.375" y1="197.09738807692491" y2="191.42058570548457" stroke="#1f6feb" opacity="0.6"/>
+<line x1="463.75" x2="463.75" y1="175.17546523689995" y2="159.74529244021812" stroke="#1f6feb" opacity="0.6"/>
+<line x1="503.125" x2="503.125" y1="153.11100355788588" y2="144.63040937829234" stroke="#1f6feb" opacity="0.6"/>
+<line x1="542.5" x2="542.5" y1="140.8741145875378" y2="126.76004061171983" stroke="#1f6feb" opacity="0.6"/>
+<line x1="581.875" x2="581.875" y1="115.36759007503025" y2="105.52647659664467" stroke="#1f6feb" opacity="0.6"/>
+<line x1="621.25" x2="621.25" y1="89.75887871461589" y2="77.06365757183897" stroke="#1f6feb" opacity="0.6"/>
+<line x1="660.625" x2="660.625" y1="71.93435048598269" y2="62.2432559441167" stroke="#1f6feb" opacity="0.6"/>
+<line x1="700" x2="700" y1="47.4602019518789" y2="32.5397980481211" stroke="#1f6feb" opacity="0.6"/>
+<polyline points="70.0,385.0 109.4,363.7 148.8,342.4 188.1,321.1 227.5,299.8 266.9,278.5 306.3,257.2 345.6,235.8 385.0,214.5 424.4,193.2 463.8,171.9 503.1,150.6 542.5,129.3 581.9,108.0 621.3,86.7 660.6,65.4 700.0,44.1" fill="none" stroke="#d1242f" stroke-width="1.8"/>
+<rect x="470" y="46" width="14" height="3" fill="#1f6feb"/>
+<text x="490" y="51">delay ± jackknife SE</text>
+<rect x="470" y="64" width="14" height="3" fill="#d1242f"/>
+<text x="490" y="69">fit: c = 2.255 ± 0.028</text>
+</svg>

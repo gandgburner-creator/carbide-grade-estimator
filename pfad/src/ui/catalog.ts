@@ -131,7 +131,7 @@ export const PHASE0_CRITERIA: { text: string; engine: ExperimentType | null }[] 
   { text: 'measure pressure from impacts', engine: 'static-box' },
   { text: 'quantify energy conservation', engine: 'static-box' },
   { text: 'measure thermal behaviour', engine: 'thermal' },
-  { text: 'measure disturbance propagation', engine: 'sound-speed' },
+  { text: 'measure disturbance propagation', engine: 'sound-speed-validation' },
   { text: 'measure effective viscosity', engine: 'viscosity' },
   { text: 'demonstrate wall momentum transfer', engine: 'wall-accommodation' },
   { text: 'show a boundary layer', engine: 'boundary-layer' },

@@ -1,0 +1,4 @@
+commit 04e0826307f1aac8a4c2f125a6357dfce229d0c3
+host 4 cores; node v22.22.2
+START 2026-10-01T07:29:51Z: npx tsx scripts/run-experiment.ts sound-speed-validation --parallel 4 --out results --name sound-speed_validation
+END   2026-10-01T11:49:55Z exit=0 seconds=15604

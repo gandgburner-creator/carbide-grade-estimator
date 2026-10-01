@@ -231,3 +231,34 @@ is unchanged. Criteria for the reruns were fixed beforehand in
   (`REPORT_THERMAL_VISCOSITY.md` §7). The reference record stays
   INCONCLUSIVE.
 
+### Item 2: small-amplitude sound-speed experiment and arrival estimator (no model change)
+
+- **Added:** the `sound-speed-validation` experiment
+  (`src/experiments/SoundSpeed{Run,Analysis,Experiment}.ts`) and the probe
+  arrival analysis (`src/measurements/ArrivalAnalysis.ts`). `SoundRun`
+  subclasses `PulseRun` and overrides only the measurement (`snapshot`,
+  `result`); a test checks the particle state is bit-identical to `PulseRun`.
+  The only edit to `PulseRun` exports the class and its result type and makes
+  private members protected.
+- **Estimator revisions before pre-registration** (all on design seeds
+  5001–5208, before any validation data):
+  1. the stack time axis was extended, so far-probe pulses are not cut at
+     t < 0 (this had biased the speed of broadening pulses by +1–3 %);
+  2. each probe's template now leaves that probe out (its own noise had
+     pulled its delay; the jackknife SE was ≈ 30× too small);
+  3. the inward-wave search uses cross power, an interior maximum within
+     ½–2× the outward speed, and ratio ≥ 0.5 with SNR ≥ 5 (leakage from
+     strong pulses near zero moveout had made a 0.25 ratio fragile).
+- **Order of events:** the criteria, experiment and report script were
+  committed and pushed at `04e0826` before any validation run with seeds
+  6001–6064. The design draft `4a116b1` is not the pre-registration.
+- **Outcome:** PASS (`REPORT_SOUND_SPEED.md`), c₀ = 2.170 ± 0.038. No
+  criterion was changed after the data. Two post-hoc findings are reported
+  beside it, not used to change the classification. One is an
+  extrapolation-model systematic of ≈ 4 %. The other is that S1's rationale
+  is too broad: equilibrium noise carries a moveout at the sound speed that
+  the seed-averaged S1 statistic does not test.
+- **Unchanged:** physics, collision law, integrator, equilibration, rescale
+  and insertion. The safety warnings at the phase-1 → phase-2 handover
+  (in-flight collisions) are pre-existing `PulseRun` behaviour and were not
+  changed.

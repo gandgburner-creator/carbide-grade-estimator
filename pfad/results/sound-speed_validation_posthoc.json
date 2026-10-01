@@ -1,0 +1,93 @@
+{
+ "note": "POST HOC diagnostics, written after the validation data were seen; not used for any criterion.",
+ "equilibriumNoise": {
+  "method": "Per-seed slant-stack cross power of the control (A = 0) at slownesses 0.25–0.75 in each direction, summed over the 64 seeds; speed = vertex of a quadratic fitted over the hump (≥ 80 % of its maximum, robust to the interpolation ripple at exact sample alignments); jackknife over seeds; peakZ = mean / SE across seeds at the maximum.",
+  "outward": {
+   "speed": 2.2750439413596135,
+   "se": 0.016258898231164942,
+   "peakZ": 22.744124420631227
+  },
+  "inward": {
+   "speed": 2.2435545780886974,
+   "se": 0.014541844883852476,
+   "peakZ": 18.714625034445667
+  }
+ },
+ "extrapolationSensitivity": {
+  "preRegisteredLinearAll": {
+   "amplitudes": [
+    0.4,
+    0.3,
+    0.2,
+    0.1,
+    0.05
+   ],
+   "coefficients": [
+    2.1701227227499524,
+    0.5455149871025928
+   ],
+   "c0": 2.1701227227499524,
+   "se": 0.03798424047986536
+  },
+  "quadraticAll": {
+   "amplitudes": [
+    0.4,
+    0.3,
+    0.2,
+    0.1,
+    0.05
+   ],
+   "coefficients": [
+    2.2823148833531333,
+    -0.4008107218773805,
+    1.7105155554505465
+   ],
+   "c0": 2.2823148833531333,
+   "se": 0.1051660610422263
+  },
+  "linearWithout04": {
+   "amplitudes": [
+    0.3,
+    0.2,
+    0.1,
+    0.05
+   ],
+   "coefficients": [
+    2.204167154972862,
+    0.38161889654822795
+   ],
+   "c0": 2.204167154972862,
+   "se": 0.05786323391284274
+  },
+  "linearSmallestThree": {
+   "amplitudes": [
+    0.2,
+    0.1,
+    0.05
+   ],
+   "coefficients": [
+    2.291702494935021,
+    -0.19061511123267258
+   ],
+   "c0": 2.291702494935021,
+   "se": 0.09821867638043491
+  },
+  "weightedMeanAtMost02": {
+   "amplitudes": [
+    0.2,
+    0.1,
+    0.05
+   ],
+   "value": 2.2590974638644066,
+   "se": 0.02301846792817482
+  },
+  "weightedMeanAtMost01": {
+   "amplitudes": [
+    0.1,
+    0.05
+   ],
+   "value": 2.2713573202612927,
+   "se": 0.04925596344685497
+  }
+ }
+}

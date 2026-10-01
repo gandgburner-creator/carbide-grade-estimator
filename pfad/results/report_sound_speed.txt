@@ -1,0 +1,166 @@
+SMALL-AMPLITUDE SOUND SPEED  sound-speed-validation-2026-10-01T11-49-54-998Z-s6001_6002_6003_6004_6005_6006_6007_6008_6009_6010_6011_6012_6013_6014_6015_6016_6017_6018_6019_6020_6021_6022_6023_6024_6025_6026_6027_6028_6029_6030_6031_6032_6033_6034_6035_6036_6037_6038_6039_6040_6041_6042_6043_6044_6045_6046_6047_6048_6049_6050_6051_6052_6053_6054_6055_6056_6057_6058_6059_6060_6061_6062_6063_6064
+  model 0.2.0-p0.4; 64 seeds 6001–6064; criteria docs/CRITERIA_SOUND_SPEED.md
+  probes 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190 (width 10); sampling 0.5; window ≤ 120
+
+PER CASE (primary: stacked-template cross-correlation of the outward momentum pulse)
+
+  A = 0.4  [amplitude]  N ≈ 18579, realized amplitude 0.399, kT 1.0000 → 1.0000
+    c = 2.3935 ± 0.0159 (jackknife SE), 95 % CI [2.3619, 2.4252], seed-to-seed SD 0.127
+    detection: stack SNR 56.0, probes with correlation ≥ 3σ: 17/17 → DETECTED; ambiguous: no
+    arrival vs distance: R² 0.999584, residual RMS 0.417, curvature z 2.18; slant-stack speed 2.4009; inward: overall max SNR 20.1 (ratio 0.25, includes near-zero-moveout leakage), judged candidate none
+    features (reported): momentum peak (centroid ≥ ½ max): 2.296 ± 0.020 (17 probes); momentum front (leading ½-max crossing): 2.528 ± 0.019 (17 probes); momentum tail (trailing ½-max crossing): 2.080 ± 0.031 (17 probes); density-excess peak: 2.352 ± 0.020 (17 probes); kinetic-stress peak: 2.341 ± 0.020 (17 probes); momentum minimum after the peak (rarefaction / inward wave): not fitted (0 probes)
+    sides: right 2.386 ± 0.038, left 2.392 ± 0.032; placement: inner 2.431 ± 0.070, outer 2.320 ± 0.045
+    pairwise: 30→40 2.60±0.77, 40→50 2.45±0.60, 50→60 2.48±0.039, 60→70 2.49±0.078, 70→80 2.42±0.48, 80→90 2.31±0.81, 90→100 2.50±0.55, 100→110 2.53±0.87, 110→120 2.43±0.61, 120→130 2.19±0.47, 130→140 2.26±0.57, 140→150 2.53±0.58, 150→160 2.76±0.88, 160→170 2.23±0.63, 170→180 1.84±0.18, 180→190 2.48±0.14, 30→110 2.47±0.089, 110→190 2.31±0.070, 30→190 2.39±0.0094
+    energy residual 4.4e-14; sampling grid deviation ≤ 0.0061
+
+  A = 0.3  [amplitude]  N ≈ 18518, realized amplitude 0.299, kT 1.0000 → 1.0000
+    c = 2.3276 ± 0.0219 (jackknife SE), 95 % CI [2.2838, 2.3713], seed-to-seed SD 0.175
+    detection: stack SNR 44.4, probes with correlation ≥ 3σ: 17/17 → DETECTED; ambiguous: no
+    arrival vs distance: R² 0.999672, residual RMS 0.381, curvature z 1.38; slant-stack speed 2.3449; inward: overall max SNR 15.1 (ratio 0.24, includes near-zero-moveout leakage), judged candidate none
+    features (reported): momentum peak (centroid ≥ ½ max): 2.258 ± 0.028 (17 probes); momentum front (leading ½-max crossing): 2.479 ± 0.031 (17 probes); momentum tail (trailing ½-max crossing): 2.068 ± 0.037 (17 probes); density-excess peak: 2.297 ± 0.053 (17 probes); kinetic-stress peak: 2.315 ± 0.033 (17 probes); momentum minimum after the peak (rarefaction / inward wave): not fitted (0 probes)
+    sides: right 2.320 ± 0.031, left 2.340 ± 0.021; placement: inner 2.386 ± 0.041, outer 2.303 ± 0.057
+    pairwise: 30→40 2.81±0.21, 40→50 2.22±0.23, 50→60 2.55±0.42, 60→70 2.49±0.089, 70→80 2.04±0.37, 80→90 2.39±0.53, 90→100 2.54±0.46, 100→110 2.42±0.56, 110→120 2.06±0.48, 120→130 2.48±0.10, 130→140 2.04±0.097, 140→150 2.81±0.16, 150→160 2.52±0.30, 160→170 1.82±0.34, 170→180 2.51±0.60, 180→190 2.22±0.55, 30→110 2.41±0.080, 110→190 2.27±0.078, 30→190 2.34±0.032
+    energy residual 3.7e-14; sampling grid deviation ≤ 0.0062
+
+  A = 0.2  [amplitude]  N ≈ 18457, realized amplitude 0.200, kT 1.0000 → 1.0000
+    c = 2.2545 ± 0.0277 (jackknife SE), 95 % CI [2.1993, 2.3098], seed-to-seed SD 0.221
+    detection: stack SNR 29.6, probes with correlation ≥ 3σ: 17/17 → DETECTED; ambiguous: no
+    arrival vs distance: R² 0.999209, residual RMS 0.611, curvature z 1.27; slant-stack speed 2.2679; inward: overall max SNR 10.0 (ratio 0.23, includes near-zero-moveout leakage), judged candidate -3.31 SNR 6.60 ratio 0.15
+    features (reported): momentum peak (centroid ≥ ½ max): 2.214 ± 0.049 (17 probes); momentum front (leading ½-max crossing): 2.378 ± 0.048 (17 probes); momentum tail (trailing ½-max crossing): 2.076 ± 0.094 (17 probes); density-excess peak: 2.244 ± 0.070 (11 probes); kinetic-stress peak: 2.233 ± 0.055 (17 probes); momentum minimum after the peak (rarefaction / inward wave): not fitted (0 probes)
+    sides: right 2.271 ± 0.034, left 2.254 ± 0.060; placement: inner 2.325 ± 0.071, outer 2.249 ± 0.071
+    pairwise: 30→40 2.49±0.24, 40→50 2.27±0.088, 50→60 2.47±0.27, 60→70 2.82±0.93, 70→80 1.72±0.54, 80→90 3.17±1.1, 90→100 2.02±0.21, 100→110 2.20±0.78, 110→120 2.23±0.66, 120→130 1.79±0.46, 130→140 2.58±1.1, 140→150 3.19±1.4, 150→160 2.06±0.57, 160→170 1.78±0.40, 170→180 2.94±1.4, 180→190 1.77±0.46, 30→110 2.32±0.10, 110→190 2.19±0.10, 30→190 2.25±0.047
+    energy residual 3.9e-14; sampling grid deviation ≤ 0.0062
+
+  A = 0.1  [amplitude]  N ≈ 18396, realized amplitude 0.0998, kT 1.0000 → 1.0000
+    c = 2.2637 ± 0.0487 (jackknife SE), 95 % CI [2.1663, 2.3611], seed-to-seed SD 0.390
+    detection: stack SNR 15.5, probes with correlation ≥ 3σ: 17/17 → DETECTED; ambiguous: no
+    arrival vs distance: R² 0.998691, residual RMS 0.784, curvature z 0.0771; slant-stack speed 2.2784; inward: overall max SNR 4.97 (ratio 0.16, includes near-zero-moveout leakage), judged candidate -2.32 SNR 4.31 ratio 0.14
+    features (reported): momentum peak (centroid ≥ ½ max): 2.225 ± 0.20 (16 probes); momentum front (leading ½-max crossing): 2.250 ± 0.19 (16 probes); momentum tail (trailing ½-max crossing): 2.208 ± 0.23 (16 probes); density-excess peak: not fitted (1 probes); kinetic-stress peak: 2.332 ± 0.19 (8 probes); momentum minimum after the peak (rarefaction / inward wave): not fitted (0 probes)
+    sides: right 2.230 ± 0.062, left 2.374 ± 0.10; placement: inner 2.355 ± 0.15, outer 2.401 ± 0.089
+    pairwise: 30→40 2.51±0.70, 40→50 2.50±0.24, 50→60 2.29±0.11, 60→70 2.71±0.88, 70→80 1.85±0.64, 80→90 2.52±1.6, 90→100 2.23±1.0, 100→110 2.70±1.5, 110→120 1.76±0.91, 120→130 2.12±0.88, 130→140 2.01±0.89, 140→150 2.95±1.5, 150→160 2.77±1.5, 160→170 1.42±0.43, 170→180 4.01±2.3, 180→190 3.31±1.6, 30→110 2.38±0.18, 110→190 2.29±0.16, 30→190 2.33±0.054
+    energy residual 3.9e-14; sampling grid deviation ≤ 0.0062
+
+  A = 0.05  [amplitude]  N ≈ 18366, realized amplitude 0.0507, kT 1.0000 → 1.0000
+    c = 2.3202 ± 0.123 (jackknife SE), 95 % CI [2.0737, 2.5668], seed-to-seed SD 0.987
+    detection: stack SNR 8.11, probes with correlation ≥ 3σ: 17/17 → DETECTED; ambiguous: no
+    arrival vs distance: R² 0.998505, residual RMS 0.817, curvature z -0.0659; slant-stack speed 2.3376; inward: overall max SNR 3.08 (ratio 0.23, includes near-zero-moveout leakage), judged candidate -1.94 SNR 3.10 ratio 0.23
+    features (reported): momentum peak (centroid ≥ ½ max): not fitted (1 probes); momentum front (leading ½-max crossing): not fitted (1 probes); momentum tail (trailing ½-max crossing): not fitted (1 probes); density-excess peak: not fitted (0 probes); kinetic-stress peak: not fitted (0 probes); momentum minimum after the peak (rarefaction / inward wave): not fitted (0 probes)
+    sides: right 2.192 ± 0.38, left 2.335 ± 0.083; placement: inner 2.227 ± 0.16, outer 2.245 ± 0.71
+    pairwise: 30→40 2.52±1.3, 40→50 2.44±0.88, 50→60 2.04±0.60, 60→70 2.84±1.3, 70→80 1.82±0.51, 80→90 2.28±0.77, 90→100 2.82±1.7, 100→110 2.39±1.5, 110→120 2.33±2.5, 120→130 1.50±0.86, 130→140 7.47±24, 140→150 1.80±1.4, 150→160 3.99±5.4, 160→170 1.64±2.0, 170→180 3.46±31, 180→190 1.54±1.1, 30→110 2.35±0.13, 110→190 2.23±0.28, 30→190 2.29±0.13
+    energy residual 3.6e-14; sampling grid deviation ≤ 0.0062
+
+  control A = 0  [control]  N ≈ 18335, realized amplitude 0.00, kT 1.0000 → 1.0000
+    c = 2.4353 ± 0.888 (jackknife SE), 95 % CI [0.66011, 4.2104], seed-to-seed SD 7.11
+    detection: stack SNR 1.80, probes with correlation ≥ 3σ: 2/17 → not detected; ambiguous: YES
+    leave-one-out unstable: slowness false, probes 40, 80, 90, 150, 180, 190
+    arrival vs distance: R² 0.926453, residual RMS 5.67, curvature z -0.334; slant-stack speed 2.2241; inward: overall max SNR 3.57 (ratio 2.2, includes near-zero-moveout leakage), judged candidate -2.30 SNR 3.54 ratio 2.2
+    features (reported): momentum peak (centroid ≥ ½ max): not fitted (0 probes); momentum front (leading ½-max crossing): not fitted (0 probes); momentum tail (trailing ½-max crossing): not fitted (0 probes); density-excess peak: not fitted (0 probes); kinetic-stress peak: not fitted (0 probes); momentum minimum after the peak (rarefaction / inward wave): not fitted (0 probes)
+    sides: right 2.124 ± 0.69, left 2.738 ± 2.1; placement: inner 2.598 ± 1.6, outer 2.962 ± 1.4
+    pairwise: 30→40 2.55±9.1, 40→50 1.49±9.8, 50→60 -8.44±27, 60→70 1.11±0.26, 70→80 4.75±22, 80→90 4.27±2.7e+2, 90→100 1.29±1.3, 100→110 2.24±2.2, 110→120 0.651±0.15, 120→130 -1.42±0.47, 130→140 -2.23±12, 140→150 0.417±23, 150→160 -2.21±6.4, 160→170 3.29±1.8, 170→180 -1.20±12, 180→190 1.25±12, 30→110 2.28±0.49, 110→190 3.08±2.9, 30→190 2.62±1.3
+    energy residual 3.8e-14; sampling grid deviation ≤ 0.0063
+
+  Courant 0.05  [variant, timestep]  N ≈ 18579, realized amplitude 0.399, kT 1.0000 → 1.0000
+    c = 2.3951 ± 0.0265 (jackknife SE), 95 % CI [2.3410, 2.4492], seed-to-seed SD 0.150
+    detection: stack SNR 43.4, probes with correlation ≥ 3σ: 17/17 → DETECTED; ambiguous: no
+    arrival vs distance: R² 0.999468, residual RMS 0.472, curvature z 2.82; slant-stack speed 2.4066; inward: overall max SNR 17.1 (ratio 0.29, includes near-zero-moveout leakage), judged candidate none
+    features (reported): momentum peak (centroid ≥ ½ max): 2.318 ± 0.030 (17 probes); momentum front (leading ½-max crossing): 2.564 ± 0.021 (17 probes); momentum tail (trailing ½-max crossing): 2.111 ± 0.054 (17 probes); density-excess peak: 2.343 ± 0.026 (15 probes); kinetic-stress peak: 2.393 ± 0.033 (17 probes); momentum minimum after the peak (rarefaction / inward wave): not fitted (0 probes)
+    sides: right 2.402 ± 0.031, left 2.384 ± 0.033; placement: inner 2.467 ± 0.055, outer 2.284 ± 0.049
+    pairwise: 30→40 2.49±0.14, 40→50 2.51±0.094, 50→60 2.45±0.11, 60→70 2.52±0.10, 70→80 2.48±0.075, 80→90 2.26±0.27, 90→100 2.48±0.27, 100→110 2.84±0.15, 110→120 2.22±0.17, 120→130 2.55±0.39, 130→140 2.01±0.39, 140→150 2.78±0.62, 150→160 2.46±0.65, 160→170 1.88±0.35, 170→180 2.36±0.51, 180→190 2.30±0.55, 30→110 2.49±0.020, 110→190 2.29±0.043, 30→190 2.39±0.023
+    energy residual 3.9e-14; sampling grid deviation ≤ 0.012
+
+  L = 900  [variant, domain-length]  N ≈ 27746, realized amplitude 0.399, kT 1.0000 → 1.0000
+    c = 2.3794 ± 0.0280 (jackknife SE), 95 % CI [2.3222, 2.4365], seed-to-seed SD 0.159
+    detection: stack SNR 42.2, probes with correlation ≥ 3σ: 17/17 → DETECTED; ambiguous: no
+    arrival vs distance: R² 0.999587, residual RMS 0.418, curvature z 1.54; slant-stack speed 2.3880; inward: overall max SNR 16.7 (ratio 0.29, includes near-zero-moveout leakage), judged candidate none
+    features (reported): momentum peak (centroid ≥ ½ max): 2.325 ± 0.026 (17 probes); momentum front (leading ½-max crossing): 2.514 ± 0.024 (17 probes); momentum tail (trailing ½-max crossing): 2.172 ± 0.043 (17 probes); density-excess peak: 2.350 ± 0.029 (17 probes); kinetic-stress peak: 2.319 ± 0.035 (17 probes); momentum minimum after the peak (rarefaction / inward wave): not fitted (0 probes)
+    sides: right 2.374 ± 0.027, left 2.370 ± 0.029; placement: inner 2.475 ± 0.016, outer 2.366 ± 0.038
+    pairwise: 30→40 2.53±0.056, 40→50 2.44±0.066, 50→60 2.57±0.080, 60→70 2.20±0.072, 70→80 2.81±0.11, 80→90 2.50±0.11, 90→100 2.52±0.079, 100→110 2.20±0.25, 110→120 2.05±0.40, 120→130 2.46±0.63, 130→140 2.22±0.38, 140→150 2.80±0.50, 150→160 2.25±0.43, 160→170 2.02±0.41, 170→180 2.51±0.55, 180→190 2.81±0.74, 30→110 2.46±0.044, 110→190 2.36±0.072, 30→190 2.41±0.039
+    energy residual 4.0e-14; sampling grid deviation ≤ 0.0060
+
+  H = 240  [variant, strip-height]  N ≈ 37158, realized amplitude 0.400, kT 1.0000 → 1.0000
+    c = 2.3810 ± 0.00731 (jackknife SE), 95 % CI [2.3661, 2.3959], seed-to-seed SD 0.0414
+    detection: stack SNR 62.0, probes with correlation ≥ 3σ: 17/17 → DETECTED; ambiguous: no
+    arrival vs distance: R² 0.999694, residual RMS 0.360, curvature z 2.59; slant-stack speed 2.3905; inward: overall max SNR 23.5 (ratio 0.26, includes near-zero-moveout leakage), judged candidate none
+    features (reported): momentum peak (centroid ≥ ½ max): 2.317 ± 0.024 (17 probes); momentum front (leading ½-max crossing): 2.511 ± 0.065 (17 probes); momentum tail (trailing ½-max crossing): 2.140 ± 0.025 (17 probes); density-excess peak: 2.349 ± 0.023 (17 probes); kinetic-stress peak: 2.345 ± 0.014 (17 probes); momentum minimum after the peak (rarefaction / inward wave): not fitted (0 probes)
+    sides: right 2.380 ± 0.028, left 2.383 ± 0.027; placement: inner 2.426 ± 0.027, outer 2.327 ± 0.028
+    pairwise: 30→40 2.80±0.043, 40→50 2.26±0.035, 50→60 2.46±0.050, 60→70 2.57±0.060, 70→80 2.20±0.055, 80→90 2.55±0.54, 90→100 2.40±0.49, 100→110 2.27±0.42, 110→120 2.51±0.46, 120→130 2.84±0.47, 130→140 1.99±0.062, 140→150 2.52±0.14, 150→160 2.02±0.20, 160→170 2.78±0.40, 170→180 2.03±0.26, 180→190 2.51±0.26, 30→110 2.43±0.0068, 110→190 2.35±0.017, 30→190 2.39±0.0085
+    energy residual 4.9e-14; sampling grid deviation ≤ 0.0058
+
+  radius 0.35, H = 60  [variant, particle-radius]  N ≈ 18958, realized amplitude 0.399, kT 1.0000 → 1.0000
+    c = 2.3859 ± 0.0203 (jackknife SE), 95 % CI [2.3446, 2.4272], seed-to-seed SD 0.115
+    detection: stack SNR 46.8, probes with correlation ≥ 3σ: 17/17 → DETECTED; ambiguous: no
+    arrival vs distance: R² 0.999803, residual RMS 0.288, curvature z 2.66; slant-stack speed 2.3912; inward: overall max SNR 15.4 (ratio 0.21, includes near-zero-moveout leakage), judged candidate none
+    features (reported): momentum peak (centroid ≥ ½ max): 2.357 ± 0.015 (17 probes); momentum front (leading ½-max crossing): 2.522 ± 0.020 (17 probes); momentum tail (trailing ½-max crossing): 2.214 ± 0.030 (17 probes); density-excess peak: 2.399 ± 0.036 (17 probes); kinetic-stress peak: 2.384 ± 0.015 (17 probes); momentum minimum after the peak (rarefaction / inward wave): not fitted (0 probes)
+    sides: right 2.393 ± 0.029, left 2.372 ± 0.027; placement: inner 2.406 ± 0.037, outer 2.334 ± 0.030
+    pairwise: 30→40 2.75±0.069, 40→50 2.26±0.061, 50→60 2.51±0.073, 60→70 2.48±0.11, 70→80 2.52±0.11, 80→90 2.26±0.36, 90→100 2.20±0.37, 100→110 2.48±0.28, 110→120 2.80±0.66, 120→130 2.26±0.50, 130→140 2.22±0.079, 140→150 2.51±0.13, 150→160 2.24±0.49, 160→170 2.41±0.55, 170→180 2.28±0.49, 180→190 2.19±0.32, 30→110 2.42±0.028, 110→190 2.35±0.043, 30→190 2.38±0.027
+    energy residual 2.1e-14; sampling grid deviation ≤ 0.0042
+
+  velocity kick U = 0.4  [variant, disturbance-type, reported only]  N ≈ 18335, realized amplitude n/a, kT 1.0027 → 1.0027
+    c = 2.3479 ± 0.0702 (jackknife SE), 95 % CI [2.1984, 2.4975], seed-to-seed SD 0.281
+    detection: stack SNR 11.6, probes with correlation ≥ 3σ: 17/17 → DETECTED; ambiguous: no
+    arrival vs distance: R² 0.999219, residual RMS 0.583, curvature z 0.577; slant-stack speed 2.3574; inward: overall max SNR 3.60 (ratio 0.27, includes near-zero-moveout leakage), judged candidate -2.39 SNR 3.52 ratio 0.27
+    features (reported): momentum peak (centroid ≥ ½ max): 2.492 ± 0.078 (5 probes); momentum front (leading ½-max crossing): 2.673 ± 0.078 (5 probes); momentum tail (trailing ½-max crossing): 2.322 ± 0.14 (5 probes); density-excess peak: not fitted (2 probes); kinetic-stress peak: 2.603 ± 0.076 (5 probes); momentum minimum after the peak (rarefaction / inward wave): not fitted (0 probes)
+    sides: right 2.319 ± 0.041, left 2.375 ± 0.089; placement: inner 2.393 ± 0.051, outer 2.266 ± 0.069
+    pairwise: 30→40 1.98±0.27, 40→50 2.88±0.73, 50→60 2.44±0.60, 60→70 2.63±1.0, 70→80 2.72±0.84, 80→90 1.55±0.33, 90→100 3.38±2.1, 100→110 2.47±0.61, 110→120 2.58±0.91, 120→130 2.25±0.65, 130→140 1.81±0.74, 140→150 2.77±2.2, 150→160 2.29±1.5, 160→170 2.15±0.58, 170→180 3.05±4.5, 180→190 1.94±1.2, 30→110 2.38±0.061, 110→190 2.29±0.10, 30→190 2.34±0.050
+    energy residual 3.5e-14; sampling grid deviation ≤ 0.0063
+
+  slab width 40  [variant, slab-width, reported only]  N ≈ 18824, realized amplitude 0.400, kT 1.0000 → 1.0000
+    c = 2.4662 ± 0.00979 (jackknife SE), 95 % CI [2.4453, 2.4871], seed-to-seed SD 0.0392
+    detection: stack SNR 50.3, probes with correlation ≥ 3σ: 17/17 → DETECTED; ambiguous: no
+    arrival vs distance: R² 0.999598, residual RMS 0.398, curvature z 1.55; slant-stack speed 2.4671; inward: overall max SNR 25.8 (ratio 0.35, includes near-zero-moveout leakage), judged candidate none
+    features (reported): momentum peak (centroid ≥ ½ max): 2.401 ± 0.036 (17 probes); momentum front (leading ½-max crossing): 2.534 ± 0.048 (17 probes); momentum tail (trailing ½-max crossing): 2.273 ± 0.090 (17 probes); density-excess peak: 2.496 ± 0.038 (17 probes); kinetic-stress peak: 2.440 ± 0.027 (17 probes); momentum minimum after the peak (rarefaction / inward wave): not fitted (0 probes)
+    sides: right 2.500 ± 0.027, left 2.429 ± 0.020; placement: inner 2.500 ± 0.026, outer 2.411 ± 0.050
+    pairwise: 30→40 2.55±0.34, 40→50 3.18±0.51, 50→60 2.05±0.25, 60→70 2.76±0.42, 70→80 2.24±0.27, 80→90 2.47±0.10, 90→100 2.88±0.11, 100→110 2.79±0.46, 110→120 2.26±0.34, 120→130 2.04±0.27, 130→140 2.84±0.34, 140→150 2.20±0.14, 150→160 2.51±0.12, 160→170 2.83±0.53, 170→180 2.47±0.51, 180→190 2.04±0.30, 30→110 2.57±0.058, 110→190 2.36±0.047, 30→190 2.46±0.023
+    energy residual 3.8e-14; sampling grid deviation ≤ 0.0061
+
+AMPLITUDE SERIES AND ZERO-AMPLITUDE EXTRAPOLATION
+  A 0.4 (realized 0.399): c 2.3935 ± 0.0159, SNR 56.0, detected, R² 0.99958, curvature z 2.18 → distance linearity PASSED
+  A 0.3 (realized 0.299): c 2.3276 ± 0.0219, SNR 44.4, detected, R² 0.99967, curvature z 1.38 → distance linearity PASSED
+  A 0.2 (realized 0.200): c 2.2545 ± 0.0277, SNR 29.6, detected, R² 0.99921, curvature z 1.27 → distance linearity PASSED
+  A 0.1 (realized 0.0998): c 2.2637 ± 0.0487, SNR 15.5, detected, R² 0.99869, curvature z 0.0771 → distance linearity PASSED
+  A 0.05 (realized 0.0507): c 2.3202 ± 0.123, SNR 8.11, detected, R² 0.99851, curvature z -0.0659 → distance linearity PASSED
+  noise-dominated: none; dropped (top-down rule): none
+  set 0.4, 0.3, 0.2, 0.1, 0.05: c₀ = 2.1701 ± 0.0380 (joint jackknife), 95 % CI [2.0942, 2.2460] (±3.50 %); slope k = 0.5455 ± 0.11; c(A) curvature z 1.17; χ² 2.62 (3 dof, diagonal SEs, reported)
+  sensitivity: smallest three amplitudes → c₀ = 2.2917 ± 0.0982
+  sensitivity: all detected amplitudes → c₀ = 2.1701 ± 0.0380, curvature z 1.17
+  split halves: 2.1771 ± 0.0529 vs 2.1901 ± 0.0921 (z -0.123); 4 groups: 2.1350, 2.1725, 2.2247, 2.1559 (SD 0.0383)
+
+INVARIANCE (relative speed difference vs the reference amplitude case, joint jackknife, 95 % CI; margin ±5.00 %)
+  S8-probe-width-4       probe width (4 vs 10)                   0.65 % [-1.15 %, 2.45 %]  PASSED
+  S8-probe-width-20      probe width (20 vs 10)                 -0.64 % [-2.08 %, 0.79 %]  PASSED
+  S8-time-resolution     sampling interval (1 vs 0.5)           -0.28 % [-2.93 %, 2.38 %]  PASSED
+  S8-measurement-window  analysis window end (110 vs 120)       -0.10 % [-0.80 %, 0.59 %]  PASSED
+  S8-timestep            Courant 0.05                            0.79 % [-2.65 %, 4.23 %]  PASSED
+  S9-domain-length       L = 900                                 0.13 % [-3.46 %, 3.72 %]  PASSED
+  S9-strip-height        H = 240                                 0.20 % [-2.17 %, 2.56 %]  PASSED
+  S9-particle-radius     radius 0.35, H = 60                     0.40 % [-3.09 %, 3.90 %]  PASSED
+  R-disturbance-type     velocity kick U = 0.4                  -0.82 % [-7.65 %, 6.02 %]  (reported) INCONCLUSIVE
+  R-slab-width           slab width 40                           4.18 % [0.69 %, 7.66 %]  (reported) INCONCLUSIVE
+
+CONTROL (A = 0): {"outward":1.7978763299063867,"inward":3.566811498095437,"maxProbe":3.4336042180859225}
+REFLECTION: A = 0.4: wrapped ≥ 156.7 (window 120), inward candidate none; A = 0.3: wrapped ≥ 160.2 (window 120), inward candidate none; A = 0.2: wrapped ≥ 165.9 (window 120), inward candidate -3.31 SNR 6.60 ratio 0.15; A = 0.1: wrapped ≥ 161.3 (window 120), inward candidate -2.32 SNR 4.31 ratio 0.14; A = 0.05: wrapped ≥ 149.0 (window 120), inward candidate -1.94 SNR 3.10 ratio 0.23; Courant 0.05: wrapped ≥ 154.5 (window 120), inward candidate none; L = 900: wrapped ≥ 278.0 (window 120), inward candidate none; H = 240: wrapped ≥ 160.0 (window 120), inward candidate none; radius 0.35, H = 60: wrapped ≥ 159.0 (window 120), inward candidate none; velocity kick U = 0.4: wrapped ≥ 148.2 (window 120), inward candidate -2.39 SNR 3.52 ratio 0.27; slab width 40: wrapped ≥ 153.1 (window 120), inward candidate none
+
+EXTERNAL BENCHMARKS (comparison only, not criteria): {"note":"EXTERNAL comparison only, computed after the measurement; nothing here enters a run, an analysis or a criterion. Hard-disk values use the Henderson equation of state.","kT":1,"idealGas2D_sqrt2kT_m":1.4142135623730951,"hardDiskIsothermal":1.539835624429062,"hardDiskAdiabatic":2.1993124148053838,"measuredC0":2.1701227227499524}
+
+CLASSIFICATION: PASS
+  [PASSED] numerical-safety: none
+  [PASSED] energy-accounting: 4.91e-14
+  [PASSED] no-empty-space: none
+  [PASSED] S1-control-no-signal: outward 1.80, inward 3.57, max probe 3.43
+  [PASSED] S2-detection: detected: 0.4, 0.3, 0.2, 0.1, 0.05; noise-dominated: none
+  [PASSED] S3-unambiguous: all unambiguous (0.4, 0.3, 0.2, 0.1, 0.05)
+  [PASSED] S4-distance-linearity: A 0.4: R² 0.9996, z 2.18; A 0.3: R² 0.9997, z 1.38; A 0.2: R² 0.9992, z 1.27; A 0.1: R² 0.9987, z 0.08; A 0.05: R² 0.9985, z -0.07
+  [PASSED] S5-amplitude-extrapolation: set 0.4, 0.3, 0.2, 0.1, 0.05; curvature z 1.17
+  [PASSED] S6-precision: c₀ = 2.1701 ± 0.0380 (SE); 95 % half-width 3.50 %
+  [PASSED] S7-seed-reproducibility: 2.1771 ± 0.0529 vs 2.1901 ± 0.0921, z = -0.12
+  [PASSED] S8-probe-width-4: 0.65 % [-1.15, 2.45]
+  [PASSED] S8-probe-width-20: -0.64 % [-2.08, 0.79]
+  [PASSED] S8-time-resolution: -0.28 % [-2.93, 2.38]
+  [PASSED] S8-measurement-window: -0.10 % [-0.80, 0.59]
+  [PASSED] S8-timestep: 0.79 % [-2.65, 4.23]
+  [PASSED] S9-domain-length: 0.13 % [-3.46, 3.72]
+  [PASSED] S9-strip-height: 0.20 % [-2.17, 2.56]
+  [PASSED] S9-particle-radius: 0.40 % [-3.09, 3.90]
+  [PASSED] S10-reflection-exclusion: clear (earliest wrapped arrival 149.0 > 120; inward candidates: A = 0.4 none, A = 0.3 none, A = 0.2 SNR 6.6 ratio 0.15, A = 0.1 SNR 4.3 ratio 0.14, A = 0.05 SNR 3.1 ratio 0.23, Courant 0.05 none, L = 900 none, H = 240 none, radius 0.35, H = 60 none)
+
+plots: results/plots/sound_speed/xt_A_0.4.svg, results/plots/sound_speed/xt_A_0.3.svg, results/plots/sound_speed/xt_A_0.2.svg, results/plots/sound_speed/xt_A_0.1.svg, results/plots/sound_speed/xt_A_0.05.svg, results/plots/sound_speed/xt_control_A_0.svg, results/plots/sound_speed/waveforms_A_0.4.svg, results/plots/sound_speed/waveforms_A_0.3.svg, results/plots/sound_speed/waveforms_A_0.2.svg, results/plots/sound_speed/waveforms_A_0.1.svg, results/plots/sound_speed/waveforms_A_0.05.svg, results/plots/sound_speed/waveforms_control_A_0.svg, results/plots/sound_speed/arrival_A_0.4.svg, results/plots/sound_speed/arrival_A_0.3.svg, results/plots/sound_speed/arrival_A_0.2.svg, results/plots/sound_speed/arrival_A_0.1.svg, results/plots/sound_speed/arrival_A_0.05.svg, results/plots/sound_speed/speed_vs_amplitude.svg, results/plots/sound_speed/invariance.svg, results/plots/sound_speed/stack_power.svg, results/plots/sound_speed/seed_halves_groups.svg

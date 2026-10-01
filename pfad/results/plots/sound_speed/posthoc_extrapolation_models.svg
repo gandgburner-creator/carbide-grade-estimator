@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="440" font-family="sans-serif" font-size="12">
+<rect width="720" height="440" fill="#fff"/>
+<text x="360" y="22" text-anchor="middle" font-size="14" font-weight="600">POST HOC — zero-amplitude speed under alternative extrapolation models (pre-registered: linear, all)</text>
+<line x1="70" x2="700" y1="385" y2="385" stroke="#e5e5e5"/>
+<text x="64" y="389" text-anchor="end">2.17</text>
+<text x="70" y="403" text-anchor="middle">0.00</text>
+<line x1="70" x2="700" y1="316.0000000000001" y2="316.0000000000001" stroke="#e5e5e5"/>
+<text x="64" y="320.0000000000001" text-anchor="end">2.22</text>
+<text x="196" y="403" text-anchor="middle">0.0800</text>
+<line x1="70" x2="700" y1="247.00000000000028" y2="247.00000000000028" stroke="#e5e5e5"/>
+<text x="64" y="251.00000000000028" text-anchor="end">2.26</text>
+<text x="322" y="403" text-anchor="middle">0.160</text>
+<line x1="70" x2="700" y1="177.99999999999974" y2="177.99999999999974" stroke="#e5e5e5"/>
+<text x="64" y="181.99999999999974" text-anchor="end">2.31</text>
+<text x="448.00000000000006" y="403" text-anchor="middle">0.240</text>
+<line x1="70" x2="700" y1="108.99999999999989" y2="108.99999999999989" stroke="#e5e5e5"/>
+<text x="64" y="112.99999999999989" text-anchor="end">2.35</text>
+<text x="574" y="403" text-anchor="middle">0.320</text>
+<line x1="70" x2="700" y1="40" y2="40" stroke="#e5e5e5"/>
+<text x="64" y="44" text-anchor="end">2.40</text>
+<text x="700" y="403" text-anchor="middle">0.400</text>
+<line x1="70" x2="70" y1="40" y2="385" stroke="#333"/>
+<line x1="70" x2="700" y1="385" y2="385" stroke="#333"/>
+<text x="360" y="428" text-anchor="middle">amplitude A</text>
+<text transform="translate(16 220) rotate(-90)" text-anchor="middle">speed</text>
+<circle cx="700.0" cy="43.3" r="3" fill="#1f6feb"/>
+<circle cx="542.5" cy="144.2" r="3" fill="#1f6feb"/>
+<circle cx="385.0" cy="255.9" r="3" fill="#1f6feb"/>
+<circle cx="227.5" cy="241.8" r="3" fill="#1f6feb"/>
+<circle cx="148.8" cy="155.4" r="3" fill="#1f6feb"/>
+<line x1="700" x2="700" y1="67.5028213881684" y2="19.002405332998592" stroke="#1f6feb" opacity="0.6"/>
+<line x1="542.5" x2="542.5" y1="177.68911173988843" y2="110.70055582266133" stroke="#1f6feb" opacity="0.6"/>
+<line x1="385" x2="385" y1="298.1816384114463" y2="213.58293513449516" stroke="#1f6feb" opacity="0.6"/>
+<line x1="227.5" x2="227.5" y1="316.38784312159123" y2="167.26385697023665" stroke="#1f6feb" opacity="0.6"/>
+<line x1="148.75" x2="148.75" y1="344.0894499764311" y2="-33.347657968381725" stroke="#1f6feb" opacity="0.6"/>
+<polyline points="70.0,385.0 85.8,376.7 101.5,368.3 117.3,360.0 133.0,351.6 148.8,343.3 164.5,334.9 180.3,326.6 196.0,318.2 211.8,309.9 227.5,301.6 243.2,293.2 259.0,284.9 274.8,276.5 290.5,268.2 306.3,259.8 322.0,251.5 337.8,243.1 353.5,234.8 369.3,226.5 385.0,218.1 400.7,209.8 416.5,201.4 432.3,193.1 448.0,184.7 463.8,176.4 479.5,168.1 495.3,159.7 511.0,151.4 526.8,143.0 542.5,134.7 558.3,126.3 574.0,118.0 589.8,109.6 605.5,101.3 621.3,93.0 637.0,84.6 652.8,76.3 668.5,67.9 684.3,59.6 700.0,51.2" fill="none" stroke="#d1242f" stroke-width="1.8"/>
+<polyline points="70.0,213.4 85.8,219.3 101.5,224.6 117.3,229.4 133.0,233.7 148.8,237.5 164.5,240.8 180.3,243.5 196.0,245.7 211.8,247.4 227.5,248.5 243.2,249.2 259.0,249.3 274.8,248.9 290.5,247.9 306.3,246.5 322.0,244.5 337.8,242.0 353.5,239.0 369.3,235.4 385.0,231.4 400.7,226.8 416.5,221.6 432.3,216.0 448.0,209.8 463.8,203.1 479.5,195.9 495.3,188.2 511.0,179.9 526.8,171.1 542.5,161.8 558.3,152.0 574.0,141.7 589.8,130.8 605.5,119.4 621.3,107.5 637.0,95.0 652.8,82.0 668.5,68.6 684.3,54.5 700.0,40.0" fill="none" stroke="#9a6700" stroke-width="1.8" stroke-dasharray="6 4"/>
+<polyline points="70.0,199.0 85.8,201.9 101.5,204.9 117.3,207.8 133.0,210.7 148.8,213.6 164.5,216.5 180.3,219.4 196.0,222.4 211.8,225.3 227.5,228.2 243.2,231.1 259.0,234.0 274.8,236.9 290.5,239.9 306.3,242.8 322.0,245.7 337.8,248.6 353.5,251.5 369.3,254.4 385.0,257.3" fill="none" stroke="#1a7f37" stroke-width="1.8" stroke-dasharray="6 4"/>
+<polyline points="70.0,248.6 700.0,248.6" fill="none" stroke="#8250df" stroke-width="1.8" stroke-dasharray="6 4"/>
+<rect x="470" y="46" width="14" height="3" fill="#1f6feb"/>
+<text x="490" y="51">measured c(A) ± SE (primary)</text>
+<rect x="470" y="64" width="14" height="3" fill="#d1242f"/>
+<text x="490" y="69">linear, all (pre-registered): c₀ 2.170 ± 0.038</text>
+<rect x="470" y="82" width="14" height="3" fill="#9a6700"/>
+<text x="490" y="87">quadratic, all: c₀ 2.282 ± 0.105</text>
+<rect x="470" y="100" width="14" height="3" fill="#1a7f37"/>
+<text x="490" y="105">linear, 3 smallest: c₀ 2.292 ± 0.098</text>
+<rect x="470" y="118" width="14" height="3" fill="#8250df"/>
+<text x="490" y="123">equilibrium-noise moveout 2.275 / 2.244 (out / in)</text>
+</svg>

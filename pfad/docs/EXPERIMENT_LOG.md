@@ -29,7 +29,7 @@ changed with resolution beyond its tolerance.
 | 2 | measure pressure from impacts | static box | **PASSED** | 1.116 nkT at φ = 0.05 = hard-disk EOS; v0.1's 0.997 not reproduced (§1) |
 | 3 | quantify energy conservation | every record | **PASSED** | ledgers close to ~10⁻¹³ (§2) |
 | 4 | measure thermal behaviour | thermal validation (seeds 31–40); reference (21–30) | **PASSED** (validation) | fresh seeds pass E1–E5 and the pre-registered E6′ (0/24 violations). The original reference stays INCONCLUSIVE on the retired E6 (§3) |
-| 5 | measure disturbance propagation | pulse reference, sweeps | INCONCLUSIVE | finite speed measured, but amplitude/width-dependent; model E ambiguous (§5) |
+| 5 | measure disturbance propagation | sound-speed validation (seeds 6001–6064); pulse reference, sweeps | **PASSED** (validation) | pre-registered amplitude series → c₀ = 2.170 ± 0.038 (± 3.5 %), invariant to timestep, probes, domain, radius; post-hoc caveats: extrapolation-model systematic ≈ 4 %, equilibrium noise carries a moveout signature (§5) |
 | 6 | measure effective viscosity | Couette reference, sweeps | **PASSED** (reference) | μ_eff = 0.3326, 95 % CI ± 4.85 % over 30 seeds (Enskog 0.316), stable, timestep-independent; sweeps not rerun (§6) |
 | 7 | demonstrate wall momentum transfer | wall accommodation | **PASSED** | α_E and α_t equal Aw (§4) |
 | 8 | show a boundary layer | boundary layer | INCONCLUSIVE | layer emerged; upstream control not clean, momentum integral not closed (§7) |
@@ -41,7 +41,7 @@ changed with resolution beyond its tolerance.
 | 14 | export experiment data | every record | **PASSED** | JSON records; lab EXPORT / IMPORT |
 | 15 | distinguish measured results from assumptions | every record | **PASSED** | results, benchmarks and assumption IDs kept apart (`MODEL_ASSUMPTIONS.md`) |
 
-**Airfoil optimisation stays locked.** Criteria 5, 8 and 9 are
+**Airfoil optimisation stays locked.** Criteria 8 and 9 are
 INCONCLUSIVE and the flow scaling study is NOT CONVERGED. That is the honest
 state of Phase 0, not a failure to hide. §14 lists what would change it.
 
@@ -173,6 +173,42 @@ shear grows with Aw (τ = 0.0027 → 0.0059 at U = 1) with slip falling from 0.3
 to 0.12 — the macroscopic effect of Aw, reported as such, not as a viscosity.
 
 ## 5. Disturbance propagation (Step 10)
+
+### 5.1 Item 2 validation: small-amplitude sound speed — **PASSED**
+
+Record `sound-speed_validation.json`. Fresh seeds 6001–6064, criteria
+pre-registered at `04e0826` (`CRITERIA_SOUND_SPEED.md`), full report in
+`REPORT_SOUND_SPEED.md`. Universe A, φ = 0.2, kT = 1, periodic 600 × 120. A
+central slab of width 20 gets a density excess A by random sequential
+addition and is released. Arrival delays come from a leave-own-probe-out
+stacked-template cross-correlation of the folded outward momentum density at
+17 probes (d = 30–190). No expected speed enters the run, the tracker or the
+criteria.
+
+| A | 0.4 | 0.3 | 0.2 | 0.1 | 0.05 |
+|---|---|---|---|---|---|
+| c ± SE (64 seeds) | 2.394 ± 0.016 | 2.328 ± 0.022 | 2.255 ± 0.028 | 2.264 ± 0.049 | 2.320 ± 0.123 |
+
+- **Zero-amplitude speed** (linear in A, pre-registered):
+  c₀ = **2.170 ± 0.038**, 95 % CI [2.094, 2.246] (± 3.5 %). Split halves
+  agree (z = −0.12); the speed is invariant to probe width, sampling, window,
+  timestep, domain length, strip height and particle radius (all within
+  ±0.8 %, CIs inside ±5 %). No wrapped or inward wave is in the window.
+- **Control (A = 0)** passes S1: no seed-reproducible signal (outward stack
+  SNR 1.80, inward 3.57, max probe 3.43, all < 5). Post hoc, per-seed
+  equilibrium noise carries a moveout in both directions at
+  2.275 ± 0.016 / 2.244 ± 0.015 (z ≈ 20): thermal fluctuations are
+  random-phase sound. S1, which tests the seed average, does not see them.
+  Its rationale ("a signal without a disturbance is an artefact") is
+  therefore too broad; its committed statistic and its PASS stand.
+- **Extrapolation-model systematic** (post hoc): c(A) is flat for
+  A ≤ 0.2 (≈ 2.26) and rises above it, so the linear fit undershoots.
+  The quadratic and small-amplitude-only alternatives give 2.20–2.29. This is
+  a systematic of +0.05 to +0.12 that is not in the registered CI.
+- **Benchmark (comparison only):** hard-disk adiabatic 2.199 lies inside the
+  CI; isothermal 1.540 and ideal-gas 1.414 lie far outside.
+
+### 5.2 Earlier pulse records
 
 Records `sound-speed_reference.json` (16 seeds, φ = 0.2, status
 **INCONCLUSIVE**) and `sound-speed_sweeps.json` (8 seeds per case,
@@ -481,8 +517,13 @@ proportionally larger universe in particle diameters (particle count ∝ Re² in
 
 - **v0.1 discrepancy** (§1): unresolved; the v0.2 value agrees with hard-disk
   theory and passes its convergence studies.
-- **Sound speed** is amplitude- and width-dependent in the configurations
-  run; the linear limit is not established (§5).
+- **Sound speed** passed the pre-registered small-amplitude validation
+  (c₀ = 2.170 ± 0.038). Two post-hoc caveats stand beside it: the linear
+  zero-amplitude extrapolation is leveraged by the large-amplitude points
+  (model systematic ≈ 4 %, small-amplitude estimates ≈ 2.26), and S1 tests
+  only the seed-averaged control, in which random-phase thermal sound cancels;
+  per-seed equilibrium noise carries a clear moveout at ≈ 2.26–2.28 (§5).
+  The earlier pulse records stay INCONCLUSIVE; case E (model E) was not rerun.
 - **Viscosity precision** is met at the reference settings (± 4.85 %, 30
   seeds); the sweep cases are still at 4 seeds (20–35 %).
 - **Thermal relaxation criterion E6** turned out ill-posed: its false-alarm
@@ -520,10 +561,10 @@ are scale-converged. From the data above, the shortest path is:
 1. **Thermal behaviour and viscosity** (criteria 4, 6): done. Criterion 4
    passed on the fresh validation seeds under the pre-registered E6′.
    Criterion 6 passed with 30 seeds × 600 collisions/particle.
-2. **Sound speed in the linear limit** (criterion 5): an amplitude series
-   (e.g. 0.1–0.5) extrapolated to zero amplitude, with enough seeds that the
-   small-amplitude pulses are tracked; and a tracker that reports competing
-   features instead of choosing one (case E).
+2. **Sound speed in the linear limit** (criterion 5): done. Passed on fresh
+   seeds 6001–6064 under the criteria pre-registered at `04e0826`
+   (`CRITERIA_SOUND_SPEED.md`, `REPORT_SOUND_SPEED.md`). The tracker now
+   reports competing features; case E itself was not rerun.
 3. **Clean boundary layer** (criterion 8): a far-field boundary that follows
    the displacement of the layer (or a taller domain) so the outer flow stays
    uniform, and an upstream control that is clean within its error.
