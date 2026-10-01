@@ -1,0 +1,404 @@
+{
+ "record": "results/thermal_validation_s31-40.json",
+ "experimentId": "thermal-2026-10-01T05-37-51-662Z-s31_32_33_34_35_36_37_38_39_40",
+ "seeds": [
+  31,
+  32,
+  33,
+  34,
+  35,
+  36,
+  37,
+  38,
+  39,
+  40
+ ],
+ "classification": "PASS",
+ "checks": [
+  {
+   "id": "numerical-safety",
+   "status": "PASSED",
+   "criterion": "zero failures",
+   "measured": "none"
+  },
+  {
+   "id": "E5-no-empty-space",
+   "status": "PASSED",
+   "criterion": "no POTENTIAL MODEL / NUMERICAL FAILURE flag",
+   "measured": "none (φ 0.00735 … 0.304, mean 0.0631)"
+  },
+  {
+   "id": "E1-energy-conservation",
+   "status": "PASSED",
+   "criterion": "max |relative residual| < 1e-9",
+   "measured": "3.40e-14"
+  },
+  {
+   "id": "no-hidden-energy-scale",
+   "status": "PASSED",
+   "criterion": "relative spread < 1e-12",
+   "measured": "0.00e+0 over 30 pair(s)"
+  },
+  {
+   "id": "E3-temperature-scaling",
+   "status": "PASSED",
+   "criterion": "one-way ANOVA over independent runs (one kT per class) p > 0.05/3 (FAIL if p < 1e-6)",
+   "measured": "p = 0.621 over 2 classes"
+  },
+  {
+   "id": "E3-independent-of-initial-distribution",
+   "status": "PASSED",
+   "criterion": "one-way ANOVA over independent runs, p > 0.05/3, for P/(nkT) and for late-time a2 across distributions (FAIL if p < 1e-6)",
+   "measured": "p(Z) = 0.407, p(a2) = 0.900"
+  },
+  {
+   "id": "E6prime-relaxation-vs-control",
+   "status": "PASSED",
+   "criterion": "24 tests, each p > 0.05/24 = 2.08e-3 (Bonferroni, family-wise false alarm ≤ 5 %); FAIL if any p < 1e-6",
+   "measured": "0 of 24 violations; smallest p = 0.0863 (uniform-speed / anisotropy / block 3), max |t| = 1.83"
+  },
+  {
+   "id": "E2-stationarity",
+   "status": "PASSED",
+   "criterion": "seed-paired t-test p > 0.05/40 = 1.25e-3 for all 40 tests (FAIL if any p < 1e-6)",
+   "measured": "all pass; smallest p = 8.88e-2 (uniform-speed start, φ = 0.05 (late half of the relaxation run) / Z)"
+  },
+  {
+   "id": "E4-precision",
+   "status": "PASSED",
+   "criterion": "< 0.71 % in every distinct configuration",
+   "measured": "all < 0.71 %; worst 0.63 % (uniform-speed start, φ = 0.05 (late half of the relaxation run))"
+  }
+ ],
+ "configurations": [
+  {
+   "config": "kT = 0.5 (class of 0.5, 2), φ = 0.05",
+   "Z": {
+    "n": 10,
+    "mean": 1.1143090332110688,
+    "variance": 0.000001736138812387622,
+    "sd": 0.0013176262035902375,
+    "se": 0.000416669990806588,
+    "ci95": [
+     1.1133665256918643,
+     1.1152515407302732
+    ],
+    "relHalfWidth95": 0.0008458223806088229,
+    "betweenSeedCV": 0.001182460308872554
+   },
+   "maxDeviation": {
+    "seed": 36,
+    "value": -0.002122246913376369,
+    "inSD": -1.6106593111109353
+   },
+   "windows": 7977,
+   "convergencePointsOutsideOwnCI": {
+    "outside": 5,
+    "of": 61
+   }
+  },
+  {
+   "config": "φ = 0.02, kT = 1",
+   "Z": {
+    "n": 10,
+    "mean": 1.0455295190417315,
+    "variance": 7.999962732261311e-7,
+    "sd": 0.0008944251076675627,
+    "se": 0.0002828420536670831,
+    "ci95": [
+     1.0448897303163365,
+     1.0461693077671266
+    ],
+    "relHalfWidth95": 0.0006119279405724798,
+    "betweenSeedCV": 0.000855475710037664
+   },
+   "maxDeviation": {
+    "seed": 33,
+    "value": -0.0022149734660676934,
+    "inSD": -2.4764213874136325
+   },
+   "windows": 7990,
+   "convergencePointsOutsideOwnCI": {
+    "outside": 2,
+    "of": 61
+   }
+  },
+  {
+   "config": "φ = 0.05, kT = 1",
+   "Z": {
+    "n": 10,
+    "mean": 1.1139717582296211,
+    "variance": 0.000002745906527256239,
+    "sd": 0.00165707770706634,
+    "se": 0.0005240139814218928,
+    "ci95": [
+     1.1127864386036448,
+     1.1151570778555975
+    ],
+    "relHalfWidth95": 0.001064048183645239,
+    "betweenSeedCV": 0.001487540141681733
+   },
+   "maxDeviation": {
+    "seed": 35,
+    "value": -0.003398405060904164,
+    "inSD": -2.050842302936196
+   },
+   "windows": 7977,
+   "convergencePointsOutsideOwnCI": {
+    "outside": 3,
+    "of": 61
+   }
+  },
+  {
+   "config": "φ = 0.1, kT = 1",
+   "Z": {
+    "n": 10,
+    "mean": 1.2467776686549814,
+    "variance": 0.000010220218615402816,
+    "sd": 0.0031969076645100053,
+    "se": 0.0010109509689101056,
+    "ci95": [
+     1.2444908975633067,
+     1.2490644397466562
+    ],
+    "relHalfWidth95": 0.0018341450518131418,
+    "betweenSeedCV": 0.002564136128584029
+   },
+   "maxDeviation": {
+    "seed": 34,
+    "value": 0.006582612501929042,
+    "inSD": 2.059056185765055
+   },
+   "windows": 7947,
+   "convergencePointsOutsideOwnCI": {
+    "outside": 0,
+    "of": 61
+   }
+  },
+  {
+   "config": "φ = 0.2, kT = 1",
+   "Z": {
+    "n": 10,
+    "mean": 1.5936897790492561,
+    "variance": 0.00002040774668998432,
+    "sd": 0.004517493407851784,
+    "se": 0.0014285568483607615,
+    "ci95": [
+     1.5904583834582642,
+     1.596921174640248
+    ],
+    "relHalfWidth95": 0.0020276189465930996,
+    "betweenSeedCV": 0.002834612775484307
+   },
+   "maxDeviation": {
+    "seed": 31,
+    "value": 0.007504276514846309,
+    "inSD": 1.6611593725412515
+   },
+   "windows": 7872,
+   "convergencePointsOutsideOwnCI": {
+    "outside": 2,
+    "of": 60
+   }
+  },
+  {
+   "config": "uniform-speed start, φ = 0.05 (late half of the relaxation run)",
+   "Z": {
+    "n": 10,
+    "mean": 1.1165550621031222,
+    "variance": 0.00009567692907191155,
+    "sd": 0.009781458432765103,
+    "se": 0.003093168748579869,
+    "ci95": [
+     1.1095583143938346,
+     1.1235518098124098
+    ],
+    "relHalfWidth95": 0.006266370505820573,
+    "betweenSeedCV": 0.008760390566266325
+   },
+   "maxDeviation": {
+    "seed": 38,
+    "value": 0.018117646365651607,
+    "inSD": 1.8522438642649286
+   },
+   "windows": 3959,
+   "convergencePointsOutsideOwnCI": {
+    "outside": 0,
+    "of": 65
+   }
+  },
+  {
+   "config": "uniform-box start, φ = 0.05 (late half of the relaxation run)",
+   "Z": {
+    "n": 10,
+    "mean": 1.116439282284053,
+    "variance": 0.00006768873597474647,
+    "sd": 0.008227316450383227,
+    "se": 0.0026017059014182688,
+    "ci95": [
+     1.110554223535045,
+     1.122324341033061
+    ],
+    "relHalfWidth95": 0.0052712752429923924,
+    "betweenSeedCV": 0.007369246658494027
+   },
+   "maxDeviation": {
+    "seed": 40,
+    "value": -0.01295527412047881,
+    "inSD": -1.5746658340673592
+   },
+   "windows": 3958,
+   "convergencePointsOutsideOwnCI": {
+    "outside": 8,
+    "of": 65
+   }
+  },
+  {
+   "config": "two-beam start, φ = 0.05 (late half of the relaxation run)",
+   "Z": {
+    "n": 10,
+    "mean": 1.1176486303727802,
+    "variance": 0.00008657488101707662,
+    "sd": 0.009304562376440744,
+    "se": 0.002942360974066177,
+    "ci95": [
+     1.1109930098494425,
+     1.1243042508961179
+    ],
+    "relHalfWidth95": 0.00595502051581075,
+    "betweenSeedCV": 0.008325123051720918
+   },
+   "maxDeviation": {
+    "seed": 35,
+    "value": 0.01997770696890422,
+    "inSD": 2.1470872202961417
+   },
+   "windows": 3959,
+   "convergencePointsOutsideOwnCI": {
+    "outside": 2,
+    "of": 65
+   }
+  }
+ ],
+ "e2": {
+  "m": 40,
+  "alpha": 0.00125,
+  "violations": 0,
+  "smallestP": 0.08878626869486132
+ },
+ "e6prime": {
+  "criterion": "E6′, docs/CRITERIA_THERMAL_VISCOSITY.md §6",
+  "control": "maxwell",
+  "starts": [
+   "uniform-speed",
+   "uniform-box",
+   "two-beam"
+  ],
+  "blocks": 4,
+  "observables": [
+   "a2",
+   "anisotropy"
+  ],
+  "m": 24,
+  "perTestAlpha": 0.0020833333333333333,
+  "familyWiseFalseAlarmBound": 0.05,
+  "expectedFalseViolationsUnderH0": 0.05,
+  "failP": 0.000001,
+  "windowsTested": 31392,
+  "violations": 0,
+  "smallestP": 0.08628779397367428,
+  "maxAbsT": 1.828599940441165
+ },
+ "relaxation": [
+  {
+   "distribution": "maxwell",
+   "observable": "a2",
+   "initial": 0.009515602469426076,
+   "late": 0.000027062345644615122,
+   "initialDeviationInSigma": 1.5447236766599346,
+   "tOneOverE": 2.1246,
+   "tWithin3Sigma": 0.10069999999999998
+  },
+  {
+   "distribution": "maxwell",
+   "observable": "anisotropy",
+   "initial": -0.009146538093989673,
+   "late": 0.00033251693651340744,
+   "initialDeviationInSigma": 1.5097277439775354,
+   "tOneOverE": 4.4489,
+   "tWithin3Sigma": 0.10069999999999998
+  },
+  {
+   "distribution": "uniform-speed",
+   "observable": "a2",
+   "initial": -0.4853576232464212,
+   "late": -0.00013804441895367932,
+   "initialDeviationInSigma": 68.95448094634027,
+   "tOneOverE": 3.1458000000000004,
+   "tWithin3Sigma": 8.5273
+  },
+  {
+   "distribution": "uniform-speed",
+   "observable": "anisotropy",
+   "initial": -0.005429880004124753,
+   "late": -0.0005511262288609507,
+   "initialDeviationInSigma": 0.8192064887977326,
+   "tOneOverE": 0.2036,
+   "tWithin3Sigma": 0.1021
+  },
+  {
+   "distribution": "uniform-box",
+   "observable": "a2",
+   "initial": -0.288337273923388,
+   "late": 0.0018233530445488564,
+   "initialDeviationInSigma": 56.589020079020294,
+   "tOneOverE": 2.8384,
+   "tWithin3Sigma": 7.402000000000001
+  },
+  {
+   "distribution": "uniform-box",
+   "observable": "anisotropy",
+   "initial": -0.003794177981081723,
+   "late": -0.001209109061155763,
+   "initialDeviationInSigma": 0.3610965579167045,
+   "tOneOverE": 1.2179000000000002,
+   "tWithin3Sigma": 0.1016
+  },
+  {
+   "distribution": "two-beam",
+   "observable": "a2",
+   "initial": -0.4982527383977634,
+   "late": 0.00007361368607166662,
+   "initialDeviationInSigma": 109.42815172772663,
+   "tOneOverE": 3.4445,
+   "tWithin3Sigma": 11.5655
+  },
+  {
+   "distribution": "two-beam",
+   "observable": "anisotropy",
+   "initial": 0.8999756205161423,
+   "late": 0.0008621141817907603,
+   "initialDeviationInSigma": 149.13726900218452,
+   "tOneOverE": 1.2159,
+   "tWithin3Sigma": 4.660800000000001
+  }
+ ],
+ "retiredE6": {
+  "lateWindowsBeyond4Sigma": 0,
+  "lateWindows": 31608
+ },
+ "plots": [
+  "results/plots/thermal_validation/Z_convergence_1.svg",
+  "results/plots/thermal_validation/Z_convergence_2.svg",
+  "results/plots/thermal_validation/Z_convergence_3.svg",
+  "results/plots/thermal_validation/Z_convergence_4.svg",
+  "results/plots/thermal_validation/Z_convergence_5.svg",
+  "results/plots/thermal_validation/Z_convergence_6.svg",
+  "results/plots/thermal_validation/Z_convergence_7.svg",
+  "results/plots/thermal_validation/Z_convergence_8.svg",
+  "results/plots/thermal_validation/E6prime_a2.svg",
+  "results/plots/thermal_validation/E6prime_anisotropy.svg",
+  "results/plots/thermal_validation/relaxation_a2.svg",
+  "results/plots/thermal_validation/relaxation_anisotropy.svg"
+ ]
+}

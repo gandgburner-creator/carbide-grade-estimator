@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="440" font-family="sans-serif" font-size="12">
+<rect width="720" height="440" fill="#fff"/>
+<text x="360" y="22" text-anchor="middle" font-size="14" font-weight="600">E6′: late-half block means of anisotropy, seed mean ± 95 % CI (offset for legibility)</text>
+<line x1="70" x2="700" y1="385" y2="385" stroke="#e5e5e5"/>
+<text x="64" y="389" text-anchor="end">-0.0126</text>
+<text x="70" y="403" text-anchor="middle">44.1</text>
+<line x1="70" x2="700" y1="316" y2="316" stroke="#e5e5e5"/>
+<text x="64" y="320" text-anchor="end">-0.00766</text>
+<text x="195.99999999999997" y="403" text-anchor="middle">50.5</text>
+<line x1="70" x2="700" y1="247" y2="247" stroke="#e5e5e5"/>
+<text x="64" y="251" text-anchor="end">-0.00274</text>
+<text x="321.99999999999994" y="403" text-anchor="middle">56.9</text>
+<line x1="70" x2="700" y1="178" y2="178" stroke="#e5e5e5"/>
+<text x="64" y="182" text-anchor="end">0.00218</text>
+<text x="448.00000000000006" y="403" text-anchor="middle">63.2</text>
+<line x1="70" x2="700" y1="109" y2="109" stroke="#e5e5e5"/>
+<text x="64" y="113" text-anchor="end">0.00709</text>
+<text x="574.0000000000002" y="403" text-anchor="middle">69.6</text>
+<line x1="70" x2="700" y1="40" y2="40" stroke="#e5e5e5"/>
+<text x="64" y="44" text-anchor="end">0.0120</text>
+<text x="700" y="403" text-anchor="middle">75.9</text>
+<line x1="70" x2="70" y1="40" y2="385" stroke="#333"/>
+<line x1="70" x2="700" y1="385" y2="385" stroke="#333"/>
+<text x="360" y="428" text-anchor="middle">block centre, collisions per particle</text>
+<text transform="translate(16 220) rotate(-90)" text-anchor="middle">anisotropy (block mean)</text>
+<polyline points="70.0,233.3 266.3,226.8 462.7,173.5 659.5,180.5" fill="none" stroke="#1f6feb" stroke-width="1.8"/>
+<circle cx="70.0" cy="233.3" r="3" fill="#1f6feb"/>
+<circle cx="266.3" cy="226.8" r="3" fill="#1f6feb"/>
+<circle cx="462.7" cy="173.5" r="3" fill="#1f6feb"/>
+<circle cx="659.5" cy="180.5" r="3" fill="#1f6feb"/>
+<line x1="70" x2="70" y1="306.09530328508845" y2="160.5923815521537" stroke="#1f6feb" opacity="0.6"/>
+<line x1="266.30226597266994" x2="266.30226597266994" y1="313.1883507051656" y2="140.37632358426615" stroke="#1f6feb" opacity="0.6"/>
+<line x1="462.7333197049992" x2="462.7333197049992" y1="291.34754742512854" y2="55.68181818181819" stroke="#1f6feb" opacity="0.6"/>
+<line x1="659.5210164640762" x2="659.5210164640762" y1="271.0679687875507" y2="89.9799826560087" stroke="#1f6feb" opacity="0.6"/>
+<polyline points="81.9,182.3 278.2,211.9 474.6,288.9 671.4,181.3" fill="none" stroke="#d1242f" stroke-width="1.8"/>
+<circle cx="81.9" cy="182.3" r="3" fill="#d1242f"/>
+<circle cx="278.2" cy="211.9" r="3" fill="#d1242f"/>
+<circle cx="474.6" cy="288.9" r="3" fill="#d1242f"/>
+<circle cx="671.4" cy="181.3" r="3" fill="#d1242f"/>
+<line x1="81.88810089160759" x2="81.88810089160759" y1="289.65878828770065" y2="74.98559086703125" stroke="#d1242f" opacity="0.6"/>
+<line x1="278.19036686427756" x2="278.19036686427756" y1="304.85245455768285" y2="118.92602880422271" stroke="#d1242f" opacity="0.6"/>
+<line x1="474.6214205966068" x2="474.6214205966068" y1="369.3181818181818" y2="208.39991608352253" stroke="#d1242f" opacity="0.6"/>
+<line x1="671.4091173556839" x2="671.4091173556839" y1="217.17514427640958" y2="145.4725901776465" stroke="#d1242f" opacity="0.6"/>
+<polyline points="94.0,219.7 290.0,264.7 486.4,199.7 683.2,223.3" fill="none" stroke="#1a7f37" stroke-width="1.8"/>
+<circle cx="94.0" cy="219.7" r="3" fill="#1a7f37"/>
+<circle cx="290.0" cy="264.7" r="3" fill="#1a7f37"/>
+<circle cx="486.4" cy="199.7" r="3" fill="#1a7f37"/>
+<circle cx="683.2" cy="223.3" r="3" fill="#1a7f37"/>
+<line x1="93.95452329658917" x2="93.95452329658917" y1="313.8943264402344" y2="125.54235176438846" stroke="#1a7f37" opacity="0.6"/>
+<line x1="290.03884075291296" x2="290.03884075291296" y1="363.650145525646" y2="165.7486513585695" stroke="#1a7f37" opacity="0.6"/>
+<line x1="486.420360731527" x2="486.420360731527" y1="302.2601231107974" y2="97.1640439582199" stroke="#1a7f37" opacity="0.6"/>
+<line x1="683.1981507398613" x2="683.1981507398613" y1="272.8826985220875" y2="173.706059572382" stroke="#1a7f37" opacity="0.6"/>
+<polyline points="105.0,183.9 303.1,218.9 501.3,161.4 700.0,221.3" fill="none" stroke="#9a6700" stroke-width="1.8"/>
+<circle cx="105.0" cy="183.9" r="3" fill="#9a6700"/>
+<circle cx="303.1" cy="218.9" r="3" fill="#9a6700"/>
+<circle cx="501.3" cy="161.4" r="3" fill="#9a6700"/>
+<circle cx="700.0" cy="221.3" r="3" fill="#9a6700"/>
+<line x1="105.00055037504129" x2="105.00055037504129" y1="293.0283111426679" y2="74.79796290013496" stroke="#9a6700" opacity="0.6"/>
+<line x1="303.07612473070924" x2="303.07612473070924" y1="297.5695717578481" y2="140.1985879983595" stroke="#9a6700" opacity="0.6"/>
+<line x1="501.30030034752264" x2="501.30030034752264" y1="254.0484886726436" y2="68.68338567650619" stroke="#9a6700" opacity="0.6"/>
+<line x1="700" x2="700" y1="290.49768944604364" y2="152.08213480406033" stroke="#9a6700" opacity="0.6"/>
+<rect x="470" y="46" width="14" height="3" fill="#1f6feb"/>
+<text x="490" y="51">maxwell (control)</text>
+<rect x="470" y="64" width="14" height="3" fill="#d1242f"/>
+<text x="490" y="69">uniform-speed</text>
+<rect x="470" y="82" width="14" height="3" fill="#1a7f37"/>
+<text x="490" y="87">uniform-box</text>
+<rect x="470" y="100" width="14" height="3" fill="#9a6700"/>
+<text x="490" y="105">two-beam</text>
+</svg>

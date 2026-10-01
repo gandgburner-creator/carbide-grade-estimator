@@ -8,7 +8,8 @@ unchanged.
 | experiment | classification | why |
 |---|---|---|
 | Effective viscosity (Couette) | **PASS** | all eight criteria V1–V8 pass; μ_eff = 0.3326, 95 % CI [0.3165, 0.3487] (± 4.85 %) |
-| Thermal equilibrium | **INCONCLUSIVE** | E1–E5 pass, including the precision criterion that caused the earlier INCONCLUSIVE; the pre-registered relaxation criterion E6 is not met for one of the four initial distributions (one window of one seed). §3.8 shows the flag is almost certainly a statistical false alarm of an ill-posed criterion, but the rule was fixed in advance, so the result stays INCONCLUSIVE |
+| Thermal equilibrium, original reference (seeds 21–30) | **INCONCLUSIVE** | E1–E5 pass, including the precision criterion that caused the earlier INCONCLUSIVE; the pre-registered relaxation criterion E6 is not met for one of the four initial distributions (one window of one seed). §3.8 shows the flag is almost certainly a statistical false alarm of an ill-posed criterion, but the rule was fixed in advance, so this record stays INCONCLUSIVE |
+| Thermal equilibrium, fresh validation (seeds 31–40) | **PASS** | E1–E5 and E6′ all pass on a fresh seed set. E6′ replaced E6 and was committed (`2bf9968`) before these data existed: 0 of 24 tests violate p > 0.05/24, smallest p 0.086. §7 |
 
 **Physics model: unchanged.** No physical rule, numerical scheme or reference
 configuration parameter was changed. The only code changes before the runs
@@ -481,13 +482,19 @@ non-linear profile, Kn > 0.1 cases), which were not rerun.
   `viscosity_mu_per_block.svg`, `viscosity_per_seed.svg`,
   `viscosity_window_sensitivity.svg`.
 - Provenance: `results/logs/item1_run.sh`, `results/logs/item1_timings.txt`.
+- Thermal validation (§7):
+  - record `results/thermal_validation_s31-40.json`;
+  - report `results/report_thermal_validation.txt`;
+  - plots and classification JSON in `results/plots/thermal_validation/`;
+  - provenance `results/logs/validation_run.sh`,
+    `results/logs/validation_timings.txt`,
+    `results/logs/thermal_validation_console.txt`.
 
 ## 6. Open
 
-- **E6.** E6′ is now pre-registered (`CRITERIA_THERMAL_VISCOSITY.md` §6),
-  together with the validation plan: fresh seeds 31–40, same configuration.
-  Until that validation has been run and reported, thermal equilibrium stays
-  INCONCLUSIVE.
+- **E6.** Closed. E6′ was pre-registered (`CRITERIA_THERMAL_VISCOSITY.md`
+  §6, commit `2bf9968`) and validated on fresh seeds 31–40: PASS (§7). The
+  original record stays INCONCLUSIVE.
 - **Observation, not tested.** In the 40-collision relaxation halves, the
   between-seed SD of Z is 0.0082 (uniform-speed) and 0.0104 (two-beam). That
   is 2–3× the 0.0040 of uniform-box, which is itself what the φ = 0.05
@@ -495,3 +502,263 @@ non-linear profile, Kn > 0.1 cases), which were not rerun.
   One possibility is slow box-scale pressure oscillations excited by the
   strongly non-Maxwellian starts. It does not affect any criterion (E3 ANOVA
   p = 0.90, E4 passes), but it is why E4's margin is thin for two-beam.
+
+## 7. Thermal equilibrium: fresh validation of E6′ (seeds 31–40)
+
+### 7.1 What this section is, and what it is not
+
+The validation runs in order:
+
+1. **Original result (unchanged, §3).** E6 produced one extreme window in the
+   original data: uniform-box, seed 25, a₂, z = 4.68 at c = 56.8. Under the
+   rules fixed before that run, thermal equilibrium was correctly classified
+   **INCONCLUSIVE**. That classification stands for that record.
+2. **Diagnosis (after the fact, §3.8).** E6's false-alarm behaviour was poorly
+   calibrated: ≈ 95 % flag probability with no defect, and the
+   equilibrium-start controls fired it too.
+3. **E6′ proposed only after that diagnosis.** It was formulated on the
+   original data, so **the original dataset cannot establish an E6′ PASS.**
+   The post-hoc E6′ numbers in §3.8 are information only. They were not
+   used here.
+4. **Pre-registration.** E6′, its multiple-testing logic, the validation plan
+   and the report script were committed and pushed before any seed-31–40 run
+   (`CRITERIA_THERMAL_VISCOSITY.md` §6). Commit
+   **`2bf996860221d3cef052fb054261c40662bddc2e`** (`2bf9968`).
+5. **The fresh seed set 31–40 is the validation dataset.** It shares no seed
+   with the diagnosis set.
+
+### 7.2 Run
+
+| | |
+|---|---|
+| code | worktree pinned at `2bf9968` (hash also written to `results/logs/validation_timings.txt`) |
+| command | `npx tsx scripts/run-experiment.ts thermal --parallel 4 --set 'seeds=[31,32,33,34,35,36,37,38,39,40]' --out results --name thermal_validation_s31-40` |
+| seeds | 31, 32, 33, 34, 35, 36, 37, 38, 39, 40 |
+| configuration | `THERMAL_REFERENCE` unchanged except the seeds; the record's `config` is identical to the original's apart from `seeds` |
+| runtime | 836 s (05:23:55–05:37:51 UTC, 2026-10-01), 4 worker threads on a 4-core cloud container |
+| runs | 130 (10 seeds × 13 configurations), none halted |
+| record | `results/thermal_validation_s31-40.json`, record status PASSED |
+| report | `npx tsx scripts/report-thermal-validation.ts results/thermal_validation_s31-40.json results/plots/thermal_validation` → `results/report_thermal_validation.txt` |
+
+### 7.3 Every seed: Z = P/(nkT)
+
+| seed | kT 0.5, φ 0.05 | φ 0.02 | φ 0.05 | φ 0.1 | φ 0.2 | uniform-speed | uniform-box | two-beam |
+|---|---|---|---|---|---|---|---|---|
+| 31 | 1.11332 | 1.04590 | 1.11316 | 1.24433 | 1.60119 | 1.11204 | 1.12414 | 1.11449 |
+| 32 | 1.11470 | 1.04631 | 1.11637 | 1.24431 | 1.59425 | 1.12496 | 1.11296 | 1.12233 |
+| 33 | 1.11613 | 1.04331 | 1.11251 | 1.24311 | 1.59778 | 1.10691 | 1.12491 | 1.11629 |
+| 34 | 1.11629 | 1.04590 | 1.11472 | 1.25336 | 1.59297 | 1.10275 | 1.12224 | 1.11419 |
+| 35 | 1.11378 | 1.04566 | 1.11057 | 1.24704 | 1.59766 | 1.11079 | 1.12210 | 1.13763 |
+| 36 | 1.11219 | 1.04533 | 1.11475 | 1.24741 | 1.59621 | 1.11525 | 1.11064 | 1.11966 |
+| 37 | 1.11448 | 1.04642 | 1.11408 | 1.24915 | 1.58761 | 1.11295 | 1.12351 | 1.10562 |
+| 38 | 1.11294 | 1.04605 | 1.11545 | 1.24732 | 1.59083 | 1.13467 | 1.10424 | 1.11900 |
+| 39 | 1.11421 | 1.04539 | 1.11325 | 1.24313 | 1.58817 | 1.12692 | 1.11616 | 1.12235 |
+| 40 | 1.11506 | 1.04502 | 1.11485 | 1.24862 | 1.59021 | 1.11830 | 1.10348 | 1.10493 |
+
+Per-seed kT_x/kT_y, a₂, kurtosis, anisotropy, dispersion, window counts and
+collisions/particle for every configuration are in
+`results/report_thermal_validation.txt`.
+
+### 7.4 Aggregate, CI, maximum deviation, windows, convergence
+
+| configuration | Z mean | SD | 95 % CI | half-width | max seed deviation | windows (10 seeds) | running-mean points outside own CI |
+|---|---|---|---|---|---|---|---|
+| kT 0.5, φ 0.05 | 1.11431 | 1.32e-3 | [1.1134, 1.1153] | 0.085 % | -0.00212 (seed 36, -1.61 SD) | 7977 | 5/61 |
+| φ 0.02 | 1.04553 | 8.94e-4 | [1.0449, 1.0462] | 0.061 % | -0.00221 (seed 33, -2.48 SD) | 7990 | 2/61 |
+| φ 0.05 | 1.11397 | 1.66e-3 | [1.1128, 1.1152] | 0.106 % | -0.00340 (seed 35, -2.05 SD) | 7977 | 3/61 |
+| φ 0.1 | 1.24678 | 3.20e-3 | [1.2445, 1.2491] | 0.183 % | +0.00658 (seed 34, 2.06 SD) | 7947 | 0/61 |
+| φ 0.2 | 1.59369 | 4.52e-3 | [1.5905, 1.5969] | 0.203 % | +0.00750 (seed 31, 1.66 SD) | 7872 | 2/60 |
+| uniform-speed | 1.11656 | 9.78e-3 | [1.1096, 1.1236] | 0.627 % | +0.01812 (seed 38, 1.85 SD) | 3959 | 0/65 |
+| uniform-box | 1.11644 | 8.23e-3 | [1.1106, 1.1223] | 0.527 % | -0.01296 (seed 40, -1.57 SD) | 3958 | 8/65 |
+| two-beam | 1.11765 | 9.30e-3 | [1.1110, 1.1243] | 0.596 % | +0.01998 (seed 35, 2.15 SD) | 3959 | 2/65 |
+
+- **Max seed deviation** is the seed farthest from the ensemble mean. With
+  10 seeds the largest |deviation| is typically ~1.5–2 SD. None exceeds
+  2.5 SD.
+- **Windows** counts the measurement windows entering Z, summed over the 10
+  seeds.
+- **Convergence vs time.** In the last column, the running seed-mean of Z
+  lies outside its own running 95 % CI around the final value at 22 of 499
+  points (4.4 %), against a nominal 5 %. uniform-box contributes 8 of 65: in
+  the first 6 of its 40 collisions/particle the running mean is 4–9 % *below*
+  the final value (1.015–1.077 vs 1.116). In the original run the same
+  configuration started *above* it (1.15 vs 1.114), so the sign does not
+  reproduce. E2 (late vs early half, p = 0.78) and E3 (Z vs the other
+  starts, p = 0.41) detect nothing. Running means are cumulative and
+  correlated, so this is descriptive; the formal time test is E2. Plots:
+  `results/plots/thermal_validation/Z_convergence_1…8.svg`, numbered as the
+  rows.
+
+Temperature proxy, velocity distribution and spatial uniformity (seed mean ±
+SE):
+
+| configuration | kT_x/kT_y | a₂ | kurtosis | anisotropy | dispersion |
+|---|---|---|---|---|---|
+| kT 0.5, φ 0.05 | 1.0014 ± 1.5e-3 | -3.73e-4 ± 1.3e-3 | 2.997 ± 3.8e-3 | 6.84e-4 ± 7.3e-4 | 0.826 ± 8.6e-3 |
+| φ 0.02 | 1.0001 ± 1.4e-3 | 1.66e-6 ± 6.3e-4 | 2.998 ± 2.0e-3 | 3.03e-5 ± 7.0e-4 | 0.913 ± 1.0e-2 |
+| φ 0.05 | 0.9999 ± 1.7e-3 | 2.21e-4 ± 9.7e-4 | 3.001 ± 3.6e-3 | -4.53e-5 ± 8.6e-4 | 0.841 ± 7.6e-3 |
+| φ 0.1 | 0.9996 ± 1.4e-3 | -4.04e-4 ± 9.1e-4 | 2.997 ± 2.5e-3 | -1.96e-4 ± 6.9e-4 | 0.662 ± 7.1e-3 |
+| φ 0.2 | 0.9980 ± 1.2e-3 | 7.02e-5 ± 1.4e-3 | 2.999 ± 4.4e-3 | -9.88e-4 ± 6.2e-4 | 0.454 ± 7.1e-3 |
+| uniform-speed | 0.9989 ± 2.8e-3 | -1.63e-4 ± 1.9e-3 | 2.998 ± 6.8e-3 | -5.43e-4 ± 1.4e-3 | 0.804 ± 1.5e-2 |
+| uniform-box | 0.9976 ± 1.9e-3 | 1.84e-3 ± 2.5e-3 | 3.002 ± 6.5e-3 | -1.21e-3 ± 9.8e-4 | 0.826 ± 1.8e-2 |
+| two-beam | 1.0018 ± 3.8e-3 | 5.65e-5 ± 1.8e-3 | 2.999 ± 5.1e-3 | 8.68e-4 ± 1.9e-3 | 0.804 ± 1.9e-2 |
+
+- kT = KE/N is fixed by the energy ledger: max relative residual
+  3.40 × 10⁻¹⁴.
+  - This equals the original run's maximum to three digits. Residuals are
+    rounding-level, quantized in steps of ≈ 1.1 × 10⁻¹⁶ and seed-dependent
+    (short check runs: 2.0–2.8 × 10⁻¹⁵ for seeds 21, 31, 41).
+  - The record is not a copy: every per-seed value differs.
+- KS of final speeds against the 2D Maxwellian (comparison only):
+  p = 0.63 / 0.88 / 0.14 / 0.83 for the Maxwell / uniform-speed / uniform-box
+  / two-beam starts.
+- E5: no empty-space flag in 130 runs; local φ 0.007–0.30.
+
+### 7.5 The checks
+
+**E2: stationarity.**
+
+- Seed-paired late − early half; p for each configuration × observable.
+- m = 40, per-test α = 0.05/40 = 1.25 × 10⁻³. Bonferroni gives a family-wise
+  false-alarm probability ≤ 5 %.
+
+| configuration | Z | a₂ | kurtosis | anisotropy | dispersion |
+|---|---|---|---|---|---|
+| kT 0.5, φ 0.05 | 0.728 | 0.964 | 0.545 | 0.644 | 0.269 |
+| φ 0.02 | 0.216 | 0.865 | 0.878 | 0.527 | 0.282 |
+| φ 0.05 | 0.247 | 0.430 | 0.324 | 0.274 | 0.816 |
+| φ 0.1 | 0.389 | 0.096 | 0.158 | 0.095 | 0.179 |
+| φ 0.2 | 0.970 | 0.738 | 0.781 | 0.505 | 0.328 |
+| uniform-speed | 0.089 | 0.307 | 0.620 | 0.368 | 0.315 |
+| uniform-box | 0.778 | 0.886 | 0.973 | 0.613 | 0.185 |
+| two-beam | 0.343 | 0.789 | 0.994 | 0.690 | 0.338 |
+
+0 of 40 tests fall below α. The smallest p is 0.089 (uniform-speed, Z).
+
+**E3: starting temperature and starting distribution.**
+
+| test | p | α |
+|---|---|---|
+| Z across temperature classes, ANOVA | 0.621 | 0.05/3 |
+| Z across starting distributions, ANOVA | 0.407 | 0.05/3 |
+| late a₂ across starting distributions, ANOVA | 0.900 | 0.05/3 |
+
+Separately, P = a + b·kT has intercept (0.9 ± 4.4) × 10⁻⁵, i.e. zero. The
+same-class trajectories are bit-identical (30 pairs).
+
+**E4: pressure-ratio precision.** The worst 95 % half-width of Z is
+**0.627 %** (uniform-speed late half), below the 0.71 % limit. The
+200-collision configurations reach 0.06–0.20 %.
+
+**E6′: relaxation against the equilibrium-start control.**
+
+| quantity | value |
+|---|---|
+| tests m | 24 (3 starts × a₂, anisotropy × 4 late-half blocks) |
+| per-test threshold | p > 0.05/24 = 2.083 × 10⁻³ |
+| FAIL threshold | p < 10⁻⁶ |
+| family-wise false-alarm bound | ≤ 5 % (Bonferroni; holds under any dependence between the tests) |
+| expected false violations under H0 | ≤ 0.05 |
+| windows tested | 31 392 (40 relaxation runs × 2 observables × 4 blocks × 98–99 windows) |
+| **E6′ violations** | **0** |
+| smallest p | 0.086 (uniform-speed, anisotropy, block 3) |
+| maximum observed deviation | max \|t\| = 1.83 |
+| minimum detectable difference at the threshold | a₂ 0.016–0.029; anisotropy 0.012–0.018. Initial deviations were a₂ −0.29 … −0.50 and anisotropy +0.90 (two-beam) |
+
+| start | observable | block (collisions/particle) | start mean | control mean | Δ ± SE | t | dof | p | detectable \|Δ\| | windows (start + control) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| uniform-speed | a2 | 1: 40.1–49.9 | -0.00179 | 0.00337 | -0.00516 ± 0.0051 | -1.02 | 18.0 | 0.323 | 0.018 | 981 + 980 |
+| uniform-speed | a2 | 2: 50.0–59.9 | 0.00594 | -0.00332 | 0.00926 ± 0.0076 | 1.21 | 14.5 | 0.245 | 0.029 | 981 + 980 |
+| uniform-speed | a2 | 3: 60.0–69.8 | -0.00209 | 0.00136 | -0.00345 ± 0.0044 | -0.78 | 16.7 | 0.447 | 0.016 | 981 + 980 |
+| uniform-speed | a2 | 4: 69.9–79.7 | -0.00251 | -0.00140 | -0.00111 ± 0.0072 | -0.15 | 17.9 | 0.879 | 0.026 | 981 + 980 |
+| uniform-speed | anisotropy | 1: 40.1–49.9 | 0.00187 | -0.00177 | 0.00364 ± 0.0041 | 0.89 | 15.8 | 0.387 | 0.015 | 981 + 980 |
+| uniform-speed | anisotropy | 2: 50.0–59.9 | -0.000239 | -0.00130 | 0.00106 ± 0.0040 | 0.27 | 17.9 | 0.794 | 0.014 | 981 + 980 |
+| uniform-speed | anisotropy | 3: 60.0–69.8 | -0.00572 | 0.00250 | -0.00822 ± 0.0045 | -1.83 | 15.9 | 0.086 | 0.017 | 981 + 980 |
+| uniform-speed | anisotropy | 4: 69.9–79.7 | 0.00194 | 0.00200 | -0.0000570 ± 0.0031 | -0.02 | 11.8 | 0.985 | 0.012 | 981 + 980 |
+| uniform-box | a2 | 1: 40.2–49.9 | -0.00128 | 0.00337 | -0.00465 ± 0.0042 | -1.10 | 15.0 | 0.288 | 0.016 | 981 + 980 |
+| uniform-box | a2 | 2: 50.0–59.8 | 0.00547 | -0.00332 | 0.00879 ± 0.0076 | 1.15 | 14.4 | 0.268 | 0.029 | 981 + 980 |
+| uniform-box | a2 | 3: 59.9–69.8 | 0.000858 | 0.00136 | -0.000501 ± 0.0059 | -0.09 | 13.4 | 0.933 | 0.022 | 981 + 980 |
+| uniform-box | a2 | 4: 69.9–79.7 | 0.00228 | -0.00140 | 0.00368 ± 0.0059 | 0.62 | 16.1 | 0.543 | 0.022 | 981 + 980 |
+| uniform-box | anisotropy | 1: 40.2–49.9 | -0.000797 | -0.00177 | 0.000971 ± 0.0037 | 0.26 | 16.9 | 0.799 | 0.014 | 981 + 980 |
+| uniform-box | anisotropy | 2: 50.0–59.8 | -0.00400 | -0.00130 | -0.00270 ± 0.0041 | -0.65 | 17.7 | 0.522 | 0.015 | 981 + 980 |
+| uniform-box | anisotropy | 3: 59.9–69.8 | 0.000629 | 0.00250 | -0.00187 ± 0.0049 | -0.38 | 17.7 | 0.709 | 0.018 | 981 + 980 |
+| uniform-box | anisotropy | 4: 69.9–79.7 | -0.00105 | 0.00200 | -0.00305 ± 0.0033 | -0.94 | 14.0 | 0.365 | 0.012 | 981 + 980 |
+| two-beam | a2 | 1: 40.1–50.0 | 0.0000117 | 0.00337 | -0.00336 ± 0.0060 | -0.56 | 16.7 | 0.583 | 0.022 | 982 + 980 |
+| two-beam | a2 | 2: 50.1–59.9 | -0.00113 | -0.00332 | 0.00219 ± 0.0070 | 0.31 | 11.3 | 0.761 | 0.028 | 982 + 980 |
+| two-beam | a2 | 3: 60.0–70.0 | 0.000815 | 0.00136 | -0.000544 ± 0.0044 | -0.12 | 16.9 | 0.902 | 0.016 | 982 + 980 |
+| two-beam | a2 | 4: 70.1–80.0 | 0.000290 | -0.00140 | 0.00169 ± 0.0062 | 0.27 | 17.2 | 0.789 | 0.023 | 982 + 980 |
+| two-beam | anisotropy | 1: 40.1–50.0 | 0.00175 | -0.00177 | 0.00352 ± 0.0041 | 0.85 | 15.7 | 0.407 | 0.015 | 982 + 980 |
+| two-beam | anisotropy | 2: 50.1–59.9 | -0.000738 | -0.00130 | 0.000563 ± 0.0037 | 0.15 | 17.8 | 0.880 | 0.013 | 982 + 980 |
+| two-beam | anisotropy | 3: 60.0–70.0 | 0.00336 | 0.00250 | 0.000866 ± 0.0047 | 0.18 | 17.1 | 0.857 | 0.017 | 982 + 980 |
+| two-beam | anisotropy | 4: 70.1–80.0 | -0.000909 | 0.00200 | -0.00291 ± 0.0036 | -0.81 | 16.8 | 0.430 | 0.013 | 982 + 980 |
+
+Plots: `results/plots/thermal_validation/E6prime_a2.svg`,
+`…/E6prime_anisotropy.svg`. They show block means ± 95 % CI per start next
+to the control.
+
+**Relaxation behaviour (reported, not judged).** The seed-ensemble mean of a₂
+falls to 1/e of its initial deviation after 2.8–3.4 collisions/particle. It is
+within 3 σ_ens of its late value after 7.4 (uniform-box), 8.5
+(uniform-speed) and 11.6 (two-beam) collisions/particle. Two-beam anisotropy
+(initially 0.90) takes 1.2 and 4.7. Plots:
+`results/plots/thermal_validation/relaxation_a2.svg`,
+`…/relaxation_anisotropy.svg`.
+
+**Retired E6 statistic (diagnostic only, not a criterion).** 0 of 31 608
+late-half windows go beyond 4σ; E6 would have flagged no start in this
+dataset. The §3.8 rate estimate gave a no-flag outcome only a ≈ 5 % chance
+(≈ 37 % at the lower 95 % limit of that rate). This outcome therefore
+suggests that the estimate, based on just 5 events, was on the high side.
+Either way, E6's verdict depends on chance: one dataset flagged, the next
+did not, with relaxation equally complete in both. That is why it was
+retired. This result is not evidence for E6.
+
+### 7.6 Replication check (reported, not judged)
+
+The fresh Z values agree with the original run's in every configuration.
+
+| configuration | z (fresh − original) |
+|---|---|
+| kT 0.5, φ 0.05 | −1.46 |
+| φ 0.02 | +1.82 |
+| φ 0.05 | −1.39 |
+| φ 0.1 | −1.20 |
+| φ 0.2 | +0.85 |
+| uniform-speed | +0.45 |
+| uniform-box | +0.83 |
+| two-beam | +1.20 |
+
+All |z| < 2. The external Henderson comparison and the wall finite-size
+excess of §3.9 are reproduced: Z exceeds Henderson by 0.4–1.5 %, and the
+fitted B = 2.12 ± 0.02.
+
+Observation, not tested: the between-seed SD of Z in the 40-collision
+relaxation halves is 0.008–0.010 for all three non-Maxwell starts. That is
+about 2.5× what the 200-collision φ = 0.05 SD predicts under 1/√t scaling
+(0.0017 · √5 ≈ 0.0037). In the original run uniform-box had looked like an
+exception (0.0040); with these seeds it is not. Slow box-scale pressure
+oscillations that do not average out over 40 collisions/particle would
+produce this. E4 accounts for it through the seed ensemble, and it is why
+E4's margin is thinnest for the relaxation halves.
+
+### 7.7 Decision
+
+| ID | outcome on seeds 31–40 |
+|---|---|
+| numerical safety | PASS (no run halted) |
+| E1 energy proxy conserved | PASS (3.40 × 10⁻¹⁴) |
+| no hidden energy scale | PASS (spread 0 over 30 pairs) |
+| E2 stationarity | PASS (0/40 below 1.25 × 10⁻³) |
+| E3 temperature classes | PASS (p = 0.621) |
+| E3 starting distribution | PASS (p(Z) = 0.407, p(a₂) = 0.900) |
+| E4 precision | PASS (worst 0.627 % < 0.71 %) |
+| E5 no empty space | PASS (0/130 runs) |
+| **E6′ relaxation vs control** | **PASS (0/24 violations; smallest p 0.086)** |
+
+**Thermal equilibrium (validation dataset, seeds 31–40): PASS.** This uses
+only the criteria committed in `2bf9968`, before the data were generated, and
+only the fresh seeds.
+
+**E6′ survived an independent fresh dataset.** The original reference
+record (seeds 21–30) remains INCONCLUSIVE under the rules it was judged by.
+Phase 0 criterion 4 is now PASSED on the validation dataset.

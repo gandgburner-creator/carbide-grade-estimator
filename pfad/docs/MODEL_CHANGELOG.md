@@ -226,4 +226,8 @@ is unchanged. Criteria for the reruns were fixed beforehand in
      judge E6′.
 - **Unchanged:** physics, numerical integration, particle model, thermal
   model, run configuration (only the seeds differ), and criteria E1–E5.
+- **Outcome:** the validation run (seeds 31–40, commit `2bf9968`) passed
+  E1–E5 and E6′. Thermal equilibrium is PASS on the validation dataset
+  (`REPORT_THERMAL_VISCOSITY.md` §7). The reference record stays
+  INCONCLUSIVE.
 

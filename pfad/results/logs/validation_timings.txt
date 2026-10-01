@@ -1,0 +1,4 @@
+commit 2bf996860221d3cef052fb054261c40662bddc2e
+host 4 cores; node v22.22.2
+START 2026-10-01T05:23:55Z: npx tsx scripts/run-experiment.ts thermal --parallel 4 --set seeds=[31,32,33,34,35,36,37,38,39,40] --out results --name thermal_validation_s31-40
+END   2026-10-01T05:37:51Z exit=0 seconds=836

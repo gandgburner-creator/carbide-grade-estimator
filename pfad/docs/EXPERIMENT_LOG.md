@@ -28,7 +28,7 @@ changed with resolution beyond its tolerance.
 | 1 | produce stable particle gas | static box, thermal | **PASSED** | stationary, isotropic, Maxwellian from any start (§1, §3) |
 | 2 | measure pressure from impacts | static box | **PASSED** | 1.116 nkT at φ = 0.05 = hard-disk EOS; v0.1's 0.997 not reproduced (§1) |
 | 3 | quantify energy conservation | every record | **PASSED** | ledgers close to ~10⁻¹³ (§2) |
-| 4 | measure thermal behaviour | thermal | INCONCLUSIVE | 10 seeds: E1–E5 pass (Z to ≤ 0.67 %, 95 %); the pre-registered relaxation rule E6 flags one window, diagnosed as a false alarm of an ill-posed rule (§3) |
+| 4 | measure thermal behaviour | thermal validation (seeds 31–40); reference (21–30) | **PASSED** (validation) | fresh seeds pass E1–E5 and the pre-registered E6′ (0/24 violations). The original reference stays INCONCLUSIVE on the retired E6 (§3) |
 | 5 | measure disturbance propagation | pulse reference, sweeps | INCONCLUSIVE | finite speed measured, but amplitude/width-dependent; model E ambiguous (§5) |
 | 6 | measure effective viscosity | Couette reference, sweeps | **PASSED** (reference) | μ_eff = 0.3326, 95 % CI ± 4.85 % over 30 seeds (Enskog 0.316), stable, timestep-independent; sweeps not rerun (§6) |
 | 7 | demonstrate wall momentum transfer | wall accommodation | **PASSED** | α_E and α_t equal Aw (§4) |
@@ -41,7 +41,7 @@ changed with resolution beyond its tolerance.
 | 14 | export experiment data | every record | **PASSED** | JSON records; lab EXPORT / IMPORT |
 | 15 | distinguish measured results from assumptions | every record | **PASSED** | results, benchmarks and assumption IDs kept apart (`MODEL_ASSUMPTIONS.md`) |
 
-**Airfoil optimisation stays locked.** Criteria 4, 5, 8 and 9 are
+**Airfoil optimisation stays locked.** Criteria 5, 8 and 9 are
 INCONCLUSIVE and the flow scaling study is NOT CONVERGED. That is the honest
 state of Phase 0, not a failure to hide. §14 lists what would change it.
 
@@ -137,6 +137,29 @@ report, with per-seed tables, plots and the error budget, is
   collisions with no relaxation defect at all. So the rule is ill-posed. As
   pre-registered, that is reported, not repaired. A well-posed replacement
   (E6′) is proposed for a fresh seed set.
+
+**Validation, `thermal_validation_s31-40.json`: PASSED.** E6′ replaced E6
+(`CRITERIA_THERMAL_VISCOSITY.md` §6). It was committed in `2bf9968`, before
+any run with the fresh seeds 31–40. The validation used the same
+configuration and the same E1–E5. Full report: `REPORT_THERMAL_VISCOSITY.md`
+§7.
+
+- Every check passes:
+  - E2: 0 of 40 tests below 1.25 × 10⁻³.
+  - E3: p = 0.62 (temperature), 0.41 / 0.90 (distribution: Z / a₂).
+  - E4: worst half-width 0.63 % < 0.71 %.
+  - E1, E5: pass.
+  - E6′: 0 of 24 tests below 0.05/24 (smallest p 0.086, max |t| 1.83;
+    31 392 windows).
+- Z(φ) = 1.0455, 1.1140, 1.2468, 1.5937 at φ = 0.02, 0.05, 0.1, 0.2. It
+  agrees with the reference run within |z| < 2 in all eight configurations.
+- The retired E6 statistic flags nothing in this dataset (0 of 31 608
+  windows), against one flag in the reference run with relaxation equally
+  complete in both.
+- Phase 0 criterion 4 is therefore PASSED on the validation dataset. The
+  reference record's INCONCLUSIVE stands under the rules it was judged by.
+  E6′ was formulated after looking at seeds 21–30, so those seeds play no
+  part in the E6′ decision.
 
 ## 4. Wall momentum and energy transfer (Step 9)
 
@@ -463,9 +486,9 @@ proportionally larger universe in particle diameters (particle count ∝ Re² in
 - **Viscosity precision** is met at the reference settings (± 4.85 %, 30
   seeds); the sweep cases are still at 4 seeds (20–35 %).
 - **Thermal relaxation criterion E6** turned out ill-posed: its false-alarm
-  rate grows with seeds × run length (§3). Thermal behaviour stays
-  INCONCLUSIVE until a well-posed rule is fixed in advance and judged on
-  fresh seeds.
+  rate grows with seeds × run length (§3). It was replaced by the
+  pre-registered E6′, which passed on fresh seeds 31–40. The reference record
+  stays INCONCLUSIVE.
 - **Open boundaries** supply only kinetic pressure (A-18), leaving dense
   interiors below their stated density; all flow results use the realised
   state.
@@ -494,10 +517,9 @@ proportionally larger universe in particle diameters (particle count ∝ Re² in
 The lock opens only when every §42 criterion has PASSED and the flow results
 are scale-converged. From the data above, the shortest path is:
 
-1. **Thermal relaxation** (criterion 4): precision is now met. Commit the
-   proposed E6′ (`REPORT_THERMAL_VISCOSITY.md` §3.8) or another well-posed
-   relaxation rule, then judge a fresh seed set with it. Criterion 6
-   (viscosity) passed with 30 seeds × 600 collisions/particle.
+1. **Thermal behaviour and viscosity** (criteria 4, 6): done. Criterion 4
+   passed on the fresh validation seeds under the pre-registered E6′.
+   Criterion 6 passed with 30 seeds × 600 collisions/particle.
 2. **Sound speed in the linear limit** (criterion 5): an amplitude series
    (e.g. 0.1–0.5) extrapolated to zero amplitude, with enough seeds that the
    small-amplitude pulses are tracked; and a tracker that reports competing
