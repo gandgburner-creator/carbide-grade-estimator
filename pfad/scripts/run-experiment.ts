@@ -2,6 +2,7 @@
  * Headless experiment runner.
  *
  *   npm run exp -- <experiment-type> [--quick] [--set key=<json>]... [--out dir] [--name file-stem]
+ *                  [--parallel threads] [--checkpoint dir]   (per-run checkpoints; a rerun resumes)
  *   npm run exp -- replay <record.json>
  *   npm run exp -- show <record.json>        (print a saved record without running anything)
  *   npm run exp -- ab-test --preset "<name>"  (a registered A/B comparison; unknown name lists them)
@@ -21,12 +22,13 @@ import { svgPlot, type Series } from './svgPlot';
 const COLORS = ['#1f6feb', '#d1242f', '#1a7f37', '#9a6700', '#8250df', '#57606a'];
 
 function parseArgs(argv: string[]) {
-  const args = { type: argv[0], quick: false, set: {} as Record<string, unknown>, out: 'results', name: '', file: '', parallel: 1, preset: '' };
+  const args = { type: argv[0], quick: false, set: {} as Record<string, unknown>, out: 'results', name: '', file: '', parallel: 1, preset: '', checkpoint: '' };
   for (let i = 1; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--quick') args.quick = true;
     else if (a === '--out') args.out = argv[++i];
     else if (a === '--parallel') args.parallel = Number(argv[++i]);
+    else if (a === '--checkpoint') args.checkpoint = argv[++i];
     else if (a === '--name') args.name = argv[++i];
     else if (a === '--preset') args.preset = argv[++i];
     else if (a === '--set') {
@@ -339,8 +341,12 @@ async function main(): Promise<void> {
     }
     const params = { ...base, ...args.set };
     if (args.parallel > 1) {
-      record = await runParallel(args.type as ExperimentType, params, args.parallel, (d, n) =>
-        process.stdout.write(`\r${d}/${n} runs finished on ${args.parallel} threads   `),
+      record = await runParallel(
+        args.type as ExperimentType,
+        params,
+        args.parallel,
+        (d, n) => process.stdout.write(`\r${d}/${n} runs finished on ${args.parallel} threads   `),
+        args.checkpoint || undefined,
       );
     } else {
       const exp = entry.create(params);
