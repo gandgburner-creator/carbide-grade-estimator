@@ -197,7 +197,7 @@ interface Spec {
   seed: number;
 }
 
-interface PulseRunResult {
+export interface PulseRunResult {
   /** no-empty-space summary over the pulse phase (Master prompt §20) */
   emptySpace: EmptySpaceSummary | null;
   caseIndex: number;
@@ -252,31 +252,32 @@ function simConfig(p: PulseParams, c: PulseCase, domain: DomainSpec, seed: numbe
   };
 }
 
-class PulseRun implements Run<Result> {
+/** One pulse run: phase 1 equilibration, rescale, perturbation, phase 2. Exported so measurement-only subclasses reuse the identical physics. */
+export class PulseRun implements Run<Result> {
   readonly label: string;
   done = false;
-  private phase: 'equilibrate' | 'pulse' = 'equilibrate';
+  protected phase: 'equilibrate' | 'pulse' = 'equilibrate';
   private sim1: Simulation;
   private sim2: Simulation | null = null;
   private readonly p: PulseParams;
-  private readonly c: PulseCase;
+  protected readonly c: PulseCase;
   private readonly caseIndex: number;
   private readonly seed: number;
-  private readonly store: ParticleStore;
+  protected readonly store: ParticleStore;
   private readonly domain: DomainSpec;
-  private readonly times: number[] = [];
+  protected readonly times: number[] = [];
   private readonly outward: number[][] = [];
   private readonly outwardDensity: number[][] = [];
   private conservation: ConservationMonitor | null = null;
   private empty: EmptySpaceMonitor | null = null;
-  private readonly meanDensity: number;
-  private readonly extra: number;
+  protected readonly meanDensity: number;
+  protected readonly extra: number;
   private kTStart = Number.NaN;
   private intStart = Number.NaN;
   private kTBeforeRescale = Number.NaN;
   private readonly ratio: number[] = [];
   private nextRatioSample = 0;
-  private nextSnapshot = 0;
+  protected nextSnapshot = 0;
 
   constructor(p: PulseParams, caseIndex: number, seed: number) {
     const c = p.cases[caseIndex];
@@ -355,7 +356,7 @@ class PulseRun implements Run<Result> {
     this.snapshot();
   }
 
-  private snapshot() {
+  protected snapshot() {
     const c = this.c;
     const nb = Math.round(c.length / c.binWidth);
     const counts = new Array<number>(nb).fill(0);

@@ -13,6 +13,7 @@ export type ExperimentType =
   | 'sound-speed'
   | 'sound-speed-sweeps'
   | 'sound-speed-linear'
+  | 'sound-speed-validation'
   | 'viscosity'
   | 'viscosity-sweeps'
   | 'boundary-layer'

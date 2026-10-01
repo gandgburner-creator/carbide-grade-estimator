@@ -6,6 +6,7 @@ import { COUETTE_REFERENCE, COUETTE_SWEEPS, CouetteExperiment, type CouetteParam
 import { KUTTA_REFERENCE, KuttaExperiment, type KuttaParams } from './KuttaExperiment';
 import { PULSE_LINEAR, PULSE_REFERENCE, PULSE_SWEEPS, PressurePulseExperiment, type PulseParams } from './PressurePulseExperiment';
 import { SCALING_REFERENCE, ScalingExperiment, setScalingFactory, type ScalingParams } from './ScalingExperiment';
+import { SOUND_VALIDATION, SoundSpeedExperiment, type SoundParams } from './SoundSpeedExperiment';
 import { STATIC_BOX_REFERENCE, StaticBoxExperiment, type StaticBoxParams } from './StaticBoxExperiment';
 import { THERMAL_REFERENCE, ThermalExperiment, type ThermalParams } from './ThermalExperiment';
 import {
@@ -98,6 +99,21 @@ const soundSpeedLinear: ExperimentEntry<PulseParams> = {
   defaults: PULSE_LINEAR,
   quick: { ...PULSE_LINEAR, seeds: [1, 2, 3], cases: PULSE_LINEAR.cases.slice(0, 4).map(quickCase) },
   create: (p) => new PressurePulseExperiment(p, 'sound-speed-linear') as unknown as SequentialExperiment<unknown, unknown>,
+};
+
+const soundSpeedValidation: ExperimentEntry<SoundParams> = {
+  type: 'sound-speed-validation',
+  title: 'Small-amplitude sound speed (Item 2)',
+  defaults: SOUND_VALIDATION,
+  quick: {
+    ...SOUND_VALIDATION,
+    seeds: [1, 2, 3],
+    cases: SOUND_VALIDATION.cases.filter((c) => c.role !== 'variant' || c.variant?.kind === 'timestep').map((c) => ({ ...c, length: 300, height: 30, duration: 50, equilibrationTime: 10 })),
+    measurement: { ...SOUND_VALIDATION.measurement, probes: [30, 40, 50, 60, 70, 80, 90, 100] },
+    analysis: { ...SOUND_VALIDATION.analysis, tEnd: 50, tEndVariant: 45 },
+    storeSeries: false,
+  },
+  create: (p) => new SoundSpeedExperiment(p) as unknown as SequentialExperiment<unknown, unknown>,
 };
 
 const viscosity: ExperimentEntry<CouetteParams> = {
@@ -252,6 +268,7 @@ export const EXPERIMENTS: Partial<Record<ExperimentType, ExperimentEntry<any>>> 
   'sound-speed': soundSpeed,
   'sound-speed-sweeps': soundSpeedSweeps,
   'sound-speed-linear': soundSpeedLinear,
+  'sound-speed-validation': soundSpeedValidation,
   viscosity,
   'viscosity-sweeps': viscositySweeps,
   'ab-test': abTest,
