@@ -427,6 +427,36 @@ export function pairedTTest(diffs: number[]) {
   return { n, mean: m, se, t, dof: n - 1, p: Number.isFinite(t) ? tTwoSidedP(t, n - 1) : 0 };
 }
 
+/**
+ * Welch two-sample t-test (unequal variances) on two groups of INDEPENDENT
+ * values, e.g. per-seed means of two run families. H0: equal means. The
+ * degrees of freedom are Welch–Satterthwaite.
+ */
+export function welchTTest(a: number[], b: number[]) {
+  const x = a.filter(Number.isFinite);
+  const y = b.filter(Number.isFinite);
+  if (x.length < 2 || y.length < 2) return { nA: x.length, nB: y.length, diff: Number.NaN, se: Number.NaN, t: Number.NaN, dof: 0, p: Number.NaN };
+  const va = variance(x) / x.length;
+  const vb = variance(y) / y.length;
+  const diff = mean(x) - mean(y);
+  const se = Math.sqrt(va + vb);
+  const t = se > 0 ? diff / se : diff === 0 ? 0 : Number.POSITIVE_INFINITY;
+  const dof = se > 0 ? (va + vb) ** 2 / (va ** 2 / (x.length - 1) + vb ** 2 / (y.length - 1)) : x.length + y.length - 2;
+  return { nA: x.length, nB: y.length, diff, se, t, dof, p: Number.isFinite(t) ? tTwoSidedP(t, dof) : 0 };
+}
+
+/** Two-sided critical value of Student's t: |t| above it has p < alpha (bisection on tTwoSidedP). */
+export function tTwoSidedCritical(alpha: number, nu: number): number {
+  let lo = 0;
+  let hi = 1e3;
+  for (let k = 0; k < 200; k++) {
+    const mid = 0.5 * (lo + hi);
+    if (tTwoSidedP(mid, nu) > alpha) lo = mid;
+    else hi = mid;
+  }
+  return 0.5 * (lo + hi);
+}
+
 /** Seed-ensemble summary: mean, sample variance, SD, SE, Student-t 95 % CI, coefficient of variation. */
 export function seedSummary(perSeed: number[]) {
   const e = ensembleEstimate(perSeed.filter(Number.isFinite));

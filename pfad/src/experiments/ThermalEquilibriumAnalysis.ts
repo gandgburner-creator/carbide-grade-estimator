@@ -1,6 +1,6 @@
 import type { VelocityDistribution } from '../gas/InitialConditions';
 import { hendersonCompressibility } from '../benchmarks/KineticTheory';
-import { cumulativeMean, halfMeans, mean, pairedTTest, seedSummary, tailMean } from '../measurements/Statistics';
+import { cumulativeMean, halfMeans, mean, pairedTTest, seedSummary, tailMean, tTwoSidedCritical, welchTTest } from '../measurements/Statistics';
 import { check, type AcceptanceCheck, type ValidationStatus } from '../validation/Status';
 import type { BoxGasRunResult } from './BoxGasRun';
 
@@ -170,7 +170,7 @@ export function thermalEquilibriumAnalysis(
     imprecise.length === 0, 'INCONCLUSIVE'));
   return {
     results: {
-      criteria: 'docs/CRITERIA_THERMAL_VISCOSITY.md (E1–E6)',
+      criteria: 'docs/CRITERIA_THERMAL_VISCOSITY.md (E1–E5; E6′ from §6)',
       temperatureProxy: 'kT = peculiar KE / N (A-03); in a closed elastic box it is fixed by energy conservation, so its constancy is the E1 ledger check; kT_x / kT_y tests equipartition',
       configurations: perConfig,
       stationarityTests: { m, alpha, tests },
@@ -178,3 +178,130 @@ export function thermalEquilibriumAnalysis(
     checks,
   };
 }
+
+/**
+ * E6′ — relaxation judged against an equilibrium-start control
+ * (docs/CRITERIA_THERMAL_VISCOSITY.md §6; replaces E6 for validation runs).
+ *
+ * For every non-Maxwell start, observable (a₂, anisotropy) and block of the
+ * late half of the relaxation run: Welch t-test of the per-seed block means
+ * against the per-seed block means of the Maxwell-start runs (which begin in
+ * equilibrium). Blocks: the late half (window index ≥ ⌊n/2⌋ of each run) is
+ * cut into `blocks` consecutive blocks of ⌊(n − ⌊n/2⌋)/blocks⌋ windows; the
+ * remaining ≤ blocks − 1 final windows are not used. m = starts × 2 × blocks
+ * tests, Bonferroni: each passes at p > 0.05/m, so the family-wise false-alarm
+ * probability is ≤ 5 % whatever the correlation between the tests.
+ * PASS: every p > 0.05/m. FAIL: any p < 1e-6. Otherwise INCONCLUSIVE. Fewer
+ * than 3 usable runs in the control or in any start: INCONCLUSIVE.
+ */
+export const E6_PRIME = {
+  blocks: 4,
+  observables: ['a2', 'anisotropy'] as const,
+  control: 'maxwell' as VelocityDistribution,
+  familyAlpha: 0.05,
+  failP: 1e-6,
+  minSeeds: 3,
+};
+
+/** Window-index ranges [from, to) of the late-half blocks of a series of n windows. */
+export function lateHalfBlocks(n: number, blocks = E6_PRIME.blocks): { from: number; to: number }[] {
+  const half = Math.floor(n / 2);
+  const len = Math.floor((n - half) / blocks);
+  return Array.from({ length: blocks }, (_, b) => ({ from: half + b * len, to: half + (b + 1) * len }));
+}
+
+interface RelaxRun {
+  distribution: VelocityDistribution;
+  seed: number;
+  halted?: boolean;
+  series: { c: number[]; a2?: number[]; anisotropy?: number[] };
+}
+
+export function relaxationVersusControl(runs: RelaxRun[], blocks = E6_PRIME.blocks): { results: Record<string, unknown>; check: AcceptanceCheck } {
+  const usable = runs.filter((r) => !r.halted && r.series.a2 && r.series.anisotropy);
+  const control = usable.filter((r) => r.distribution === E6_PRIME.control).sort((a, b) => a.seed - b.seed);
+  const starts = [...new Set(usable.map((r) => r.distribution))].filter((d) => d !== E6_PRIME.control);
+  const blockMeans = (r: RelaxRun, o: (typeof E6_PRIME.observables)[number]) => {
+    const x = r.series[o]!;
+    return lateHalfBlocks(x.length, blocks).map((bl) => mean(x.slice(bl.from, bl.to)));
+  };
+  const blockWindows = (r: RelaxRun) => lateHalfBlocks(r.series.c.length, blocks).map((bl) => bl.to - bl.from);
+  const m = starts.length * E6_PRIME.observables.length * blocks;
+  const alpha = E6_PRIME.familyAlpha / Math.max(1, m);
+  const tests = starts.flatMap((d) => {
+    const g = usable.filter((r) => r.distribution === d).sort((a, b) => a.seed - b.seed);
+    return E6_PRIME.observables.flatMap((o) => {
+      const gm = g.map((r) => blockMeans(r, o));
+      const cm = control.map((r) => blockMeans(r, o));
+      return Array.from({ length: blocks }, (_, b) => {
+        const w = welchTTest(gm.map((q) => q[b]), cm.map((q) => q[b]));
+        const ref = g[0] ?? control[0];
+        const bl = ref ? lateHalfBlocks(ref.series.c.length, blocks)[b] : { from: 0, to: 0 };
+        const tCrit = w.dof > 0 ? tTwoSidedCritical(alpha, w.dof) : Number.NaN;
+        return {
+          distribution: d,
+          observable: o,
+          block: b + 1,
+          cFrom: ref ? ref.series.c[bl.from] : Number.NaN,
+          cTo: ref ? ref.series.c[bl.to - 1] : Number.NaN,
+          seedsStart: w.nA,
+          seedsControl: w.nB,
+          windowsStart: g.reduce((a, r) => a + blockWindows(r)[b], 0),
+          windowsControl: control.reduce((a, r) => a + blockWindows(r)[b], 0),
+          perSeedStart: g.map((r, k) => ({ seed: r.seed, blockMean: gm[k][b] })),
+          perSeedControl: control.map((r, k) => ({ seed: r.seed, blockMean: cm[k][b] })),
+          meanStart: mean(gm.map((q) => q[b])),
+          meanControl: mean(cm.map((q) => q[b])),
+          difference: w.diff,
+          se: w.se,
+          t: w.t,
+          dof: w.dof,
+          p: w.p,
+          minimumDetectableDifference: tCrit * w.se,
+          violation: !(w.p > alpha),
+        };
+      });
+    });
+  });
+  const enough = control.length >= E6_PRIME.minSeeds && starts.every((d) => usable.filter((r) => r.distribution === d).length >= E6_PRIME.minSeeds) && starts.length > 0;
+  const violations = tests.filter((t) => t.violation);
+  const decisive = tests.filter((t) => t.p < E6_PRIME.failP);
+  const worst = tests.reduce<(typeof tests)[number] | null>((a, t) => (!a || t.p < a.p ? t : a), null);
+  const maxAbsT = tests.reduce((a, t) => Math.max(a, Math.abs(t.t)), 0);
+  const windowsTested = usable.reduce((a, r) => a + E6_PRIME.observables.length * blockWindows(r).reduce((x, y) => x + y, 0), 0);
+  const passed = enough && violations.length === 0;
+  const status: ValidationStatus = !enough ? 'INCONCLUSIVE' : decisive.length ? 'FAILED' : 'INCONCLUSIVE';
+  const measured = !enough
+    ? `not evaluable: control ${control.length} run(s), starts ${starts.map((d) => `${d} ${usable.filter((r) => r.distribution === d).length}`).join(', ')} (need ≥ ${E6_PRIME.minSeeds})`
+    : violations.length
+      ? `${violations.length} of ${m} test(s) at p ≤ ${alpha.toExponential(2)}: ${violations.map((t) => `${t.distribution} / ${t.observable} / block ${t.block} p = ${t.p.toExponential(2)}`).join('; ')}`
+      : `0 of ${m} violations; smallest p = ${worst ? worst.p.toPrecision(3) : 'n/a'} (${worst?.distribution} / ${worst?.observable} / block ${worst?.block}), max |t| = ${maxAbsT.toFixed(2)}`;
+  return {
+    results: {
+      criterion: "E6′, docs/CRITERIA_THERMAL_VISCOSITY.md §6",
+      control: E6_PRIME.control,
+      starts,
+      blocks,
+      observables: E6_PRIME.observables,
+      m,
+      perTestAlpha: alpha,
+      familyWiseFalseAlarmBound: E6_PRIME.familyAlpha,
+      expectedFalseViolationsUnderH0: m * alpha,
+      failP: E6_PRIME.failP,
+      windowsTested,
+      violations: violations.length,
+      smallestP: worst?.p ?? Number.NaN,
+      maxAbsT,
+      tests,
+    },
+    check: check(
+      'E6prime-relaxation-vs-control',
+      'Every non-Maxwell start is indistinguishable from the equilibrium-start (Maxwell) control in the late half of the relaxation run (a2, anisotropy; per-seed block means, Welch t)',
+      `${m} tests, each p > 0.05/${m} = ${alpha.toExponential(2)} (Bonferroni, family-wise false alarm ≤ 5 %); FAIL if any p < 1e-6`,
+      measured,
+      passed,
+      status,
+    ),
+  };
+}
+

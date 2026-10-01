@@ -72,4 +72,56 @@ describe('thermal experiment (small)', () => {
     expect(Math.abs(beam.equilibrium_a2_pooled.mean)).toBeLessThan(0.1);
     expect(byId['E3-independent-of-initial-distribution']).toBe('PASSED');
   });
+
+  it('judges relaxation with E6′ (2 seeds: not evaluable) and keeps the retired E6 only as a diagnostic', () => {
+    expect(byId['E6prime-relaxation-vs-control']).toBe('INCONCLUSIVE');
+    expect(byId['E6-relaxation-settled']).toBeUndefined();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((rec.results.distributionDependence as any).retiredE6.note).toContain('Diagnostic only');
+  });
+});
+
+describe('E6′: relaxation against the equilibrium-start control', () => {
+  // synthetic relaxation runs: AR(1) noise around 0, plus a decaying transient for non-Maxwell starts
+  const series = (rng: Rng, n: number, x0: number, tau: number, offset = 0) => {
+    const c = Array.from({ length: n }, (_, i) => 0.1 * (i + 1));
+    let e = 0;
+    const x = c.map((ci) => {
+      e = 0.9 * e + 0.02 * Math.sqrt(1 - 0.81) * rng.gaussian();
+      return x0 * Math.exp(-ci / tau) + offset + e;
+    });
+    return { c, x };
+  };
+  const make = (seed: number, opts: { offset?: number; seeds?: number; tau?: number } = {}) => {
+    const rng = new Rng(seed);
+    const runs = [];
+    for (const d of ['maxwell', 'uniform-speed', 'two-beam'] as const) {
+      for (let s = 0; s < (opts.seeds ?? 10); s++) {
+        const a2 = series(rng, 790, d === 'maxwell' ? 0 : -0.5, opts.tau ?? 3, d === 'two-beam' ? (opts.offset ?? 0) : 0);
+        const an = series(rng, 790, d === 'two-beam' ? 0.9 : 0, opts.tau ?? 1);
+        runs.push({ distribution: d, seed: s, series: { c: a2.c, a2: a2.x, anisotropy: an.x } });
+      }
+    }
+    return runs;
+  };
+
+  it('splits the late half into equal blocks and drops at most blocks − 1 final windows', async () => {
+    const { lateHalfBlocks } = await import('../src/experiments/ThermalEquilibriumAnalysis');
+    expect(lateHalfBlocks(790, 4)).toEqual([{ from: 395, to: 493 }, { from: 493, to: 591 }, { from: 591, to: 689 }, { from: 689, to: 787 }]);
+    expect(lateHalfBlocks(791, 4)[3]).toEqual({ from: 692, to: 791 });
+  });
+
+  it('passes relaxed starts, fails a start that stays away from equilibrium, and needs ≥ 3 seeds', async () => {
+    const { relaxationVersusControl } = await import('../src/experiments/ThermalEquilibriumAnalysis');
+    const ok = relaxationVersusControl(make(3));
+    expect(ok.results.m).toBe(16);
+    expect(ok.check.status).toBe('PASSED');
+    const stuck = relaxationVersusControl(make(4, { offset: 0.05 }));
+    expect(stuck.check.status).toBe('FAILED');
+    const slow = relaxationVersusControl(make(5, { tau: 60 }));
+    expect(slow.check.status).not.toBe('PASSED');
+    const few = relaxationVersusControl(make(6, { seeds: 2 }));
+    expect(few.check.status).toBe('INCONCLUSIVE');
+    expect(few.check.measured).toContain('not evaluable');
+  });
 });

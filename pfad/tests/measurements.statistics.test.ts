@@ -118,3 +118,36 @@ describe('distribution functions and ANOVA', () => {
     expect(oneWayAnova(shifted).pValue).toBeLessThan(1e-3);
   });
 });
+
+describe('Welch t-test', () => {
+  it('matches a hand-computed case and its critical value inverts the p-value', async () => {
+    const { welchTTest, tTwoSidedCritical, tTwoSidedP } = await import('../src/measurements/Statistics');
+    // a: mean 2, var 2/3; b: mean 0, var 8/3 (n = 4 each)
+    const w = welchTTest([1, 2, 3, 2], [-2, 0, 2, 0]);
+    expect(w.diff).toBeCloseTo(2, 12);
+    expect(w.se).toBeCloseTo(Math.sqrt(2 / 3 / 4 + 8 / 3 / 4), 12);
+    const va = 2 / 3 / 4;
+    const vb = 8 / 3 / 4;
+    expect(w.dof).toBeCloseTo((va + vb) ** 2 / (va ** 2 / 3 + vb ** 2 / 3), 10);
+    const tc = tTwoSidedCritical(0.01, 7);
+    expect(tTwoSidedP(tc, 7)).toBeCloseTo(0.01, 6);
+    expect(tc).toBeCloseTo(3.4995, 3);
+  });
+
+  it('has the nominal false-alarm rate on equal groups and power on shifted ones', async () => {
+    const { welchTTest } = await import('../src/measurements/Statistics');
+    const rng = new Rng(11);
+    let alarms = 0;
+    const trials = 4000;
+    for (let k = 0; k < trials; k++) {
+      const a = Array.from({ length: 10 }, () => rng.gaussian());
+      const b = Array.from({ length: 10 }, () => 2 * rng.gaussian());
+      if (welchTTest(a, b).p < 0.05) alarms++;
+    }
+    expect(alarms / trials).toBeGreaterThan(0.035);
+    expect(alarms / trials).toBeLessThan(0.065);
+    const a = Array.from({ length: 10 }, () => rng.gaussian() + 3);
+    const b = Array.from({ length: 10 }, () => rng.gaussian());
+    expect(welchTTest(a, b).p).toBeLessThan(1e-3);
+  });
+});

@@ -484,9 +484,10 @@ non-linear profile, Kn > 0.1 cases), which were not rerun.
 
 ## 6. Open
 
-- **E6.** Commit E6′ (§3.8) or another well-posed relaxation criterion, then
-  judge a fresh, independent seed set (e.g. seeds 31–40) with it. Until then
-  thermal equilibrium stays INCONCLUSIVE.
+- **E6.** E6′ is now pre-registered (`CRITERIA_THERMAL_VISCOSITY.md` §6),
+  together with the validation plan: fresh seeds 31–40, same configuration.
+  Until that validation has been run and reported, thermal equilibrium stays
+  INCONCLUSIVE.
 - **Observation, not tested.** In the 40-collision relaxation halves, the
   between-seed SD of Z is 0.0082 (uniform-speed) and 0.0104 (two-beam). That
   is 2–3× the 0.0040 of uniform-box, which is itself what the φ = 0.05

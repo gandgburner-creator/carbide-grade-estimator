@@ -207,3 +207,23 @@ is unchanged. Criteria for the reruns were fixed beforehand in
   Bonferroni over 24 tests) is proposed in `REPORT_THERMAL_VISCOSITY.md`
   §3.8. It applies only to a future, fresh seed set, and only after it is
   committed.
+
+### Criterion revision 1: E6 replaced by E6′ for the validation run (no model change)
+
+- **Was:** E6, "last > 4σ window in the first half of every relaxation run"
+  (a₂, anisotropy). Its false-alarm rate was uncontrolled (see the entry
+  above).
+- **Now:** E6′ (`docs/CRITERIA_THERMAL_VISCOSITY.md` §6). The late half of
+  each relaxation run is cut into 4 blocks. In each block, the per-seed block
+  means of every non-Maxwell start are compared with the Maxwell-start
+  control (Welch t), for a₂ and anisotropy: 24 tests, Bonferroni
+  α = 0.05/24, FAIL at p < 10⁻⁶. E6 is still computed, as a diagnostic only.
+- **Order of events:**
+  1. E6′ was formulated after diagnosing E6 on seeds 21–30.
+  2. It was committed with its report script (`scripts/report-thermal-validation.ts`)
+     before any run with the validation seeds 31–40.
+  3. The original record keeps its INCONCLUSIVE; seeds 21–30 are not used to
+     judge E6′.
+- **Unchanged:** physics, numerical integration, particle model, thermal
+  model, run configuration (only the seeds differ), and criteria E1–E5.
+

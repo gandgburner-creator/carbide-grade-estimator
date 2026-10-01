@@ -12,7 +12,7 @@ import {
   pooled,
   std,
 } from '../measurements/Statistics';
-import { thermalEquilibriumAnalysis } from './ThermalEquilibriumAnalysis';
+import { relaxationVersusControl, thermalEquilibriumAnalysis } from './ThermalEquilibriumAnalysis';
 import { check, combineStatus, type AcceptanceCheck } from '../validation/Status';
 import { BoxGasRun, type BoxGasRunParams, type BoxGasRunResult } from './BoxGasRun';
 import { recordHeader, SequentialExperiment, type ExperimentRecord, type Run } from './Experiment';
@@ -385,10 +385,17 @@ export class ThermalExperiment extends SequentialExperiment<Spec, ThermalRunResu
           `p(Z) = ${cz.pValue.toPrecision(3)}, p(a2) = ${ca.pValue.toPrecision(3)}`,
           pmin > 0.05 / 3, pmin < 1e-6 ? 'FAILED' : 'INCONCLUSIVE'));
       }
+      // E6 (retired 2026-10-01, docs/CRITERIA_THERMAL_VISCOSITY.md §6): its false-alarm rate grows with
+      // seeds × run length, so it is reported here as a diagnostic and never judged.
       const unsettled = rows.filter((r) => !r.settled);
-      checks.push(check('E6-relaxation-settled', 'Relaxation completes within the recorded time',
-        'last > 4σ excursion in the first half of every run', unsettled.length ? unsettled.map((r) => r.distribution).join(', ') : 'all settled',
-        unsettled.length === 0, 'NOT CONVERGED'));
+      (results.distributionDependence as Record<string, unknown>).retiredE6 = {
+        note: 'Diagnostic only (not a criterion): last > 4σ window in the first half of every run. Replaced by E6′.',
+        unsettledStarts: unsettled.map((r) => r.distribution),
+      };
+      // E6′: late-half block means of each start against the Maxwell-start control
+      const e6p = relaxationVersusControl(xRuns.filter((r) => !r.halted));
+      results.relaxationVersusControl = e6p.results;
+      checks.push(e6p.check);
 
       // benchmark: final speeds vs 2D Maxwellian (Rayleigh)
       const ks = [...byD.entries()].map(([dist, rs]) => {
