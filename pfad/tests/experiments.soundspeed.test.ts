@@ -128,7 +128,9 @@ describe('extrapolation and equivalence helpers', () => {
 
   it('the registered validation configuration uses fresh seeds and no prescribed speed', () => {
     expect(SOUND_VALIDATION.seeds[0]).toBe(6001);
-    expect(SOUND_VALIDATION.seeds).toHaveLength(32);
+    expect(SOUND_VALIDATION.seeds).toHaveLength(64);
+    // variants use leading subsets of the same seeds (joint jackknife over common seeds)
+    for (const c of SOUND_VALIDATION.cases) if (c.seeds) expect(c.seeds).toEqual(SOUND_VALIDATION.seeds.slice(0, c.seeds.length));
     expect(JSON.stringify(SOUND_VALIDATION)).not.toMatch(/soundSpeed|c0|hardDisk/);
   });
 });

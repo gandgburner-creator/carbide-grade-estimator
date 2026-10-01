@@ -1,15 +1,11 @@
 # Acceptance criteria: small-amplitude sound speed (Phase 0 item 2)
 
-**Status: DRAFT (design stage).** Not yet the pre-registration: the pilot
-section and the final numbers are being completed. The pre-registration is
-the later commit described in §13.
-
 **Pre-registration.** This document, the experiment configuration
 (`SOUND_VALIDATION` in `src/experiments/SoundSpeedExperiment.ts`), the
 analysis code (`src/measurements/ArrivalAnalysis.ts`,
 `src/experiments/SoundSpeedAnalysis.ts`) and the report script
 (`scripts/report-sound-speed.ts`) were committed and pushed **before** the
-validation dataset (seeds 6001–6032) was generated. The commit hash is
+validation dataset (seeds 6001–6064) was generated. The commit hash is
 recorded in the run log and the report. After that commit:
 
 - no threshold, rule, estimator or configuration value is changed;
@@ -65,8 +61,9 @@ measurement. A test checks that the particle state of both is bit-identical
   radius 0.5. At φ = 0.2 the mean free path is about one diameter, so a
   20-wide pulse is about 20 mean free paths: a hydrodynamic disturbance.
 - **Domain:** periodic box, L × H = 600 × 120 (≈ 18 300 disks).
-- **Phase 1:** the uniform gas relaxes for 30 time units (~ 100 collision
-  times) from random sequential placement. Peculiar velocities are then
+- **Phase 1:** the uniform gas relaxes for 15 time units (~ 50 collision
+  times) from random sequential placement. Local structure relaxes within a
+  few collision times. Peculiar velocities are then
   rescaled once to kT = 1 (A-04, unchanged).
 - **Phase 2, the disturbance** (t = 0): extra particles, a fractional excess
   A of the local number, are added by random sequential addition among the
@@ -82,8 +79,8 @@ It imposes no velocity field, no forcing and no wave shape. It leaves:
 - two outward pulses, whose speed is the measurement;
 - a stationary entropy mode at the source: an excess density with no momentum.
 
-A velocity kick (±U outward) is run as an alternative disturbance (§8,
-reported). An equilibrium-in-a-potential-well release was considered and
+A velocity kick (±U outward, U = 0.4) is run as an alternative disturbance
+(§8, reported). An equilibrium-in-a-potential-well release was considered and
 rejected: the far field of a long box needs ~ 10⁴ time units to equilibrate
 around the well.
 
@@ -121,8 +118,11 @@ analysis window is t ≤ 120.
 **Steps.**
 
 1. **Slant stack.** For trial slownesses s = 0.02 … 2 (step 0.0025),
-   compute P(s) = Σ_t [Σ_k E_k(t + s·(d_k − d_1))]².
+   compute the cross power P(s) = Σ_t [(Σ_k x_k)² − Σ_k x_k²], with
+   x_k = E_k(t + s·(d_k − d_1)).
    - The speeds 0.5 … 50 are a generic range, not a prior.
+   - The incoherent (diagonal) energy is removed, so only probe-to-probe
+     coherence counts.
    - The time axis covers every aligned sample: a fixed axis would truncate
      the broadened far-probe pulses and bias the stack. This was found on
      synthetic data, fixed, and covered by a unit test.
@@ -237,11 +237,16 @@ cannot select a convenient subset.
 
 ## 8. Convergence, invariance and placement
 
-All invariance tests are at the reference amplitude A_ref = 0.2. Every case
-uses the same 32 seeds, and differences are jackknifed jointly.
+All invariance tests are at the reference amplitude A_ref = 0.4, the
+highest-SNR amplitude (§12). The amplitude dependence itself is tested by S5,
+not here.
+
+**Seeds.** The variants use subsets of the series seeds: judged variants the
+first 32, reported variants the first 16. Each difference is jackknifed
+jointly with the reference re-analysed on the same seeds.
 
 **Equivalence rule.** Let Δ be the relative speed difference, variant minus
-reference, with its 95 % CI (t, 31 dof).
+reference, with its 95 % CI (t, n − 1 dof).
 
 - **PASS:** the CI lies inside ±5 %.
 - **FAIL:** the CI lies entirely outside ±5 %, a material dependence on a
@@ -269,8 +274,8 @@ smaller than the stated precision is not material; one larger than it is.
 | S9-domain-length | L = 900 vs 600 | yes |
 | S9-strip-height | H = 240 vs 120 (twice the particles per probe, half the noise variance) | yes |
 | S9-particle-radius | radius 0.35 at the same φ, H = 60 (2× particles per area, same number per probe) | yes |
-| R-disturbance-type | velocity kick U = 0.2 | reported |
-| R-slab-width | slab width 40 | reported |
+| R-disturbance-type | velocity kick U = 0.4, 16 seeds | reported |
+| R-slab-width | slab width 40, 16 seeds | reported |
 
 The two variants are reported only, because at finite amplitude a different
 pulse shape or strength changes the nonlinear speed increment. A difference
@@ -292,12 +297,16 @@ The box is periodic in x and y. There are no walls.
   end. That arrival is estimated as t₀ + (L − d_max)/(c + 3 SE) − rise time:
   - t₀ and the rise time come from the momentum-peak feature;
   - if that feature is unavailable, t₀ = 0 and the rise time is 10.
-- **Inward waves.** No coherent inward-moving wave may be detected. An inward
-  slant-stack maximum counts as a detected inward wave only if its aligned
-  stack is ≥ 5σ **and** its power is ≥ 0.25 of the outward maximum. A strong
-  outward pulse partly aligns at wrong (inward) moveouts; the ratio separates
-  that leakage from a real reflected pulse. The leakage level was measured
-  on the design pilot (§12).
+- **Inward waves.** No coherent inward-moving wave may be detected.
+  - **Search band.** The candidate is the largest *interior* local maximum of
+    the cross power at inward speeds between ½ and 2 × the measured outward
+    speed. A reflected or wrapped pulse travels at the medium's speed.
+  - **Detection.** The candidate counts as an inward wave if its aligned
+    stack is ≥ 5σ and its cross power is ≥ 0.5 of the outward maximum. This
+    is the same rule as for competing outward moveouts (§6).
+  - **What it rejects.** A strong outward pulse leaks into near-zero inward
+    moveouts, but as a monotonic tail with no interior maximum. Thermal sound
+    noise is seed-incoherent and weak (§12).
 - **Domain size and transverse size** are tested by S9 (L = 900, H = 240).
 - **Wave interference** (the two outward pulses) cannot occur at the probes:
   the pulses move apart. Pulse–entropy-mode interaction is limited to the
@@ -328,7 +337,7 @@ A signal without a disturbance would be an artefact: **FAIL**.
 | S7 | seed reproducibility: split halves (odd/even seed index), each a full analysis | \|z\| < 3 for c₀(half 1) − c₀(half 2) | \|z\| > 5 | INCONCLUSIVE |
 | S8 | probe width (4, 20), sampling, window, timestep | equivalence ±5 % | CI outside ±5 % | INCONCLUSIVE |
 | S9 | domain length, strip height, particle radius | equivalence ±5 % | CI outside ±5 % | INCONCLUSIVE |
-| S10 | reflection exclusion (§9) | met | — | INCONCLUSIVE |
+| S10 | reflection exclusion (§9), for the amplitudes in the set and the judged variants | met | — | INCONCLUSIVE |
 
 **Classification.**
 
@@ -344,7 +353,8 @@ experiments.
 **False-alarm budget, stated in advance.** For a medium that does have a
 sound speed, the z-based rows (S4 over ≤ 5 amplitudes, S5 and S7) at
 |z| < 3 have a chance INCONCLUSIVE rate of about 0.27 % each, ≈ 2 % in
-total. The equivalence rows can be INCONCLUSIVE for lack of precision; their
+total. The top-down rule uses the same |z| < 3, so a chance drop of the
+largest amplitude has probability ≈ 0.3 % per step. The equivalence rows can be INCONCLUSIVE for lack of precision; their
 power is set by the seed count (§12). A chance FAIL needs |z| > 5 or a CI
 wholly outside ±5 %, and is negligible.
 
@@ -359,7 +369,84 @@ where Z(φ) is the Henderson equation of state.
 
 ## 12. Design pilots and the choice of numbers
 
-{{PILOTS}}
+Three sets of design-only seeds were used. They are never reused for
+validation, and no result from them enters a criterion.
+
+- **Pilot 1 (5001–5008).** The existing `PulseRun` with L = 400,
+  amplitudes 0.4, 0.2, 0.1 and 0.
+- **Pilot 2 (5101–5108).** This experiment's configuration with the five
+  amplitudes, the control, kick U = 0.2 and slab width 40.
+- **Code-path smoke test (5201–5208).** A reduced domain, used to exercise
+  every analysis branch.
+
+What they showed, and what each finding fixed:
+
+1. **Noise and signal.** With 8 seeds, the seed-mean momentum density at a
+   4-wide probe (H = 120) has an SE of ≈ 5.8 × 10⁻³. The SE falls as
+   1/√(seeds × H × probe width). The outward pulse's stacked-template peak
+   is ≈ 0.07·A. That is a linear response: the peak per unit amplitude is
+   0.073, 0.070 and 0.073 at A = 0.4, 0.3 and 0.2. Per-probe peak detection
+   at 5σ would need A ≳ 0.4 at 8 seeds; stacking over 17 probes gains ≈ √17.
+2. **Choice of estimator.** At A = 0.4 with 8 seeds, per-probe peak centroids
+   had a 6–10 % SE, and cross-correlation and stacking 2–3 %. Hence the
+   primary estimator. A longer range of probe distances (30–150 against
+   30–110) roughly halved the SE, which led to L = 600 and probes to 190.
+3. **Two estimator defects**, found on synthetic data and fixed before any
+   validation data existed; unit tests cover both:
+   - stack-axis truncation (bias of +1 to +3 % for broadening pulses);
+   - correlating each probe with a template that contained it, which
+     underestimated the jackknife SE by up to 30×.
+
+   Pilot-1 speeds were made with the defective estimator and are not used.
+4. **Pilot 2 with the corrected estimator (8 seeds).** This is design data
+   only, shown for transparency.
+
+   | A | c | stack SNR |
+   |---|---|---|
+   | 0.4 | 2.384 ± 0.051 | 24.5 |
+   | 0.3 | 2.362 ± 0.033 | 15.2 |
+   | 0.2 | 2.345 ± 0.120 | 11.6 |
+   | 0.1 | 2.377 ± 0.085 | 7.8 |
+   | 0.05 | not detected | 4.9 |
+   | control | no signal | 2.5 |
+
+   - Extrapolation over 0.1–0.4: c₀ = 2.352 ± 0.088, with no significant
+     slope or curvature.
+   - R² ≥ 0.996 at every amplitude; no ambiguity at the detected amplitudes.
+5. **Seed count.** SE(c₀) = 0.088 at 8 seeds.
+   - 32 seeds would give a 95 % half-width of ≈ 3.8 %, with little margin:
+     an 8-seed SE is itself uncertain by ≈ 25 %.
+   - 64 seeds give ≈ 2.7 %.
+   - At 64 seeds, A = 0.05 should be detectable (stack SNR ≈ 4.9 · √8 ≈ 14).
+     If it is not, it is reported as noise-dominated.
+6. **Reference amplitude.** The per-case SE at 32 seeds is ≈ 1 % at A = 0.4
+   but ≈ 2.5–3 % at A = 0.2. Equivalence at ±5 % is therefore feasible only
+   at 0.4: A_ref = 0.4. At 0.4 the pulse's peak velocity is ≈ 0.12 against a
+   speed ≈ 2.4 (≈ 5 %), weakly nonlinear. Pilot 2 showed no detectable
+   amplitude dependence, and the invariance tests concern numerics and
+   geometry, not the zero-amplitude limit.
+7. **Inward stack.** Two effects appear in the inward stack:
+   - strong outward pulses leak into near-zero inward moveouts, with a cross
+     power of up to ≈ 0.3 of the outward maximum;
+   - thermal sound noise in the 8-seed average shows weak, seed-incoherent
+     inward coherence near the medium's speed (ratio ≈ 0.2, falling as more
+     seeds are averaged).
+
+   Synthetic outward-only pulses, with or without a trailing rarefaction,
+   produce no interior inward maxima. Hence the rule in §9.
+8. **Thermal fluctuations.** In the control, the fluctuations alone show
+   their most coherent moveouts at speeds near 2.3 (outward and inward),
+   close to the pulse speed. This is reported only: equilibrium noise is
+   itself sound.
+9. **Velocity kick.** U = 0.2 gives an N-wave (compression, then
+   rarefaction) that was barely detected (SNR 4.4 at 8 seeds); hence U = 0.4.
+10. **Cost and timing.**
+    - A run (600 × 120, 135 time units) takes ≈ 150 s on one core.
+    - Phase 1 was shortened from 30 to 15 time units.
+    - With the window ending at 120, the outward pulse reaches the antipode
+      (d = 300) only at t ≈ 125, so no wrapped wave exists inside the window
+      at all.
+
 
 ## 13. Validation plan
 
@@ -367,8 +454,15 @@ where Z(φ) is the Henderson equation of state.
   "Pre-register Item 2". The run is made from a git worktree pinned to it,
   and the hash is written to the run log. Earlier commits touching this file
   are design-stage drafts.
-- **Seeds.** 6001–6032 (32), fresh. No earlier PFAD run used them; the
-  design pilots used 5001–5008 and 5101–5108.
+- **Seeds.** 6001–6064, fresh:
+  - 64 for the five amplitudes and the control;
+  - the first 32 for the four judged variants;
+  - the first 16 for the two reported variants.
+
+  No earlier PFAD run used them. The design pilots used 5001–5008,
+  5101–5108 and 5201–5208.
+- **Expected runtime.** ≈ 6.4 h on 4 threads (≈ 600 run-equivalents of
+  ≈ 150 s each).
 - **Command.**
   `npx tsx scripts/run-experiment.ts sound-speed-validation --parallel 4 --out results --name sound-speed_validation`
 - **Report.**

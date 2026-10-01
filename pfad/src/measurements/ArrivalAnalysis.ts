@@ -247,8 +247,9 @@ export function ensembleSeries(perSeed: number[][], leaveOut = -1): number[] {
  *
  * 1. Slant stack: for each trial slowness s (time per unit distance, on a
  *    uniform grid that spans far beyond any plausible speed — no expected
- *    value is used), P(s) = Σ_t [Σ_k J_k(t + s·(d_k − d_1))]² over the
- *    whole aligned axis (samples outside each probe's window count as 0). Its maximiser
+ *    value is used), the cross power P(s) = Σ_t [(Σ_k x_k)² − Σ_k x_k²],
+ *    x_k = J_k(t + s·(d_k − d_1)), over the whole aligned axis (samples
+ *    outside each probe's window count as 0). Its maximiser
  *    s* is the moveout of the most coherent outward-travelling signal.
  * 2. Template: T(t) = mean_k J_k(t + s*(d_k − d_1)) on probe 1's clock, on a
  *    time axis that holds every aligned sample (see stackAxis).
@@ -286,7 +287,13 @@ export function stackAxis(d: number[], times: number[], s: number, tEnd: number)
   return { t0: times[0] + k0 * dt, dt, n: Math.floor((hi - (times[0] + k0 * dt)) / dt) + 1 };
 }
 
-/** Slant-stack power P(s) for each slowness in `slownesses`. */
+/**
+ * Slant-stack CROSS power for each slowness: Σ_t [(Σ_k x_k)² − Σ_k x_k²] with
+ * x_k = J_k(t + s·(d_k − d_1)). The incoherent (diagonal) energy is removed,
+ * so only probe-to-probe coherence at moveout s counts: a strong pulse no
+ * longer leaks a large floor into every trial moveout, and noise contributes
+ * zero on average.
+ */
 export function slantStack(E: number[][], d: number[], times: number[], slownesses: number[], tEnd: number): number[] {
   const t0 = times[0];
   const dt = times[1] - times[0];
@@ -296,8 +303,13 @@ export function slantStack(E: number[][], d: number[], times: number[], slowness
     for (let k = 0; k < ax.n; k++) {
       const t = ax.t0 + k * ax.dt;
       let sum = 0;
-      for (let p = 0; p < d.length; p++) sum += sampleAt(E[p], t0, dt, t + s * (d[p] - d[0]), tEnd);
-      P += sum * sum;
+      let sq = 0;
+      for (let p = 0; p < d.length; p++) {
+        const x = sampleAt(E[p], t0, dt, t + s * (d[p] - d[0]), tEnd);
+        sum += x;
+        sq += x * x;
+      }
+      P += sum * sum - sq;
     }
     return P;
   });

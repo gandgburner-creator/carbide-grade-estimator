@@ -50,8 +50,6 @@ export interface SoundCriteria {
   referenceAmplitude: number;
   /** independent seed groups reported (split-half is the criterion) */
   groups: number;
-  /** an inward-moving coherent wave counts as detected if its aligned stack is ≥ detectSigma AND its stack power is ≥ this fraction of the outward maximum (separates a real reflected pulse from partial alignment of the strong outward pulse) */
-  inwardPowerRatio: number;
 }
 
 export interface SoundParams extends SoundParamsBase {
@@ -74,7 +72,7 @@ const DENSITY_CASE: Omit<SoundCase, 'label' | 'role'> = {
   perturbation: 'density',
   amplitude: 0.2,
   slabWidth: 20,
-  equilibrationTime: 30,
+  equilibrationTime: 15,
   rescaleAfterEquilibration: true,
   length: 600,
   height: 120,
@@ -84,20 +82,23 @@ const DENSITY_CASE: Omit<SoundCase, 'label' | 'role'> = {
 };
 
 export const SOUND_AMPLITUDES = [0.4, 0.3, 0.2, 0.1, 0.05];
+const SEEDS = Array.from({ length: 64 }, (_, k) => 6001 + k);
+const REF_VARIANT: Omit<SoundCase, 'label'> = { ...DENSITY_CASE, role: 'variant', amplitude: 0.4, seeds: SEEDS.slice(0, 32) };
 
 export const SOUND_VALIDATION: SoundParams = {
   cases: [
     ...SOUND_AMPLITUDES.map((a) => ({ ...DENSITY_CASE, label: `A = ${a}`, role: 'amplitude' as const, amplitude: a })),
     { ...DENSITY_CASE, label: 'control A = 0', role: 'control', amplitude: 0 },
-    { ...DENSITY_CASE, label: 'Courant 0.05', role: 'variant', variant: { kind: 'timestep', judged: true }, timestep: { kind: 'adaptive', courant: 0.05, dtMax: 0.05, dtMin: 1e-7 } },
-    { ...DENSITY_CASE, label: 'L = 900', role: 'variant', variant: { kind: 'domain-length', judged: true }, length: 900 },
-    { ...DENSITY_CASE, label: 'H = 240', role: 'variant', variant: { kind: 'strip-height', judged: true }, height: 240 },
-    { ...DENSITY_CASE, label: 'radius 0.35, H = 60', role: 'variant', variant: { kind: 'particle-radius', judged: true }, radius: 0.35, height: 60 },
-    { ...DENSITY_CASE, label: 'velocity kick U = 0.2', role: 'variant', variant: { kind: 'disturbance-type', judged: false }, perturbation: 'kick', amplitude: 0.2 },
-    { ...DENSITY_CASE, label: 'slab width 40', role: 'variant', variant: { kind: 'slab-width', judged: false }, slabWidth: 40 },
+    { ...REF_VARIANT, label: 'Courant 0.05', variant: { kind: 'timestep', judged: true }, timestep: { kind: 'adaptive', courant: 0.05, dtMax: 0.05, dtMin: 1e-7 } },
+    { ...REF_VARIANT, label: 'L = 900', variant: { kind: 'domain-length', judged: true }, length: 900 },
+    { ...REF_VARIANT, label: 'H = 240', variant: { kind: 'strip-height', judged: true }, height: 240 },
+    { ...REF_VARIANT, label: 'radius 0.35, H = 60', variant: { kind: 'particle-radius', judged: true }, radius: 0.35, height: 60 },
+    { ...REF_VARIANT, label: 'velocity kick U = 0.4', variant: { kind: 'disturbance-type', judged: false }, perturbation: 'kick', amplitude: 0.4, seeds: SEEDS.slice(0, 16) },
+    { ...REF_VARIANT, label: 'slab width 40', variant: { kind: 'slab-width', judged: false }, slabWidth: 40, seeds: SEEDS.slice(0, 16) },
   ],
-  // fresh validation seeds, never used by any earlier run (design pilots used 5001–5199)
-  seeds: Array.from({ length: 32 }, (_, k) => 6001 + k),
+  // fresh validation seeds, never used by any earlier run (design pilots used 5001–5008 and 5101–5108):
+  // 64 for the amplitude series and the control, the first 32 for judged variants, the first 16 for reported ones
+  seeds: SEEDS,
   contact: 'rewind-to-contact',
   timestep: { kind: 'adaptive', courant: 0.025, dtMax: 0.05, dtMin: 1e-7 },
   forceEnergyTolerance: 1e-3,
@@ -121,9 +122,8 @@ export const SOUND_VALIDATION: SoundParams = {
     minAmplitudes: 3,
     precision: 0.05,
     equivalence: 0.05,
-    referenceAmplitude: 0.2,
+    referenceAmplitude: 0.4,
     groups: 4,
-    inwardPowerRatio: 0.25,
   },
   storeSeries: true,
 };
@@ -141,8 +141,8 @@ export class SoundSpeedExperiment extends SequentialExperiment<Spec, SoundRunRes
 
   constructor(p: SoundParams) {
     const specs: Spec[] = [];
-    p.cases.forEach((_, i) => {
-      for (const seed of p.seeds) specs.push({ caseIndex: i, seed });
+    p.cases.forEach((c, i) => {
+      for (const seed of c.seeds ?? p.seeds) specs.push({ caseIndex: i, seed });
     });
     super(specs);
     this.params = p;
@@ -181,13 +181,15 @@ export class SoundSpeedExperiment extends SequentialExperiment<Spec, SoundRunRes
     const warnings: string[] = [];
     const all = this.results;
     const S = p.seeds.length;
-    const runsOf = (i: number) => p.seeds.map((s) => all.find((r) => r.caseIndex === i && r.seed === s)).filter((r): r is SoundRunResult => !!r && !r.halted);
+    const seedsOf = (i: number) => p.cases[i].seeds ?? p.seeds;
+    const runsOf = (i: number) => seedsOf(i).map((s) => all.find((r) => r.caseIndex === i && r.seed === s)).filter((r): r is SoundRunResult => !!r && !r.halted);
     const dof = S - 1;
 
     // ---------------------------------------------------------------- per case
     const caseResults = p.cases.map((c, i) => {
       const runs = runsOf(i);
-      if (runs.length < S) return { label: c.label, role: c.role, missing: S - runs.length };
+      const caseSeeds = seedsOf(i);
+      if (runs.length < caseSeeds.length) return { label: c.label, role: c.role, missing: caseSeeds.length - runs.length };
       const times = runs[0].sound.times.map((_, k) => k * m.snapshotInterval);
       const J = this.series(runs, (r) => r.sound.j[0]);
       const primary = primaryAnalysis(J, d, times, opt);
@@ -221,6 +223,7 @@ export class SoundSpeedExperiment extends SequentialExperiment<Spec, SoundRunRes
         variant: c.variant ?? null,
         case: { ...c, model: undefined },
         seeds: runs.length,
+        seedList: caseSeeds,
         amplitude: c.amplitude,
         realizedAmplitude: mean(runs.map((r) => r.sound.realizedAmplitude)),
         inserted: mean(runs.map((r) => r.sound.inserted)),
@@ -271,7 +274,14 @@ export class SoundSpeedExperiment extends SequentialExperiment<Spec, SoundRunRes
         return Math.max(...E.map((v) => Math.abs(v))) / sigma;
       });
       const signal = P.stackSnr >= cr.detectSigma || P.inward.snr >= cr.detectSigma || probeMax.some((v) => v >= cr.detectSigma);
-      controlInfo = { outwardStackSnr: P.stackSnr, inwardStackSnr: P.inward.snr, maxProbeSnr: Math.max(...probeMax), probeSnr: probeMax };
+      controlInfo = {
+        outwardStackSnr: P.stackSnr,
+        inwardStackSnr: P.inward.snr,
+        maxProbeSnr: Math.max(...probeMax),
+        probeSnr: probeMax,
+        note: 'Reported, not judged: the most coherent moveouts of the equilibrium fluctuations themselves (thermal sound waves travel both ways).',
+        thermalFluctuationMoveout: { outwardSpeed: P.slantStackSpeed, inwardCandidate: P.inward.candidate },
+      };
       checks.push(check('S1-control-no-signal', 'No disturbance, no signal: the zero-amplitude control shows no coherent outward or inward pulse and no 5σ excursion at any probe',
         `outward and inward aligned-stack SNR < ${cr.detectSigma}; every probe max |J|/σ < ${cr.detectSigma} (FAIL otherwise: a signal without a disturbance is an artefact)`,
         `outward ${P.stackSnr.toFixed(2)}, inward ${P.inward.snr.toFixed(2)}, max probe ${Math.max(...probeMax).toFixed(2)}`, !signal, 'FAILED'));
@@ -379,15 +389,17 @@ export class SoundSpeedExperiment extends SequentialExperiment<Spec, SoundRunRes
     // --------------------------------------------------------------- invariance
     const ref = amps.find((x) => x.amplitude === cr.referenceAmplitude);
     const invariance: unknown[] = [];
-    const compare = (id: string, what: string, v: PrimaryResult, judged: boolean) => {
+    const compare = (id: string, what: string, v: PrimaryResult, judged: boolean, variantSeeds?: number[]) => {
       if (!ref) return;
-      const r = ref.primary;
+      // the reference restricted to the variant's seeds, so the difference is jackknifed jointly over common seeds
+      const idx = (variantSeeds ?? ref.seedList).map((s) => ref.seedList.indexOf(s));
+      const r = variantSeeds ? primaryAnalysis(ref._J, d, ref._times, opt, idx) : ref.primary;
       const diff = v.speed - r.speed;
       const se = jackknifeSe(v.loo.speed.map((s, i) => s - r.loo.speed[i]));
-      const eq = equivalence(diff / r.speed, se / r.speed, dof, cr.equivalence);
+      const eq = equivalence(diff / r.speed, se / r.speed, idx.length - 1, cr.equivalence);
       const usable = v.detected && !v.ambiguous;
       const status: ValidationStatus = usable ? eq.status : 'INCONCLUSIVE';
-      invariance.push({ id, what, judged, reference: r.speed, variant: v.speed, variantSe: v.se, difference: diff, differenceSe: se, ...eq, detected: v.detected, ambiguous: v.ambiguous, status });
+      invariance.push({ id, what, judged, seeds: idx.length, reference: r.speed, variant: v.speed, variantSe: v.se, difference: diff, differenceSe: se, ...eq, detected: v.detected, ambiguous: v.ambiguous, status });
       if (judged)
         checks.push(check(id, `Speed at A = ${cr.referenceAmplitude} does not depend materially on ${what}`,
           `95 % CI of the relative difference inside ±${100 * cr.equivalence} % (FAIL if entirely outside; variant must be detected and unambiguous)`,
@@ -406,12 +418,13 @@ export class SoundSpeedExperiment extends SequentialExperiment<Spec, SoundRunRes
       for (const v of caseResults.filter((x): x is CaseRes => ok(x) && x.role === 'variant')) {
         const kind = v.variant!.kind;
         const id = kind === 'timestep' ? 'S8-timestep' : kind === 'domain-length' ? 'S9-domain-length' : kind === 'strip-height' ? 'S9-strip-height' : kind === 'particle-radius' ? 'S9-particle-radius' : `R-${kind}`;
-        compare(id, v.label, v.primary, v.variant!.judged);
+        compare(id, v.label, v.primary, v.variant!.judged, v.seedList);
       }
     }
 
     // ---------------------------------------------------------- reflections / window
-    const reflection = set.concat(caseResults.filter((x): x is CaseRes => ok(x) && x.role === 'variant')).map((x) => {
+    const reflectionCases = set.concat(caseResults.filter((x): x is CaseRes => ok(x) && x.role === 'variant'));
+    const reflection = reflectionCases.map((x) => {
       const c = x.case;
       const peak = x.features[0];
       const t0 = peak.fit ? peak.fit.intercept : 0;
@@ -420,12 +433,14 @@ export class SoundSpeedExperiment extends SequentialExperiment<Spec, SoundRunRes
       const rise = outerProbe.detected && fr.detected ? Math.max(0, outerProbe.t - fr.t) : 10;
       const cHi = x.primary.speed + 3 * x.primary.se;
       const tWrap = t0 + (c.length - d[d.length - 1]) / cHi - rise;
-      return { label: x.label, t0, rise, cHi, earliestWrappedArrival: tWrap, windowEnd: opt.tEnd, clear: tWrap > opt.tEnd, inwardStackSnr: x.primary.inward.snr, inwardRatio: x.primary.inward.ratio, inwardSpeed: x.primary.inward.speed, inwardDetected: x.primary.inward.snr >= cr.detectSigma && x.primary.inward.ratio >= cr.inwardPowerRatio };
+      return { label: x.label, t0, rise, cHi, earliestWrappedArrival: tWrap, windowEnd: opt.tEnd, clear: tWrap > opt.tEnd, inwardStackSnr: x.primary.inward.snr, inwardRatio: x.primary.inward.ratio, inwardSpeed: x.primary.inward.speed, inwardCandidate: x.primary.inward.candidate, inwardDetected: !!x.primary.inward.candidate && x.primary.inward.candidate.snr >= cr.detectSigma && x.primary.inward.candidate.ratio >= cr.competingFraction };
     });
-    const bad = reflection.filter((q) => !q.clear || q.inwardDetected);
+    // judged for the amplitudes in the set and the judged variants; reported-only variants are listed but do not decide S10
+    const judgedReflection = reflection.filter((_, i) => reflectionCases[i].role === 'amplitude' || reflectionCases[i].variant?.judged);
+    const bad = judgedReflection.filter((q) => !q.clear || q.inwardDetected);
     checks.push(check('S10-reflection-exclusion', 'No wrapped (periodic-image) or reflected wave can reach any probe inside the analysis window, and no coherent inward-moving wave is detected',
-      `earliest wrapped arrival at the outermost probe, t₀ + (L − d_max)/(c + 3 SE) − rise time, after the window end; no inward wave with aligned-stack SNR ≥ ${cr.detectSigma} and power ≥ ${cr.inwardPowerRatio} of the outward maximum; for every amplitude used and every variant`,
-      bad.length ? bad.map((q) => `${q.label}: wrapped ${q.earliestWrappedArrival.toFixed(1)}, inward SNR ${q.inwardStackSnr.toFixed(1)} (power ratio ${q.inwardRatio.toFixed(3)})`).join('; ') : `clear (earliest wrapped arrival ${Math.min(...reflection.map((q) => q.earliestWrappedArrival)).toFixed(1)} > ${opt.tEnd}; max inward SNR ${Math.max(...reflection.map((q) => q.inwardStackSnr)).toFixed(2)})`,
+      `earliest wrapped arrival at the outermost probe, t₀ + (L − d_max)/(c + 3 SE) − rise time, after the window end; no inward wave (interior cross-power maximum at inward speeds ½–2 × the outward speed) with aligned-stack SNR ≥ ${cr.detectSigma} and cross power ≥ ${cr.competingFraction} of the outward maximum, the same rule as for competing outward moveouts; for every amplitude in the set and every judged variant`,
+      bad.length ? bad.map((q) => `${q.label}: wrapped ${q.earliestWrappedArrival.toFixed(1)}${q.inwardCandidate ? `, inward candidate ${q.inwardCandidate.speed.toFixed(2)} SNR ${q.inwardCandidate.snr.toFixed(1)} ratio ${q.inwardCandidate.ratio.toFixed(3)}` : ''}`).join('; ') : `clear (earliest wrapped arrival ${Math.min(...judgedReflection.map((q) => q.earliestWrappedArrival)).toFixed(1)} > ${opt.tEnd}; inward candidates: ${judgedReflection.map((q) => (q.inwardCandidate ? `${q.label} SNR ${q.inwardCandidate.snr.toFixed(1)} ratio ${q.inwardCandidate.ratio.toFixed(2)}` : `${q.label} none`)).join(', ')})`,
       bad.length === 0, 'INCONCLUSIVE'));
 
     // --------------------------------------------------------------- classification

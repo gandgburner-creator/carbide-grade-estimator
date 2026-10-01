@@ -68,6 +68,13 @@ export const CATALOG: CatalogEntry[] = [
     summary: 'Amplitude series (0.1–0.5) extrapolated to zero amplitude, where finite-amplitude effects vanish; widths 10 and 40 test width dependence near the linear regime.',
   },
   {
+    key: 'sound-validation',
+    label: 'SOUND SPEED — SMALL AMPLITUDE (ITEM 2)',
+    engine: 'sound-speed-validation',
+    step: 'Step 10',
+    summary: 'Pre-registered amplitude series (0.4 → 0.05) with a zero-amplitude control, extrapolated to zero amplitude. Arrival times at 17 probes by stacked-template cross-correlation of the outward momentum pulse; competing features reported; invariance to timestep, probe width, sampling, window, domain length, strip height and particle radius. Criteria: docs/CRITERIA_SOUND_SPEED.md. The full configuration takes hours; use quick mode in the browser.',
+  },
+  {
     key: 'viscosity',
     label: 'VISCOSITY',
     engine: 'viscosity',

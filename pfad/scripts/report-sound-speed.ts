@@ -49,7 +49,7 @@ for (const c of cases) {
   if (p.competingMoveouts.length) console.log(`    competing coherent moveouts: ${p.competingMoveouts.map((q: any) => `${f(q.speed, 4)} (ratio ${f(q.ratio, 2)}, SNR ${f(q.snr, 2)})`).join('; ')}`);
   if (p.competingCorrelation.length) console.log(`    competing correlation peaks: ${p.competingCorrelation.map((q: any) => `d ${q.probe}: τ ${f(q.tau, 4)} (ratio ${f(q.ratio, 2)}, SNR ${f(q.snr, 2)})`).join('; ')}`);
   if (p.looUnstable.slowness || p.looUnstable.probes.length) console.log(`    leave-one-out unstable: slowness ${p.looUnstable.slowness}, probes ${p.looUnstable.probes.join(', ')}`);
-  console.log(`    arrival vs distance: R² ${f(p.fit.r2, 6)}, residual RMS ${f(p.fit.residualRms, 3)}, curvature z ${f(p.curvature.z, 3)}; slant-stack speed ${f(p.slantStackSpeed, 5)}; inward stack SNR ${f(p.inward.snr, 3)} (ratio ${f(p.inward.ratio, 2)})`);
+  console.log(`    arrival vs distance: R² ${f(p.fit.r2, 6)}, residual RMS ${f(p.fit.residualRms, 3)}, curvature z ${f(p.curvature.z, 3)}; slant-stack speed ${f(p.slantStackSpeed, 5)}; inward: overall max SNR ${f(p.inward.snr, 3)} (ratio ${f(p.inward.ratio, 2)}, includes near-zero-moveout leakage), judged candidate ${p.inward.candidate ? `${f(p.inward.candidate.speed, 3)} SNR ${f(p.inward.candidate.snr, 3)} ratio ${f(p.inward.candidate.ratio, 2)}` : 'none'}`);
   console.log(`    features (reported): ${c.features.map((q: any) => `${q.name}: ${Number.isFinite(q.speed) ? `${f(q.speed, 4)} ± ${f(q.se, 2)}` : 'not fitted'} (${q.probes.filter((x: any) => x.detected).length} probes)`).join('; ')}`);
   console.log(`    sides: right ${f(c.sides.right.speed, 4)} ± ${f(c.sides.right.se, 2)}, left ${f(c.sides.left.speed, 4)} ± ${f(c.sides.left.se, 2)}; placement: inner ${f(c.placement.inner.speed, 4)} ± ${f(c.placement.inner.se, 2)}, outer ${f(c.placement.outer.speed, 4)} ± ${f(c.placement.outer.se, 2)}`);
   console.log(`    pairwise: ${c.pairwise.map((q: any) => `${q.from}→${q.to} ${f(q.speed, 3)}±${f(q.se, 2)}`).join(', ')}`);
@@ -75,7 +75,7 @@ if (R.reproducibility) {
 console.log('\nINVARIANCE (relative speed difference vs the reference amplitude case, joint jackknife, 95 % CI; margin ±' + pct(R.settings.criteria.equivalence) + ')');
 for (const q of R.invariance) console.log(`  ${q.id.padEnd(22)} ${q.what.padEnd(36)} ${pct(q.rel).padStart(9)} [${pct(q.ci95[0])}, ${pct(q.ci95[1])}]  ${q.judged ? q.status : `(reported) ${q.status}`}${q.detected ? '' : ' not detected'}${q.ambiguous ? ' ambiguous' : ''}`);
 console.log('\nCONTROL (A = 0): ' + JSON.stringify({ outward: R.control?.outwardStackSnr, inward: R.control?.inwardStackSnr, maxProbe: R.control?.maxProbeSnr }));
-console.log('REFLECTION: ' + R.reflection.map((q: any) => `${q.label}: wrapped ≥ ${f(q.earliestWrappedArrival, 4)} (window ${q.windowEnd}), inward SNR ${f(q.inwardStackSnr, 3)}`).join('; '));
+console.log('REFLECTION: ' + R.reflection.map((q: any) => `${q.label}: wrapped ≥ ${f(q.earliestWrappedArrival, 4)} (window ${q.windowEnd}), inward candidate ${q.inwardCandidate ? `${f(q.inwardCandidate.speed, 3)} SNR ${f(q.inwardCandidate.snr, 3)} ratio ${f(q.inwardCandidate.ratio, 2)}` : 'none'}${q.inwardDetected ? ' DETECTED' : ''}`).join('; '));
 console.log('\nEXTERNAL BENCHMARKS (comparison only, not criteria): ' + JSON.stringify(rec.benchmarks));
 
 console.log(`\nCLASSIFICATION: ${R.classification}`);
@@ -133,13 +133,12 @@ for (const c of cases.filter((x) => x.series)) {
 }
 for (const c of amps.filter((x) => x.primary)) {
   const p = c.primary;
-  const fitY = probes.map((d) => (d - probes[0]) / p.speed + (p.delays[0] - 0));
   put(`arrival_${caseFile(c)}.svg`, svgPlot({
     title: `${c.label}: arrival delay against distance (primary), R² ${f(p.fit.r2, 5)}`,
     xLabel: 'probe distance d', yLabel: 'delay relative to the first probe',
     series: [
       { label: 'delay ± jackknife SE', x: probes, y: p.delays, err: p.delaySe, color: COLORS[0], markers: true, noLine: true },
-      { label: `fit: c = ${f(p.speed, 4)} ± ${f(p.se, 2)}`, x: probes, y: fitY.map((y, i) => y + (p.fit.intercept - fitY[0] + p.delays[0] - p.delays[0]) * 0 + (p.fit.intercept + p.fit.slope * probes[i] - y)), color: COLORS[1] },
+      { label: `fit: c = ${f(p.speed, 4)} ± ${f(p.se, 2)}`, x: probes, y: probes.map((d) => p.fit.intercept + p.fit.slope * d), color: COLORS[1] },
     ],
   }));
 }

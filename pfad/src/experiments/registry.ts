@@ -108,7 +108,7 @@ const soundSpeedValidation: ExperimentEntry<SoundParams> = {
   quick: {
     ...SOUND_VALIDATION,
     seeds: [1, 2, 3],
-    cases: SOUND_VALIDATION.cases.filter((c) => c.role !== 'variant' || c.variant?.kind === 'timestep').map((c) => ({ ...c, length: 300, height: 30, duration: 50, equilibrationTime: 10 })),
+    cases: SOUND_VALIDATION.cases.filter((c) => c.role !== 'variant' || c.variant?.kind === 'timestep').map((c) => ({ ...c, seeds: undefined, length: 300, height: 30, duration: 50, equilibrationTime: 10 })),
     measurement: { ...SOUND_VALIDATION.measurement, probes: [30, 40, 50, 60, 70, 80, 90, 100] },
     analysis: { ...SOUND_VALIDATION.analysis, tEnd: 50, tEndVariant: 45 },
     storeSeries: false,

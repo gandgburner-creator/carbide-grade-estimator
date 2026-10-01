@@ -66,8 +66,8 @@ export interface PrimaryResult {
   competingCorrelation: { probe: number; tau: number; ratio: number; snr: number }[];
   looUnstable: { slowness: boolean; probes: number[] };
   ambiguous: boolean;
-  /** inward-moving coherent signal (negative slowness): best ratio and SNR */
-  inward: { speed: number; ratio: number; snr: number };
+  /** inward-moving coherent signal (negative slowness): overall maximum and the judged candidate */
+  inward: { speed: number; ratio: number; snr: number; candidate: { speed: number; ratio: number; snr: number } | null };
   loo: { speed: number[]; curvature: number[]; delays: number[][] };
   templatePeak: number;
   /** slant-stack power against speed (every 4th slowness; outward, and inward as negative speeds), normalised to the outward maximum */
@@ -142,6 +142,18 @@ export function primaryAnalysis(per: Series3, d: number[], times: number[], opt:
   const Pout = slantStack(E, d, times, [full.sStar], opt.tEnd)[0];
   let iIn = 0;
   for (let i = 1; i < Pin.length; i++) if (Pin[i] > Pin[iIn]) iIn = i;
+  // inward-wave candidate: the largest INTERIOR local maximum of the cross power for inward speeds between ½ and 2 × the
+  // measured outward speed (a reflected or wrapped pulse travels at the medium's speed; the near-zero-moveout tail of a
+  // strong outward pulse, which overlaps neighbouring probes at any moveout, is monotonic there and is not a maximum)
+  const sBand: number[] = [];
+  for (let s = -2 * full.sStar; s <= -0.5 * full.sStar + 1e-12; s += opt.sStep) sBand.push(s);
+  const Pb = slantStack(E, d, times, sBand, opt.tEnd);
+  let iB = -1;
+  for (let i = 1; i < Pb.length - 1; i++) if (Pb[i] >= Pb[i - 1] && Pb[i] > Pb[i + 1] && (iB < 0 || Pb[i] > Pb[iB])) iB = i;
+  const inwardCandidate =
+    iB >= 0
+      ? { speed: 1 / sBand[iB], ratio: Pb[iB] / Pout, snr: stackSnr(per, seeds, d, times, sBand[iB], opt.tEnd, alignedStack(E, d, times, sBand[iB], opt.tEnd)).snr }
+      : null;
   const inTmpl = alignedStack(E, d, times, sIn[iIn], opt.tEnd);
   const sOut: number[] = [];
   for (let s = opt.sMin; s <= opt.sMax + 1e-12; s += 4 * opt.sStep) sOut.push(s);
@@ -151,7 +163,14 @@ export function primaryAnalysis(per: Series3, d: number[], times: number[], opt:
     speed: [...sIn.filter((_, i) => i % 4 === 0).map((s) => 1 / s), ...sOut.map((s) => 1 / s)].map((v) => +v.toPrecision(5)),
     power: [...Pin.filter((_, i) => i % 4 === 0), ...Po].map((v) => +(v / norm).toPrecision(4)),
   };
-  const inward = { speed: 1 / sIn[iIn], ratio: Pin[iIn] / Pout, snr: stackSnr(per, seeds, d, times, sIn[iIn], opt.tEnd, inTmpl).snr };
+  const inward = {
+    /** overall inward maximum (any inward speed; includes leakage of a strong outward pulse at near-zero moveout) */
+    speed: 1 / sIn[iIn],
+    ratio: Pin[iIn] / Pout,
+    snr: stackSnr(per, seeds, d, times, sIn[iIn], opt.tEnd, inTmpl).snr,
+    /** the judged candidate (see above), or null if the band has no interior maximum */
+    candidate: inwardCandidate,
+  };
   return {
     seeds: n,
     speed: full.fit.speed,
