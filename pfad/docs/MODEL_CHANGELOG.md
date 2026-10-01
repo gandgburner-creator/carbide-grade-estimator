@@ -262,3 +262,34 @@ is unchanged. Criteria for the reruns were fixed beforehand in
   and insertion. The safety warnings at the phase-1 → phase-2 handover
   (in-flight collisions) are pre-existing `PulseRun` behaviour and were not
   changed.
+
+### Item 3: wall-flow rig, analysis and pre-registration (no model change)
+
+- **Added, all measurement or boundary-condition code; no change to core
+  physics:**
+  - `src/experiments/WallFlowRun.ts`, the flat-wall rig. It is a periodic
+    channel with a diffuse plate in a specular floor and a specular ceiling,
+    optionally widened into a smooth diffuser by fixed polygon bodies (A-19).
+    Its inflow conditioning zone is A-20.
+  - `src/measurements/GridSums.ts`: raw per-cell sums, with particles
+    outside the region skipped.
+  - `src/experiments/WallFlowAnalysis.ts` and `BLSeparationReport.ts`:
+    particle-derived observables, reversal detection and classification.
+  - `src/experiments/BoundaryLayerSeparationExperiment.ts` and
+    `scripts/report-bl-separation.ts`.
+  - The collision engine, wall law, body law, integrator and ledger are
+    unchanged. The fringe's velocity changes are entered in the existing
+    ledger fields for external work and impulse.
+- **Parallel runner** (`scripts/parallel.ts`): runs are handed out from a
+  queue, longest first, instead of a fixed round-robin split. Results are
+  still placed in specification order, so records are unchanged; tested
+  against a serial run.
+- **Design decisions made on design seeds before pre-registration**
+  (`docs/CRITERIA_BOUNDARY_LAYER_SEPARATION.md` §11):
+  - vertical mixing in the fringe;
+  - exit-velocity tracking, so no compression jump follows the fringe;
+  - smooth half-cosine ceiling ramps with slope ≤ 0.75;
+  - φ = 0.2, U = 1, expansion r ≤ 2.5.
+- **Why not reuse the reservoir rig.** It has the A-18 density deficit and
+  failed its upstream control. Its far-field suction generator produced a
+  falling wall pressure, so it imposed no adverse gradient.

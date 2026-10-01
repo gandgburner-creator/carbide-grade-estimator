@@ -96,6 +96,13 @@ export const CATALOG: CatalogEntry[] = [
     summary: 'A uniform stream from an open reservoir passes a diffuse flat plate set in a specular floor (open top and outlet). Measures the near-wall deficit, δ*, θ, wall shear and growth — no profile is imposed. Dashed blue = open reservoir boundaries.',
   },
   {
+    key: 'bl-separation',
+    label: 'BOUNDARY LAYER + SEPARATION (ITEM 3)',
+    engine: 'boundary-layer-separation',
+    step: 'Steps 12–13',
+    summary: 'Periodic channel: an inflow-conditioning fringe, a specular lead-in, then a diffuse flat plate under a specular ceiling. The ceiling can widen as a smooth diffuser (expansion r = 1–2.5) to decelerate the core. Near-wall velocity, wall impulse (shear and pressure), stream function and reverse-flow statistics come from particle data, with no profile or separation law. Criteria: docs/CRITERIA_BOUNDARY_LAYER_SEPARATION.md. The full configuration takes hours; use quick mode in the browser.',
+  },
+  {
     key: 'separation',
     label: 'SEPARATION',
     engine: 'separation',

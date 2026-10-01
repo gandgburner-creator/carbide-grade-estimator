@@ -17,6 +17,7 @@ export type ExperimentType =
   | 'viscosity'
   | 'viscosity-sweeps'
   | 'boundary-layer'
+  | 'boundary-layer-separation'
   | 'separation'
   | 'kutta'
   | 'scaling'

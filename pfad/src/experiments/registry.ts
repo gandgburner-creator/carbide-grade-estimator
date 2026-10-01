@@ -2,6 +2,7 @@ import { ABTestExperiment, setABFactory, type ABTestParams } from './ABTestExper
 import type { ExperimentRecord, ExperimentType, SequentialExperiment } from './Experiment';
 import { ADVERSE_GRADIENT_REFERENCE, AdverseGradientExperiment, type AdverseGradientParams } from './AdverseGradientExperiment';
 import { BOUNDARY_LAYER_REFERENCE, BoundaryLayerExperiment, type BoundaryLayerParams } from './BoundaryLayerExperiment';
+import { BLS_VALIDATION, BoundaryLayerSeparationExperiment, type BLSParams } from './BoundaryLayerSeparationExperiment';
 import { COUETTE_REFERENCE, COUETTE_SWEEPS, CouetteExperiment, type CouetteParams } from './CouetteExperiment';
 import { KUTTA_REFERENCE, KuttaExperiment, type KuttaParams } from './KuttaExperiment';
 import { PULSE_LINEAR, PULSE_REFERENCE, PULSE_SWEEPS, PressurePulseExperiment, type PulseParams } from './PressurePulseExperiment';
@@ -114,6 +115,49 @@ const soundSpeedValidation: ExperimentEntry<SoundParams> = {
     storeSeries: false,
   },
   create: (p) => new SoundSpeedExperiment(p) as unknown as SequentialExperiment<unknown, unknown>,
+};
+
+const blSeparation: ExperimentEntry<BLSParams> = {
+  type: 'boundary-layer-separation',
+  title: 'Boundary layer + separation discovery (Item 3)',
+  defaults: BLS_VALIDATION,
+  quick: {
+    ...BLS_VALIDATION,
+    base: {
+      ...BLS_VALIDATION.base,
+      length: 160,
+      heightIn: 24,
+      fringe: [0, 20],
+      plate: [30, 140],
+      diffuser: [50, 100],
+      contraction: [140, 160],
+      startupTime: 60,
+      measurementTime: 60,
+      blocks: 4,
+      nearWallHeight: 12,
+      blockHeight: 12,
+      fineHeight: 4,
+      control: { ...BLS_VALIDATION.base.control, freezeAverage: 20, freezeAt: 45 },
+    },
+    frames: { x0: 60, x1: 100, height: 8, count: 5, interval: 1 },
+    // full-size domain variants do not fit the reduced geometry; the timestep variant does
+    cases: BLS_VALIDATION.cases
+      .filter((c) => (c.role !== 'variant' || c.variant === 'timestep') && !c.overrides.rib)
+      .map((c) => ({ ...c, seeds: c.seeds.slice(0, 3), framesSeed: c.framesSeed !== undefined ? c.seeds[0] : undefined })),
+    criteria: {
+      ...BLS_VALIDATION.criteria,
+      observable: { ...BLS_VALIDATION.criteria.observable, cellX: 10 },
+      stations: [45, 75, 105],
+      upstreamStation: 25,
+      variantStation: 45,
+      searchWindow: [35, 135],
+      pressureUpstream: [30, 50],
+      pressureDownstream: [110, 140],
+      responseWindow: [80, 140],
+      deficitStation: 125,
+    },
+  } as BLSParams,
+  create: (p) => new BoundaryLayerSeparationExperiment(p) as unknown as SequentialExperiment<unknown, unknown>,
 };
 
 const viscosity: ExperimentEntry<CouetteParams> = {
@@ -273,6 +317,7 @@ export const EXPERIMENTS: Partial<Record<ExperimentType, ExperimentEntry<any>>> 
   'viscosity-sweeps': viscositySweeps,
   'ab-test': abTest,
   'boundary-layer': boundaryLayer,
+  'boundary-layer-separation': blSeparation,
   separation,
   kutta,
   scaling,
