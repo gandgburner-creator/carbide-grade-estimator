@@ -1,0 +1,10 @@
+1/32 runs finished on 4 threads   2/32 runs finished on 4 threads   3/32 runs finished on 4 threads   4/32 runs finished on 4 threads   4/32 runs finished on 4 threads   4/32 runs finished on 4 threads   5/32 runs finished on 4 threads   6/32 runs finished on 4 threads   7/32 runs finished on 4 threads   8/32 runs finished on 4 threads   9/32 runs finished on 4 threads   10/32 runs finished on 4 threads   11/32 runs finished on 4 threads   12/32 runs finished on 4 threads   13/32 runs finished on 4 threads   14/32 runs finished on 4 threads   15/32 runs finished on 4 threads   16/32 runs finished on 4 threads   17/32 runs finished on 4 threads   18/32 runs finished on 4 threads   19/32 runs finished on 4 threads   20/32 runs finished on 4 threads   21/32 runs finished on 4 threads   22/32 runs finished on 4 threads   23/32 runs finished on 4 threads   24/32 runs finished on 4 threads   25/32 runs finished on 4 threads   26/32 runs finished on 4 threads   27/32 runs finished on 4 threads   28/32 runs finished on 4 threads   29/32 runs finished on 4 threads   30/32 runs finished on 4 threads   31/32 runs finished on 4 threads   32/32 runs finished on 4 threads   
+
+=== Item 3: boundary layer and separation discovery (raw runs) — status: PASSED ===
+model 0.2.0-p0.4, seeds 7001,7002,7003,7004,7005,7006,7007,7008, N = 13191
+  [PASSED       ] numerical-safety: none   (criterion: zero failures)
+  [PASSED       ] energy-accounting: 2.97e-13   (criterion: max |relative residual| < 1e-9)
+  [PASSED       ] momentum-accounting: 7.48e-14   (criterion: max relative residual < 1e-9)
+  [PASSED       ] no-empty-space: none (φ 0.0757 … 0.325)   (criterion: no POTENTIAL MODEL / NUMERICAL FAILURE flag)
+
+record: results/bl-separation_aw1.json  (9067.0 s wall time)

@@ -1,0 +1,10 @@
+1/12 runs finished on 4 threads   2/12 runs finished on 4 threads   3/12 runs finished on 4 threads   4/12 runs finished on 4 threads   5/12 runs finished on 4 threads   6/12 runs finished on 4 threads   7/12 runs finished on 4 threads   8/12 runs finished on 4 threads   9/12 runs finished on 4 threads   10/12 runs finished on 4 threads   11/12 runs finished on 4 threads   12/12 runs finished on 4 threads   
+
+=== Item 3: boundary layer and separation discovery (raw runs) — status: PASSED ===
+model 0.2.0-p0.4, seeds 7201,7202,7203,7204,7401,7402,7403,7404, N = 12087
+  [PASSED       ] numerical-safety: none   (criterion: zero failures)
+  [PASSED       ] energy-accounting: 3.18e-13   (criterion: max |relative residual| < 1e-9)
+  [PASSED       ] momentum-accounting: 7.46e-14   (criterion: max relative residual < 1e-9)
+  [PASSED       ] no-empty-space: none (φ 0.0635 … 0.354)   (criterion: no POTENTIAL MODEL / NUMERICAL FAILURE flag)
+
+record: results/bl-separation_aw0.json  (3667.0 s wall time)

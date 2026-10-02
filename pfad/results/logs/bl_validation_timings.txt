@@ -1,0 +1,16 @@
+commit ec00c060f5998a35648243b291246460c8aa5f8c (launch 2026-10-01T22:09:43Z)
+host 4 cores; node v22.22.2
+START 2026-10-01T22:09:43Z: npx tsx scripts/run-experiment.ts boundary-layer-separation --parallel 4 --set groups=["aw1"] --out results --name bl-separation_aw1 --checkpoint results/checkpoints/bl-separation_aw1
+commit ec00c060f5998a35648243b291246460c8aa5f8c (launch 2026-10-01T23:01:27Z)
+host 4 cores; node v22.22.2
+START 2026-10-01T23:01:27Z: npx tsx scripts/run-experiment.ts boundary-layer-separation --parallel 4 --set groups=["aw1"] --out results --name bl-separation_aw1 --checkpoint results/checkpoints/bl-separation_aw1
+commit ec00c060f5998a35648243b291246460c8aa5f8c (launch 2026-10-01T23:32:43Z)
+host 4 cores; node v22.22.2
+START 2026-10-01T23:32:44Z: npx tsx scripts/run-experiment.ts boundary-layer-separation --parallel 4 --set groups=["aw1"] --out results --name bl-separation_aw1 --checkpoint results/checkpoints/bl-separation_aw1
+END   2026-10-02T02:03:53Z group=aw1 exit=0 seconds=9069
+START 2026-10-02T02:03:53Z: npx tsx scripts/run-experiment.ts boundary-layer-separation --parallel 4 --set groups=["aw0"] --out results --name bl-separation_aw0 --checkpoint results/checkpoints/bl-separation_aw0
+END   2026-10-02T03:05:01Z group=aw0 exit=0 seconds=3668
+START 2026-10-02T03:05:01Z: npx tsx scripts/run-experiment.ts boundary-layer-separation --parallel 4 --set groups=["variants"] --out results --name bl-separation_variants --checkpoint results/checkpoints/bl-separation_variants
+END   2026-10-02T07:24:18Z group=variants exit=0 seconds=15557
+START 2026-10-02T07:24:18Z: npx tsx scripts/run-experiment.ts boundary-layer-separation --parallel 4 --set groups=["aw05"] --out results --name bl-separation_aw05 --checkpoint results/checkpoints/bl-separation_aw05
+END   2026-10-02T08:54:43Z group=aw05 exit=0 seconds=5425

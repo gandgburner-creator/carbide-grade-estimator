@@ -1,0 +1,3 @@
+commit bb7f92ec02dd7717a086ebbe305fb813716504bc
+host 4 cores; node v22.22.2
+START 2026-10-01T20:30:16Z: npx tsx scripts/run-experiment.ts boundary-layer-separation --parallel 4 --set groups=["aw1"] --out results --name bl-separation_aw1

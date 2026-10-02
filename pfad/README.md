@@ -19,6 +19,7 @@ convergence studies, and at present they have not (see
 - What was measured, against what, and what it means: [`docs/EXPERIMENT_LOG.md`](docs/EXPERIMENT_LOG.md)
 - Thermal-equilibrium and viscosity precision reruns (criteria fixed in advance, full report): [`docs/CRITERIA_THERMAL_VISCOSITY.md`](docs/CRITERIA_THERMAL_VISCOSITY.md), [`docs/REPORT_THERMAL_VISCOSITY.md`](docs/REPORT_THERMAL_VISCOSITY.md)
 - Small-amplitude sound speed (criteria pre-registered before the validation data, full report): [`docs/CRITERIA_SOUND_SPEED.md`](docs/CRITERIA_SOUND_SPEED.md), [`docs/REPORT_SOUND_SPEED.md`](docs/REPORT_SOUND_SPEED.md)
+- Boundary layer + separation discovery, Item 3 (criteria pre-registered before the validation data, full report; classification INCONCLUSIVE): [`docs/CRITERIA_BOUNDARY_LAYER_SEPARATION.md`](docs/CRITERIA_BOUNDARY_LAYER_SEPARATION.md), [`docs/REPORT_BOUNDARY_LAYER_SEPARATION.md`](docs/REPORT_BOUNDARY_LAYER_SEPARATION.md)
 
 ## The rules the code keeps
 

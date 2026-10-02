@@ -37,7 +37,7 @@ const runs = recs.flatMap((r) => r.results.runs);
 const C = params.criteria;
 const A = analyse(params, runs, C);
 
-const COLORS = ['#1f6feb', '#d1242f', '#1a7f37', '#9a6700', '#8250df', '#57606a', '#0a7ea4', '#bf3989'];
+const COLORS = ['#1f6feb', '#d1242f', '#1a7f37', '#9a6700', '#8250df', '#57606a', '#0a7ea4', '#bf3989', '#e16f24', '#000000'];
 const files: string[] = [];
 const put = (name: string, content: string) => {
   writeFileSync(join(outDir, name), content);

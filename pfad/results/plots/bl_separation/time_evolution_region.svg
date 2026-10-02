@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="440" font-family="sans-serif" font-size="12">
+<rect width="720" height="440" fill="#fff"/>
+<text x="360" y="22" text-anchor="middle" font-size="14" font-weight="600">near-wall velocity in the response window per time block (thin: seeds)</text>
+<line x1="70" x2="700" y1="385" y2="385" stroke="#e5e5e5"/>
+<text x="64" y="389" text-anchor="end">-0.0420</text>
+<text x="70" y="403" text-anchor="middle">0.00</text>
+<line x1="70" x2="700" y1="316" y2="316" stroke="#e5e5e5"/>
+<text x="64" y="320" text-anchor="end">0.00422</text>
+<text x="196" y="403" text-anchor="middle">1.80</text>
+<line x1="70" x2="700" y1="247" y2="247" stroke="#e5e5e5"/>
+<text x="64" y="251" text-anchor="end">0.0504</text>
+<text x="322" y="403" text-anchor="middle">3.60</text>
+<line x1="70" x2="700" y1="178" y2="178" stroke="#e5e5e5"/>
+<text x="64" y="182" text-anchor="end">0.0967</text>
+<text x="448.00000000000006" y="403" text-anchor="middle">5.40</text>
+<line x1="70" x2="700" y1="109" y2="109" stroke="#e5e5e5"/>
+<text x="64" y="113" text-anchor="end">0.143</text>
+<text x="574" y="403" text-anchor="middle">7.20</text>
+<line x1="70" x2="700" y1="40" y2="40" stroke="#e5e5e5"/>
+<text x="64" y="44" text-anchor="end">0.189</text>
+<text x="700" y="403" text-anchor="middle">9.00</text>
+<line x1="70" x2="70" y1="40" y2="385" stroke="#333"/>
+<line x1="70" x2="700" y1="385" y2="385" stroke="#333"/>
+<text x="360" y="428" text-anchor="middle">measurement block</text>
+<text transform="translate(16 220) rotate(-90)" text-anchor="middle">u_wall</text>
+<polyline points="70.0,374.0 140.0,294.8 210.0,317.5 280.0,358.0 350.0,333.9 420.0,334.0 490.0,246.9 560.0,370.9 630.0,331.7 700.0,329.4" fill="none" stroke="#888" stroke-width="0.8" opacity="0.45"/>
+<polyline points="70.0,373.4 140.0,325.8 210.0,342.3 280.0,348.1 350.0,322.3 420.0,284.2 490.0,346.3 560.0,354.0 630.0,303.0 700.0,349.7" fill="none" stroke="#888" stroke-width="0.8" opacity="0.45"/>
+<polyline points="70.0,318.2 140.0,296.6 210.0,305.3 280.0,242.8 350.0,269.2 420.0,328.5 490.0,322.1 560.0,231.4 630.0,309.7 700.0,372.2" fill="none" stroke="#888" stroke-width="0.8" opacity="0.45"/>
+<polyline points="70.0,326.8 140.0,385.0 210.0,307.7 280.0,335.6 350.0,341.3 420.0,331.1 490.0,342.8 560.0,327.4 630.0,322.5 700.0,344.1" fill="none" stroke="#888" stroke-width="0.8" opacity="0.45"/>
+<polyline points="70.0,327.2 140.0,343.7 210.0,353.4 280.0,358.9 350.0,311.4 420.0,380.9 490.0,362.6 560.0,318.1 630.0,310.4 700.0,329.3" fill="none" stroke="#888" stroke-width="0.8" opacity="0.45"/>
+<polyline points="70.0,227.0 140.0,350.6 210.0,326.1 280.0,248.0 350.0,341.3 420.0,328.9 490.0,357.9 560.0,341.8 630.0,315.1 700.0,273.8" fill="none" stroke="#888" stroke-width="0.8" opacity="0.45"/>
+<polyline points="70.0,315.6 140.0,344.0 210.0,333.8 280.0,324.1 350.0,339.5 420.0,321.9 490.0,281.6 560.0,280.4 630.0,363.8 700.0,354.5" fill="none" stroke="#888" stroke-width="0.8" opacity="0.45"/>
+<polyline points="70.0,304.0 140.0,355.4 210.0,352.1 280.0,313.2 350.0,312.3 420.0,326.8 490.0,378.9 560.0,311.5 630.0,310.3 700.0,310.5" fill="none" stroke="#888" stroke-width="0.8" opacity="0.45"/>
+<polyline points="70.0,320.8 140.0,337.0 210.0,329.8 280.0,316.1 350.0,321.4 420.0,329.5 490.0,329.9 560.0,316.9 630.0,320.8 700.0,332.9" fill="none" stroke="#d1242f" stroke-width="1.8"/>
+<circle cx="70.0" cy="320.8" r="3" fill="#d1242f"/>
+<circle cx="140.0" cy="337.0" r="3" fill="#d1242f"/>
+<circle cx="210.0" cy="329.8" r="3" fill="#d1242f"/>
+<circle cx="280.0" cy="316.1" r="3" fill="#d1242f"/>
+<circle cx="350.0" cy="321.4" r="3" fill="#d1242f"/>
+<circle cx="420.0" cy="329.5" r="3" fill="#d1242f"/>
+<circle cx="490.0" cy="329.9" r="3" fill="#d1242f"/>
+<circle cx="560.0" cy="316.9" r="3" fill="#d1242f"/>
+<circle cx="630.0" cy="320.8" r="3" fill="#d1242f"/>
+<circle cx="700.0" cy="332.9" r="3" fill="#d1242f"/>
+<line x1="70" x2="70" y1="337.00421060544903" y2="304.50025260430436" stroke="#d1242f" opacity="0.6"/>
+<line x1="140" x2="140" y1="347.72747428716167" y2="326.2532800261827" stroke="#d1242f" opacity="0.6"/>
+<line x1="210" x2="210" y1="336.44573606080843" y2="323.1196278343618" stroke="#d1242f" opacity="0.6"/>
+<line x1="280" x2="280" y1="332.4866447739455" y2="299.68161301344105" stroke="#d1242f" opacity="0.6"/>
+<line x1="350" x2="350" y1="330.02559700564564" y2="312.74275076608075" stroke="#d1242f" opacity="0.6"/>
+<line x1="420" x2="420" y1="338.7694756363349" y2="320.293264008765" stroke="#d1242f" opacity="0.6"/>
+<line x1="490" x2="490" y1="345.6786924111475" y2="314.10275186243837" stroke="#d1242f" opacity="0.6"/>
+<line x1="560" x2="560" y1="332.5801595248035" y2="301.29123991940685" stroke="#d1242f" opacity="0.6"/>
+<line x1="630" x2="630" y1="327.70660696989535" y2="313.92436055558755" stroke="#d1242f" opacity="0.6"/>
+<line x1="700" x2="700" y1="343.64511139824634" y2="322.19871818377277" stroke="#d1242f" opacity="0.6"/>
+<polyline points="70.0,77.8 140.0,64.3 210.0,90.6 280.0,86.0 350.0,57.8 420.0,60.8 490.0,40.0 560.0,46.0 630.0,67.3 700.0,67.4" fill="none" stroke="#1f6feb" stroke-width="1.8"/>
+<circle cx="70.0" cy="77.8" r="3" fill="#1f6feb"/>
+<circle cx="140.0" cy="64.3" r="3" fill="#1f6feb"/>
+<circle cx="210.0" cy="90.6" r="3" fill="#1f6feb"/>
+<circle cx="280.0" cy="86.0" r="3" fill="#1f6feb"/>
+<circle cx="350.0" cy="57.8" r="3" fill="#1f6feb"/>
+<circle cx="420.0" cy="60.8" r="3" fill="#1f6feb"/>
+<circle cx="490.0" cy="40.0" r="3" fill="#1f6feb"/>
+<circle cx="560.0" cy="46.0" r="3" fill="#1f6feb"/>
+<circle cx="630.0" cy="67.3" r="3" fill="#1f6feb"/>
+<circle cx="700.0" cy="67.4" r="3" fill="#1f6feb"/>
+<line x1="70" x2="70" y1="89.74828728821632" y2="65.77445317425855" stroke="#1f6feb" opacity="0.6"/>
+<line x1="140" x2="140" y1="71.8919339413095" y2="56.75494317897028" stroke="#1f6feb" opacity="0.6"/>
+<line x1="210" x2="210" y1="105.83953934870243" y2="75.36818821926164" stroke="#1f6feb" opacity="0.6"/>
+<line x1="280" x2="280" y1="95.98966128509176" y2="76.02954673962807" stroke="#1f6feb" opacity="0.6"/>
+<line x1="350" x2="350" y1="64.40450252443577" y2="51.23961042299317" stroke="#1f6feb" opacity="0.6"/>
+<line x1="420" x2="420" y1="68.75900284793681" y2="52.7514978074455" stroke="#1f6feb" opacity="0.6"/>
+<line x1="490" x2="490" y1="51.801842317862" y2="28.19815768213806" stroke="#1f6feb" opacity="0.6"/>
+<line x1="560" x2="560" y1="53.99459612983924" y2="38.06740766222816" stroke="#1f6feb" opacity="0.6"/>
+<line x1="630" x2="630" y1="77.10247610527693" y2="57.5708245108882" stroke="#1f6feb" opacity="0.6"/>
+<line x1="700" x2="700" y1="73.70617630210546" y2="61.114595063426634" stroke="#1f6feb" opacity="0.6"/>
+<rect x="470" y="46" width="14" height="3" fill="#d1242f"/>
+<text x="490" y="51">A1-r2.5 seed mean</text>
+<rect x="470" y="64" width="14" height="3" fill="#1f6feb"/>
+<text x="490" y="69">A1-r1 (attached control)</text>
+</svg>

@@ -32,8 +32,8 @@ changed with resolution beyond its tolerance.
 | 5 | measure disturbance propagation | sound-speed validation (seeds 6001–6064); pulse reference, sweeps | **PASSED** (validation) | pre-registered amplitude series → c₀ = 2.170 ± 0.038 (± 3.5 %), invariant to timestep, probes, domain, radius; post-hoc caveats: extrapolation-model systematic ≈ 4 %, equilibrium noise carries a moveout signature (§5) |
 | 6 | measure effective viscosity | Couette reference, sweeps | **PASSED** (reference) | μ_eff = 0.3326, 95 % CI ± 4.85 % over 30 seeds (Enskog 0.316), stable, timestep-independent; sweeps not rerun (§6) |
 | 7 | demonstrate wall momentum transfer | wall accommodation | **PASSED** | α_E and α_t equal Aw (§4) |
-| 8 | show a boundary layer | boundary layer | INCONCLUSIVE | layer emerged; upstream control not clean, momentum integral not closed (§7) |
-| 9 | investigate adverse-gradient separation | separation | INCONCLUSIVE | investigated; no separation up to 87 % deceleration at Re ~ 10² (§8) |
+| 8 | show a boundary layer | Item 3 validation (seeds 7001–7404); boundary-layer reference | INCONCLUSIVE (validation) | pre-registered Item 3: a wall-made near-wall deficit layer (t 80–241, absent over a specular wall, seed-reproducible, survives 1.56× particles); thickness convergence undecided at ±15 % for several checks (§7) |
+| 9 | investigate adverse-gradient separation | Item 3 validation; separation reference | INCONCLUSIVE (validation) | measured adverse wall-pressure rise stalls the near-wall flow (u_wall −0.002 ± 0.003) without a resolved reversal; rib positive control reversed in 4/4 seeds but under-powered; post-hoc negative wall shear (§8) |
 | 10 | test Kutta emergence | Kutta | **PASSED** | smooth departure with lift emerged unimposed; sharpness not decisive at Re 22 (§9) |
 | 11 | report Re/Mach | every flow record | **PASSED** | Re from measured μ, Mp from measured c_p (§12) |
 | 12 | perform resolution tests | convergence studies, scaling | static box PASSED; flow **NOT CONVERGED** | timestep/count/averaging/grid converge; the fixed-Re scaling family does not (§1, §10) |
@@ -42,7 +42,8 @@ changed with resolution beyond its tolerance.
 | 15 | distinguish measured results from assumptions | every record | **PASSED** | results, benchmarks and assumption IDs kept apart (`MODEL_ASSUMPTIONS.md`) |
 
 **Airfoil optimisation stays locked.** Criteria 8 and 9 are
-INCONCLUSIVE and the flow scaling study is NOT CONVERGED. That is the honest
+INCONCLUSIVE (also after the pre-registered Item 3 validation) and the flow
+scaling study is NOT CONVERGED. That is the honest
 state of Phase 0, not a failure to hide. §14 lists what would change it.
 
 ## 1. Static box — pressure from impacts (Steps 5–7)
@@ -309,6 +310,43 @@ cases are flagged as channel properties, not bulk ones.
 
 ## 7. Boundary layer (Step 12)
 
+### 7.1 Item 3 validation: near-wall structure — **INCONCLUSIVE**
+
+Records `bl-separation_{aw1,aw0,variants,aw05}.json`: 78 runs on seeds
+7001–7404, with criteria pre-registered at `bb7f92e`
+(`CRITERIA_BOUNDARY_LAYER_SEPARATION.md`). The full report is
+`REPORT_BOUNDARY_LAYER_SEPARATION.md`.
+
+**Rig.** A closed periodic channel with Universe A gas at φ = 0.2. A diffuse
+plate sits on the floor. The inflow is set by an upstream conditioning zone
+(A-20). No profile or flow law is imposed.
+
+- **The layer.**
+  - A diffuse plate (Aw = 1 and 0.5) produces a near-wall deficit layer:
+    U_e − u_wall = 0.74–1.21, seed t 80–241.
+  - δ₁ grows from 9–11 to 15–16 d along the plate.
+  - The plate-mean wall shear from floor impulses is 0.0224 ± 0.0001.
+  - Odd and even seed sets agree.
+  - With a specular plate the deficit is ≤ 0.013 (CIs within ±0.08) and the
+    tangential impulse is exactly 0.
+  - The layer persists with 1.56× more particles (t 185).
+- **Slip.** The gas at the wall is not at rest: u_wall ≈ 0.15–0.18 for
+  Aw = 1 and 0.25–0.31 for Aw = 0.5. This is a measured property of the
+  particle wall.
+- **Not a zero-gradient layer.** The straight channel has a friction-driven
+  favourable gradient: the core accelerates 1.07 → 1.39.
+- **Why INCONCLUSIVE.** Convergence of the thickness at ±15 % is undecided
+  for several checks:
+  - the single-column wall shear at 4 seeds (CI ≈ ±20 %);
+  - the sampling-duration halves;
+  - one bin-width component;
+  - δ₁ +13 % at x = 210 in the taller domain.
+
+  No check FAILs. Every δ₁ comparison is within ±13 % in its point estimate.
+- Re_plate ≈ 357, Kn ≈ 0.06–0.09, Mp ≈ 0.49 (EXTERNAL COMPARISON).
+
+### 7.2 Earlier reference record
+
 Record `boundary-layer_reference.json` (8 seeds, 10 188 particles, φ = 0.1,
 U = 1), status **INCONCLUSIVE**; determination **EMERGED**. A uniform stream
 from an open reservoir passes a diffuse plate (x = 100–400) set in a specular
@@ -331,6 +369,53 @@ floor, open top and outlet; no profile is imposed.
   free-stream density is 9.7 % below the reservoir's stated value (A-18).
 
 ## 8. Adverse-gradient separation (Step 13)
+
+### 8.1 Item 3 validation: separation — **INCONCLUSIVE**
+
+Same records and report as §7.1.
+
+**The deceleration.** A half-cosine ceiling diffuser with expansion r over
+the plate. The resulting adverse wall-pressure rise is measured from floor
+impulses:
+
+| r | Δp_w (t) |
+|---|---|
+| 1 (straight) | −0.164 (favourable) |
+| 1.5 | +0.002 (1.6) |
+| 2 | +0.031 (25) |
+| 2.5 | +0.036 (26) |
+
+**The stall.**
+
+- The near-wall flow over the rear plate slows monotonically:
+  0.172 → 0.045 → 0.007 → −0.002 ± 0.003, i.e. a stall.
+- The momentum-deficit thickness grows 2.6-fold.
+- The response reproduces under halved timestep, finer particles and a
+  taller domain.
+
+**No resolved reversal.** The registered detector (≥ 2 adjacent columns
+reversed at p ≤ 0.005, 8 seeds) finds **no separated region**. One column
+reaches the threshold; its neighbours do not. Any mean reverse near-wall
+velocity is weaker than ≈ 0.010 (95 % CI of the region mean
+[−0.010, +0.006]).
+
+**Controls.**
+
+- The attached control never reverses.
+- A specular plate under the same deceleration stays forward (u ≈ 0.60).
+- Aw = 0.5 is more forward than Aw = 1 (z 5.5 at r = 2).
+
+**Positive control.** Behind a floor rib the near-wall flow is reversed in
+4 of 4 seeds. With 4 seeds, however, the column test needs t ≤ −5.84 and the
+strongest column reached −5.81, so this control is INCONCLUSIVE. This is a
+power defect of the design. It is reported, not repaired.
+
+**Post hoc, not judged.** In the strong case the floor's tangential impulse
+is negative over x ≈ 310–430: t −5.9 over 400–440, with 8 of 8 seeds
+negative. The stream function is negative near the wall. This is a lead for
+the next pre-registered experiment, not evidence of separation.
+
+### 8.2 Earlier reference record
 
 Record `separation_reference.json` (4 seeds × 8 gradient strengths, 4074
 particles, φ = 0.1, U = 1), status **INCONCLUSIVE**. The boundary-layer rig is
@@ -533,10 +618,21 @@ proportionally larger universe in particle diameters (particle count ∝ Re² in
 - **Open boundaries** supply only kinetic pressure (A-18), leaving dense
   interiors below their stated density; all flow results use the realised
   state.
-- **Boundary layer** outer flow is not uniform and the momentum integral does
-  not close (§7).
-- **Separation** was not observed, so the data-generated threshold could not
-  be built or tested (§8).
+- **Boundary layer** (Item 3, §7.1): the wall-made near-wall layer is
+  established. Its thickness convergence is undecided at ±15 %, because the
+  registered single-column checks with 4 seeds lack precision. The reference
+  record's outer flow is not uniform and its momentum integral does not
+  close (§7.2).
+- **Separation** (Item 3, §8.1): under a measured adverse pressure rise the
+  near-wall flow stalls without a resolved reversal. The registered positive
+  control was under-powered (4 seeds). No threshold could be located. The
+  closed-loop rig also drifts thermally by up to 3 % in kinetic energy
+  during the measurement.
+- **Late contacts** (A-06): in the Item 3 records they are 2.2–2.7 × 10⁻³ of
+  collisions at Courant 0.025, above the A-06 guideline of 10⁻³.
+  - All of them are explained by event ordering. Halving the timestep halves
+    the fraction and leaves the judged quantities unchanged.
+  - Earlier records do not store this fraction.
 - **Kutta**: at Re ≈ 22 a blunt edge behaves like a sharp one, so the
   experiment shows smooth departure but cannot yet show that the *sharp edge*
   enforces it; the starting vortex was not resolved (§9).
@@ -565,12 +661,21 @@ are scale-converged. From the data above, the shortest path is:
    seeds 6001–6064 under the criteria pre-registered at `04e0826`
    (`CRITERIA_SOUND_SPEED.md`, `REPORT_SOUND_SPEED.md`). The tracker now
    reports competing features; case E itself was not rerun.
-3. **Clean boundary layer** (criterion 8): a far-field boundary that follows
-   the displacement of the layer (or a taller domain) so the outer flow stays
-   uniform, and an upstream control that is clean within its error.
-4. **Separation** (criterion 9): stronger or more abrupt deceleration, a longer
-   decelerating region, or a larger universe (higher Re), until at least one
-   training and one test configuration separate.
+3. **Clean boundary layer** (criterion 8): Item 3 established the
+   wall-made layer.
+   - What remains is precision on its convergence: region-level wall-shear
+     comparisons and ≥ 8 seeds per variant, pre-registered.
+   - A zero-pressure-gradient comparison would need a far-field boundary
+     that follows the layer's displacement, because the closed channel
+     accelerates its core.
+4. **Separation** (criterion 9): a separately pre-registered follow-up of
+   Item 3.
+   - The primary detector would be the floor's tangential impulse, judged as
+     a region mean.
+   - Seeds: ≥ 16 for the strong case and ≥ 8 for the rib control.
+   - A longer measurement.
+   - A larger universe (lower Kn, higher Re) or a stronger, two-stage
+     deceleration (`REPORT_BOUNDARY_LAYER_SEPARATION.md` §21).
 5. **Scale convergence of flow results** (criterion 12): a scaling family at
    fixed Re *and* fixed Mp (different density or temperature per level) to
    separate Knudsen from Mach effects, then sizes large enough that C_L and C_D

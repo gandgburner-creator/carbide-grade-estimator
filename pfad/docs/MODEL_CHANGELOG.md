@@ -293,3 +293,31 @@ is unchanged. Criteria for the reruns were fixed beforehand in
 - **Why not reuse the reservoir rig.** It has the A-18 density deficit and
   failed its upstream control. Its far-field suction generator produced a
   falling wall pressure, so it imposed no adverse gradient.
+
+### Item 3: validation harness and analysis fixes (no model change)
+
+- **Checkpoint/resume** (`ec00c06`, before any validation data):
+  - `runParallel` saves each finished run (with the params hash and
+    specification) and reuses saved runs on relaunch. `run-experiment.ts`
+    gained `--checkpoint`.
+  - Reason: container restarts killed the first validation launches.
+  - Runs are deterministic per seed, so resumed records equal uninterrupted
+    ones. This was checked on a quick configuration and on validation run
+    A1-r1 / 7001.
+- **`coarsen()` crash fix** (`1118cf5`, after aw1, aw0 and variants had been
+  seen).
+  - The registered analysis threw on the domain-height variant (L = 750 is
+    not a multiple of the 20-unit column). A trailing strip narrower than one
+    coarse column (inside the contraction) is now dropped.
+  - Grids that divide exactly are unchanged by construction. The report on
+    the aw1 + aw0 records is byte-identical before and after.
+- **Plot fixes.**
+  - SVG text escaping: titles with "<" were invalid XML.
+  - Two more line colours.
+  - The text report is identical.
+- **Post-hoc analysis script** `scripts/posthoc-bl-separation.ts`: a
+  description only, outside the classification.
+- **No rule, threshold, estimator, case, seed or configuration value
+  changed.** Criteria defects found in the validation (under-powered 4-seed
+  positive control and single-column wall-shear checks) are reported in
+  `REPORT_BOUNDARY_LAYER_SEPARATION.md` §18, not repaired.

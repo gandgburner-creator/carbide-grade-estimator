@@ -1,0 +1,379 @@
+ITEM 3 — BOUNDARY LAYER + SEPARATION DISCOVERY
+  records: boundary-layer-separation-2026-10-02T02-03-52-895Z-s7001_7002_7003_7004_7005_7006_7007_7008, boundary-layer-separation-2026-10-02T03-05-01-284Z-s7201_7202_7203_7204_7401_7402_7403_7404, boundary-layer-separation-2026-10-02T07-24-18-214Z-s7301_7302_7303_7304, boundary-layer-separation-2026-10-02T08-54-43-010Z-s7101_7102_7103_7104_7105_7106
+  model 0.2.0-p0.4; 78 runs; criteria docs/CRITERIA_BOUNDARY_LAYER_SEPARATION.md
+  base: L 560, H_in 70, φ 0.2, d 1, kT 1, Q-reference speed U 1, plate [100,500], diffuser [180,400], contraction [500,560], fringe [0,60] ν 0.5
+  timestep Courant 0.025; start-up 1000; measurement 1200; sampling 1; 10 blocks
+
+CASES
+  A1-r1        attached-control r 1 Aw 1: 8 seeds (7001,7002,7003,7004,7005,7006,7007,7008), N 9982, inflow Q 18.45/17.83, fringe U_a 1.26 U_b 0.848, kT 0.9919, wall-clock 786 s/run
+  A1-r1.5      deceleration     r 1.5 Aw 1: 8 seeds (7001,7002,7003,7004,7005,7006,7007,7008), N 12121, inflow Q 18.14/17.83, fringe U_a 1.25 U_b 0.885, kT 1.050, wall-clock 1.19e+3 s/run
+  A1-r2        deceleration     r 2 Aw 1: 8 seeds (7001,7002,7003,7004,7005,7006,7007,7008), N 14260, inflow Q 17.91/17.83, fringe U_a 1.34 U_b 0.877, kT 1.100, wall-clock 1.55e+3 s/run
+  A1-r2.5      deceleration     r 2.5 Aw 1: 8 seeds (7001,7002,7003,7004,7005,7006,7007,7008), N 16399, inflow Q 17.44/17.83, fringe U_a 1.36 U_b 0.874, kT 1.129, wall-clock 2.36e+3 s/run
+  A05-r1       attached-control r 1 Aw 0.5: 6 seeds (7101,7102,7103,7104,7105,7106), N 9982, inflow Q 18.30/17.83, fringe U_a 1.22 U_b 0.867, kT 0.9883, wall-clock 844 s/run
+  A05-r2       deceleration     r 2 Aw 0.5: 4 seeds (7101,7102,7103,7104), N 14260, inflow Q 17.80/17.83, fringe U_a 1.30 U_b 0.893, kT 1.100, wall-clock 1.66e+3 s/run
+  A05-r2.5     deceleration     r 2.5 Aw 0.5: 4 seeds (7101,7102,7103,7104), N 16399, inflow Q 17.53/17.83, fringe U_a 1.35 U_b 0.891, kT 1.129, wall-clock 2.10e+3 s/run
+  A0-r1        attached-control r 1 Aw 0: 4 seeds (7201,7202,7203,7204), N 9982, inflow Q 17.74/17.83, fringe U_a 0.994 U_b 1.00, kT 1.004, wall-clock 795 s/run
+  A0-r2.5      deceleration     r 2.5 Aw 0: 4 seeds (7201,7202,7203,7204), N 16399, inflow Q 17.42/17.83, fringe U_a 1.15 U_b 0.972, kT 1.142, wall-clock 2.01e+3 s/run
+  A1-rib       deceleration     r 1 Aw 1: 4 seeds (7401,7402,7403,7404), N 9880, inflow Q 18.95/17.83, fringe U_a 1.31 U_b 0.764, kT 1.018, wall-clock 830 s/run
+  A1-r2.5-dt   variant          r 2.5 Aw 1 [timestep of A1-r2.5]: 4 seeds (7301,7302,7303,7304), N 16399, inflow Q 17.52/17.83, fringe U_a 1.38 U_b 0.878, kT 1.128, wall-clock 3.81e+3 s/run
+  A1-r2.5-len  variant          r 2.5 Aw 1 [length of A1-r2.5]: 4 seeds (7301,7302,7303,7304), N 20856, inflow Q 17.42/17.83, fringe U_a 1.38 U_b 0.860, kT 1.122, wall-clock 2.37e+3 s/run
+  A1-r2.5-res  variant          r 2.5 Aw 1 [resolution of A1-r2.5]: 4 seeds (7301,7302,7303,7304), N 25624, inflow Q 27.42/27.85, fringe U_a 1.33 U_b 0.888, kT 1.131, wall-clock 3.86e+3 s/run
+  A1-r2.5-H    variant          r 2.5 Aw 1 [height of A1-r2.5]: 4 seeds (7301,7302,7303,7304), N 34492, inflow Q 26.48/26.74, fringe U_a 1.33 U_b 0.869, kT 1.120, wall-clock 4.23e+3 s/run
+  A1-r1-H      variant          r 1 Aw 1 [height of A1-r1]: 4 seeds (7301,7302,7303,7304), N 14973, inflow Q 27.00/26.74, fringe U_a 1.10 U_b 0.908, kT 0.9955, wall-clock 1.23e+3 s/run
+
+ENERGY AND MOMENTUM LEDGER (per case, measurement window, per unit time; residuals over the whole run)
+  A1-r1        KE 15252; fringe work in 2.121, floor heat out 2.162; fringe x-impulse 9.640 = plate drag 9.723 + ceiling 0.000 (+ storage); internal 0, deformation 0, ceiling work 0 (specular); max |energy residual| 2.78e-13
+  A1-r1.5      KE 17053; fringe work in 1.975, floor heat out 1.940; fringe x-impulse 7.480 = plate drag 5.802 + ceiling 1.637 (+ storage); internal 0, deformation 0, ceiling work 0 (specular); max |energy residual| 2.75e-13
+  A1-r2        KE 19197; fringe work in 2.003, floor heat out 1.921; fringe x-impulse 8.308 = plate drag 4.403 + ceiling 3.802 (+ storage); internal 0, deformation 0, ceiling work 0 (specular); max |energy residual| 2.94e-13
+  A1-r2.5      KE 21400; fringe work in 1.980, floor heat out 1.915; fringe x-impulse 8.814 = plate drag 3.867 + ceiling 5.017 (+ storage); internal 0, deformation 0, ceiling work 0 (specular); max |energy residual| 2.97e-13
+  A0-r1        KE 14915; fringe work in -0.1615, floor heat out 3.187e-18; fringe x-impulse -0.1084 = plate drag 0.000 + ceiling 0.000 (+ storage); internal 0, deformation 0, ceiling work 0 (specular); max |energy residual| 2.73e-13
+  A0-r2.5      KE 21855; fringe work in 0.2274, floor heat out 2.960e-17; fringe x-impulse 2.161 = plate drag 0.000 + ceiling 2.128 (+ storage); internal 0, deformation 0, ceiling work 0 (specular); max |energy residual| 3.18e-13
+  A1-rib       KE 15777; fringe work in 2.270, floor heat out 1.847; fringe x-impulse 15.95 = plate drag 6.101 + ceiling 9.857 (+ storage); internal 0, deformation 0, ceiling work 0 (specular); max |energy residual| 2.71e-13
+  A1-r2.5-dt   KE 21437; fringe work in 1.987, floor heat out 1.968; fringe x-impulse 8.929 = plate drag 3.906 + ceiling 4.941 (+ storage); internal 0, deformation 0, ceiling work 0 (specular); max |energy residual| 3.00e-13
+  A1-r2.5-len  KE 26587; fringe work in 1.759, floor heat out 1.981; fringe x-impulse 8.874 = plate drag 3.855 + ceiling 5.147 (+ storage); internal 0, deformation 0, ceiling work 0 (specular); max |energy residual| 3.13e-13
+  A1-r2.5-res  KE 33614; fringe work in 2.907, floor heat out 2.537; fringe x-impulse 12.37 = plate drag 4.972 + ceiling 7.488 (+ storage); internal 0, deformation 0, ceiling work 0 (specular); max |energy residual| 3.63e-14
+  A1-r2.5-H    KE 44654; fringe work in 1.298, floor heat out 1.954; fringe x-impulse 9.484 = plate drag 3.650 + ceiling 6.214 (+ storage); internal 0, deformation 0, ceiling work 0 (specular); max |energy residual| 3.08e-13
+  A1-r1-H      KE 22522; fringe work in 2.120, floor heat out 2.261; fringe x-impulse 7.739 = plate drag 7.857 + ceiling 0.000 (+ storage); internal 0, deformation 0, ceiling work 0 (specular); max |energy residual| 2.70e-13
+  A05-r1       KE 15052; fringe work in 2.013, floor heat out 2.145; fringe x-impulse 8.206 = plate drag 8.321 + ceiling 0.000 (+ storage); internal 0, deformation 0, ceiling work 0 (specular); max |energy residual| 2.64e-13
+  A05-r2       KE 19124; fringe work in 2.104, floor heat out 1.980; fringe x-impulse 7.465 = plate drag 3.971 + ceiling 3.414 (+ storage); internal 0, deformation 0, ceiling work 0 (specular); max |energy residual| 2.82e-13
+  A05-r2.5     KE 21490; fringe work in 1.990, floor heat out 1.784; fringe x-impulse 8.073 = plate drag 3.508 + ceiling 4.479 (+ storage); internal 0, deformation 0, ceiling work 0 (specular); max |energy residual| 3.00e-13
+
+PART I — NEAR-WALL STRUCTURE (stations on the plate)
+  A1-r1
+    x  150: U_e 1.07  u_wall 0.169±0.0066  deficit 0.903±0.0081 (t 112)  δ₁ 10.8±0.10  δ₂ 4.06±0.062  y½ 9.64±0.14  τ_w 0.0263±0.00088
+    x  210: U_e 1.18  u_wall 0.148±0.0044  deficit 1.03±0.0085 (t 121)  δ₁ 14.2±0.12  δ₂ 5.29±0.050  y½ 12.5±0.11  τ_w 0.0217±0.00082
+    x  310: U_e 1.28  u_wall 0.146±0.0066  deficit 1.13±0.0047 (t 241)  δ₁ 15.8±0.11  δ₂ 5.75±0.053  y½ 13.8±0.20  τ_w 0.0198±0.00062
+    x  410: U_e 1.39  u_wall 0.181±0.0078  deficit 1.21±0.010 (t 115)  δ₁ 16.4±0.13  δ₂ 5.76±0.037  y½ 14.2±0.25  τ_w 0.0222±0.00091
+  A05-r1
+    x  150: U_e 1.05  u_wall 0.308±0.0054  deficit 0.738±0.0092 (t 80.6)  δ₁ 8.76±0.11  δ₂ 3.89±0.11  y½ 9.17±0.26  τ_w 0.0241±0.0014
+    x  210: U_e 1.15  u_wall 0.250±0.0078  deficit 0.895±0.0092 (t 97.7)  δ₁ 12.3±0.15  δ₂ 5.36±0.019  y½ 11.8±0.25  τ_w 0.0199±0.00055
+    x  310: U_e 1.25  u_wall 0.258±0.0090  deficit 0.987±0.0098 (t 101)  δ₁ 14.3±0.11  δ₂ 5.92±0.049  y½ 14.2±0.39  τ_w 0.0166±0.0011
+    x  410: U_e 1.34  u_wall 0.284±0.0046  deficit 1.05±0.0094 (t 112)  δ₁ 14.9±0.16  δ₂ 6.03±0.051  y½ 14.9±0.24  τ_w 0.0186±0.00064
+  A0-r1
+    x  150: U_e 0.996  u_wall 0.993±0.011  deficit 0.00257±0.0087 (t 0.296)  δ₁ 0.0755±0.37  δ₂ 0.0187±0.37  y½ 7.22±4.2  τ_w 0.00±0.0
+    x  210: U_e 0.992  u_wall 0.980±0.016  deficit 0.0127±0.012 (t 1.03)  δ₁ 0.439±0.24  δ₂ 0.0751±0.17  y½ 6.07±1.8  τ_w 0.00±0.0
+    x  310: U_e 0.997  u_wall 0.985±0.023  deficit 0.0120±0.020 (t 0.596)  δ₁ 0.300±0.28  δ₂ 0.0972±0.19  y½ 2.82±0.83  τ_w 0.00±0.0
+    x  410: U_e 0.998  u_wall 0.989±0.0058  deficit 0.00859±0.011 (t 0.775)  δ₁ 0.564±0.11  δ₂ 0.106±0.17  y½ 8.30±3.4  τ_w 0.00±0.0
+
+FLUCTUATION STATISTICS (seed-summed, Δx = 20 column at each station; "fluctuations", not turbulence)
+  A1-r1
+    x 150:
+      y 0–2: n 0.231 φ 0.18 u 0.11 σu 1.02 v -0.0006 σv 1.00 ρu′v′ -0.013 τc 0.0059 kT 1.02
+      y 2–4: n 0.277 φ 0.22 u 0.22 σu 1.01 v 0.006 σv 1.01 ρu′v′ -0.016 τc 0.0086 kT 1.02
+      y 4–8: n 0.276 φ 0.22 u 0.39 σu 1.02 v 0.01 σv 1.01 ρu′v′ -0.014 τc 0.0078 kT 1.03
+      y 8–16: n 0.278 φ 0.22 u 0.69 σu 1.02 v 0.03 σv 1.00 ρu′v′ -0.011 τc 0.0050 kT 1.02
+      y 16–32: n 0.286 φ 0.22 u 0.99 σu 0.991 v 0.06 σv 0.986 ρu′v′ -0.0030 τc 0.0018 kT 0.977
+    x 210:
+      y 0–2: n 0.220 φ 0.17 u 0.095 σu 1.00 v 0.003 σv 0.998 ρu′v′ -0.0098 τc 0.0051 kT 1.00
+      y 2–4: n 0.264 φ 0.21 u 0.19 σu 1.01 v -0.003 σv 1.01 ρu′v′ -0.015 τc 0.0061 kT 1.02
+      y 4–8: n 0.263 φ 0.21 u 0.34 σu 1.02 v -0.001 σv 1.01 ρu′v′ -0.012 τc 0.0056 kT 1.02
+      y 8–16: n 0.265 φ 0.21 u 0.61 σu 1.01 v 0.005 σv 1.00 ρu′v′ -0.0099 τc 0.0049 kT 1.01
+      y 16–32: n 0.272 φ 0.21 u 0.96 σu 0.992 v 0.02 σv 0.984 ρu′v′ -0.0057 τc 0.0024 kT 0.977
+    x 310:
+      y 0–2: n 0.201 φ 0.16 u 0.086 σu 1.01 v 0.0009 σv 1.00 ρu′v′ -0.010 τc 0.0039 kT 1.02
+      y 2–4: n 0.244 φ 0.19 u 0.20 σu 1.01 v 0.0006 σv 1.00 ρu′v′ -0.013 τc 0.0059 kT 1.01
+      y 4–8: n 0.244 φ 0.19 u 0.36 σu 1.01 v 0.003 σv 1.01 ρu′v′ -0.013 τc 0.0047 kT 1.02
+      y 8–16: n 0.246 φ 0.19 u 0.61 σu 1.01 v 0.009 σv 1.00 ρu′v′ -0.010 τc 0.0039 kT 1.01
+      y 16–32: n 0.253 φ 0.20 u 0.97 σu 0.985 v 0.007 σv 0.980 ρu′v′ -0.0066 τc 0.0025 kT 0.965
+    x 410:
+      y 0–2: n 0.176 φ 0.14 u 0.12 σu 1.00 v 0.005 σv 1.01 ρu′v′ -0.013 τc 0.0037 kT 1.01
+      y 2–4: n 0.218 φ 0.17 u 0.23 σu 1.01 v -0.002 σv 1.01 ρu′v′ -0.016 τc 0.0049 kT 1.02
+      y 4–8: n 0.217 φ 0.17 u 0.39 σu 1.02 v -0.002 σv 1.01 ρu′v′ -0.014 τc 0.0044 kT 1.02
+      y 8–16: n 0.220 φ 0.17 u 0.66 σu 1.00 v -0.001 σv 0.997 ρu′v′ -0.011 τc 0.0034 kT 1.00
+      y 16–32: n 0.230 φ 0.18 u 1.0 σu 0.970 v 0.00006 σv 0.964 ρu′v′ -0.0063 τc 0.0022 kT 0.935
+  A1-r2.5
+    x 150:
+      y 0–2: n 0.207 φ 0.16 u 0.12 σu 1.01 v -0.002 σv 1.00 ρu′v′ -0.013 τc 0.0052 kT 1.02
+      y 2–4: n 0.250 φ 0.20 u 0.25 σu 1.01 v 0.002 σv 1.01 ρu′v′ -0.016 τc 0.0063 kT 1.02
+      y 4–8: n 0.249 φ 0.20 u 0.42 σu 1.02 v 0.009 σv 1.01 ρu′v′ -0.015 τc 0.0065 kT 1.03
+      y 8–16: n 0.252 φ 0.20 u 0.71 σu 1.01 v 0.03 σv 1.00 ρu′v′ -0.011 τc 0.0049 kT 1.01
+      y 16–32: n 0.260 φ 0.20 u 1.0 σu 0.988 v 0.08 σv 0.984 ρu′v′ -0.0042 τc 0.0015 kT 0.972
+    x 210:
+      y 0–2: n 0.200 φ 0.16 u 0.058 σu 1.00 v 0.0009 σv 1.00 ρu′v′ -0.0082 τc 0.0029 kT 1.01
+      y 2–4: n 0.244 φ 0.19 u 0.13 σu 1.01 v 0.006 σv 1.01 ρu′v′ -0.011 τc 0.0042 kT 1.02
+      y 4–8: n 0.242 φ 0.19 u 0.25 σu 1.02 v 0.02 σv 1.01 ρu′v′ -0.0099 τc 0.0038 kT 1.02
+      y 8–16: n 0.242 φ 0.19 u 0.46 σu 1.02 v 0.04 σv 1.01 ρu′v′ -0.0094 τc 0.0039 kT 1.03
+      y 16–32: n 0.246 φ 0.19 u 0.84 σu 1.01 v 0.1 σv 0.988 ρu′v′ -0.0065 τc 0.0031 kT 1.00
+    x 310:
+      y 0–2: n 0.213 φ 0.17 u -0.013 σu 0.996 v -0.003 σv 0.997 ρu′v′ -0.00021 τc 0.000033 kT 0.993
+      y 2–4: n 0.257 φ 0.20 u -0.013 σu 1.00 v 0.002 σv 1.00 ρu′v′ -0.00017 τc 0.000039 kT 1.01
+      y 4–8: n 0.255 φ 0.20 u -0.0063 σu 1.01 v -0.0007 σv 1.01 ρu′v′ -0.00092 τc 0.00080 kT 1.02
+      y 8–16: n 0.254 φ 0.20 u 0.026 σu 1.01 v 0.006 σv 1.01 ρu′v′ -0.00032 τc 0.00070 kT 1.02
+      y 16–32: n 0.252 φ 0.20 u 0.14 σu 1.02 v 0.04 σv 1.01 ρu′v′ -0.0024 τc 0.00085 kT 1.04
+    x 410:
+      y 0–2: n 0.218 φ 0.17 u -0.0069 σu 1.00 v 0.009 σv 1.00 ρu′v′ 0.00068 τc -0.00059 kT 1.01
+      y 2–4: n 0.264 φ 0.21 u -0.011 σu 1.00 v -0.001 σv 1.00 ρu′v′ 0.0013 τc -0.00025 kT 1.01
+      y 4–8: n 0.261 φ 0.20 u -0.014 σu 1.01 v -0.0001 σv 1.01 ρu′v′ 0.00094 τc -0.000099 kT 1.01
+      y 8–16: n 0.261 φ 0.20 u -0.027 σu 1.01 v -0.004 σv 1.01 ρu′v′ -0.00017 τc 0.00024 kT 1.02
+      y 16–32: n 0.259 φ 0.20 u 0.0032 σu 1.01 v -0.02 σv 1.01 ρu′v′ -0.0012 τc 0.00054 kT 1.03
+  A0-r1
+    x 150:
+      y 0–2: n 0.214 φ 0.17 u 1.0 σu 0.994 v -0.0003 σv 0.994 ρu′v′ 0.00042 τc 0.00055 kT 0.988
+      y 2–4: n 0.257 φ 0.20 u 0.99 σu 1.00 v 0.002 σv 1.00 ρu′v′ -0.0011 τc 0.00015 kT 1.00
+      y 4–8: n 0.259 φ 0.20 u 0.98 σu 0.997 v -0.0008 σv 0.998 ρu′v′ -0.00059 τc 0.00028 kT 0.995
+      y 8–16: n 0.258 φ 0.20 u 0.99 σu 0.999 v -0.004 σv 1.00 ρu′v′ 0.00086 τc -0.000055 kT 0.999
+      y 16–32: n 0.258 φ 0.20 u 1.0 σu 1.00 v -0.002 σv 1.00 ρu′v′ 0.00072 τc -0.00034 kT 1.00
+    x 210:
+      y 0–2: n 0.213 φ 0.17 u 0.98 σu 1.01 v 0.004 σv 0.997 ρu′v′ 0.00046 τc 0.00040 kT 1.01
+      y 2–4: n 0.259 φ 0.20 u 0.98 σu 1.01 v -0.002 σv 0.997 ρu′v′ -0.0025 τc 0.000029 kT 1.00
+      y 4–8: n 0.259 φ 0.20 u 0.99 σu 0.994 v 0.004 σv 0.996 ρu′v′ -0.0012 τc -0.0000045 kT 0.990
+      y 8–16: n 0.259 φ 0.20 u 0.99 σu 0.998 v 0.004 σv 0.998 ρu′v′ -0.00065 τc -0.000029 kT 0.996
+      y 16–32: n 0.257 φ 0.20 u 0.99 σu 1.00 v -0.002 σv 1.00 ρu′v′ -0.00065 τc 0.000093 kT 1.01
+    x 310:
+      y 0–2: n 0.212 φ 0.17 u 0.98 σu 0.993 v 0.005 σv 1.00 ρu′v′ 0.00073 τc -0.00030 kT 0.995
+      y 2–4: n 0.259 φ 0.20 u 0.99 σu 1.00 v 0.001 σv 0.995 ρu′v′ -0.00030 τc 0.00056 kT 0.997
+      y 4–8: n 0.258 φ 0.20 u 0.98 σu 0.999 v 0.003 σv 1.00 ρu′v′ 0.00041 τc -0.00016 kT 1.00
+      y 8–16: n 0.259 φ 0.20 u 0.99 σu 1.00 v 0.005 σv 0.996 ρu′v′ 0.00023 τc 0.000085 kT 0.999
+      y 16–32: n 0.257 φ 0.20 u 1.0 σu 1.00 v 0.003 σv 1.00 ρu′v′ -0.00019 τc 0.00022 kT 1.00
+    x 410:
+      y 0–2: n 0.212 φ 0.17 u 0.98 σu 1.01 v 0.004 σv 1.01 ρu′v′ 0.00024 τc 0.00039 kT 1.01
+      y 2–4: n 0.257 φ 0.20 u 0.99 σu 1.00 v -0.005 σv 1.01 ρu′v′ 0.00038 τc -0.00011 kT 1.01
+      y 4–8: n 0.255 φ 0.20 u 0.98 σu 1.01 v 0.006 σv 1.00 ρu′v′ 0.000090 τc 0.00021 kT 1.01
+      y 8–16: n 0.257 φ 0.20 u 0.99 σu 1.00 v 0.001 σv 1.00 ρu′v′ -0.00048 τc -0.00021 kT 1.00
+      y 16–32: n 0.257 φ 0.20 u 1.0 σu 1.00 v -0.003 σv 1.00 ρu′v′ -0.00023 τc 0.00042 kT 1.01
+
+PART II — DECELERATION SERIES (plate columns; seed ensembles)
+  x                  A1-r1           A1-r1.5             A1-r2           A1-r2.5            A05-r1            A05-r2          A05-r2.5             A0-r1           A0-r2.5
+   130        0.20±0.003        0.23±0.004        0.23±0.003        0.22±0.007        0.35±0.009        0.39±0.005        0.38±0.01         0.98±0.007         1.0±0.01   
+   150        0.17±0.007        0.20±0.003        0.19±0.005        0.19±0.005        0.31±0.005        0.33±0.01         0.32±0.01         0.99±0.01          1.0±0.01   
+   170        0.15±0.005        0.17±0.005        0.17±0.004        0.17±0.006        0.29±0.007        0.29±0.006        0.27±0.009         1.0±0.01          1.0±0.02   
+   190        0.16±0.004        0.16±0.005        0.15±0.006        0.13±0.007        0.27±0.007        0.24±0.01         0.24±0.005        0.99±0.01         0.98±0.01   
+   210        0.15±0.004        0.13±0.005        0.11±0.007       0.099±0.005        0.25±0.008        0.20±0.01         0.21±0.01         0.98±0.02         0.93±0.02   
+   230        0.15±0.008        0.12±0.006       0.083±0.005       0.064±0.01         0.25±0.009        0.15±0.008        0.15±0.01         0.98±0.02         0.87±0.01   
+   250        0.15±0.006       0.084±0.008       0.072±0.006       0.036±0.009        0.25±0.009        0.13±0.009       0.085±0.01         0.99±0.02         0.78±0.008  
+   270        0.16±0.005       0.075±0.005       0.046±0.006      0.0099±0.009        0.24±0.007       0.082±0.01        0.047±0.02          1.0±0.02         0.72±0.02   
+   290        0.15±0.007       0.070±0.007       0.023±0.003      0.0051±0.006        0.25±0.01        0.048±0.003       0.049±0.01         0.99±0.03         0.68±0.01   
+   310        0.15±0.007       0.051±0.005       0.011±0.007      -0.013±0.007        0.26±0.009       0.029±0.02        0.028±0.01         0.99±0.02         0.64±0.02   
+   330        0.15±0.006       0.038±0.004     -0.0013±0.008     -0.0027±0.006        0.27±0.01        0.031±0.02       -0.016±0.009        0.98±0.009        0.62±0.01   
+   350        0.16±0.003       0.029±0.008      0.0065±0.005      0.0016±0.005        0.25±0.005       0.012±0.02       -0.012±0.003        0.98±0.007        0.59±0.004  
+   370        0.17±0.004       0.022±0.005     -0.0049±0.007      -0.018±0.005 *      0.27±0.005       0.022±0.007     -0.0086±0.004        0.99±0.008        0.56±0.009  
+   390        0.17±0.007       0.041±0.007     -0.0093±0.005      -0.012±0.006        0.28±0.01        0.012±0.008     -0.0072±0.02         0.99±0.004        0.57±0.008  
+   410        0.18±0.008       0.045±0.006     0.00014±0.007     -0.0092±0.007        0.28±0.005      0.0059±0.008     -0.0092±0.005        0.99±0.006        0.56±0.01   
+   430        0.19±0.004       0.037±0.005      0.0064±0.002     -0.0056±0.009        0.30±0.008       0.022±0.02      -0.0073±0.007        0.99±0.003        0.58±0.02   
+   450        0.20±0.007       0.048±0.005      0.0094±0.004     0.00099±0.007        0.28±0.01        0.045±0.01        0.021±0.009         1.0±0.01         0.59±0.02   
+   470        0.20±0.003       0.065±0.005       0.026±0.008       0.031±0.005        0.32±0.009       0.077±0.008       0.050±0.008        0.99±0.01         0.63±0.02   
+  (near-wall velocity, y < 4; * = one-sided p ≤ 0.005 for u < 0)
+
+  wall shear τ_w (floor tangential impulse per time per length)
+   130       0.033±0.0007      0.032±0.001       0.032±0.001       0.031±0.001       0.028±0.001       0.029±0.001       0.027±0.0006        0.0±0             0.0±0      
+   150       0.026±0.0009      0.025±0.0007      0.025±0.0008      0.025±0.001       0.024±0.001       0.024±0.001       0.023±0.001         0.0±0             0.0±0      
+   170       0.022±0.0006      0.021±0.0008      0.022±0.0007      0.022±0.0005      0.022±0.0008      0.020±0.0007      0.022±0.001         0.0±0             0.0±0      
+   190       0.023±0.0008      0.024±0.001       0.020±0.0005      0.018±0.0008      0.022±0.0009      0.017±0.0007      0.014±0.002         0.0±0             0.0±0      
+   210       0.022±0.0008      0.018±0.0008      0.016±0.0009      0.015±0.0005      0.020±0.0006      0.017±0.002       0.012±0.001         0.0±0             0.0±0      
+   230       0.019±0.001       0.016±0.0008      0.012±0.0007     0.0090±0.0007      0.019±0.0009      0.011±0.001      0.0088±0.0009        0.0±0             0.0±0      
+   250       0.021±0.001       0.012±0.0007     0.0079±0.001      0.0044±0.001       0.019±0.0008     0.0087±0.002      0.0049±0.0006        0.0±0             0.0±0      
+   270       0.020±0.001      0.0099±0.0007     0.0053±0.0005     0.0027±0.0007      0.017±0.001      0.0060±0.001      0.0033±0.002         0.0±0             0.0±0      
+   290       0.020±0.0006     0.0070±0.0009     0.0016±0.001     0.00094±0.0009      0.017±0.0004     0.0024±0.0009     0.0016±0.0006        0.0±0             0.0±0      
+   310       0.020±0.0006     0.0065±0.0007     0.0012±0.0005   -0.00067±0.0007      0.017±0.001      0.0015±0.0008     0.0014±0.001         0.0±0             0.0±0      
+   330       0.022±0.0009     0.0053±0.0003     0.0017±0.0008   -0.00045±0.001       0.017±0.0008     0.0010±0.0007   -0.00048±0.001         0.0±0             0.0±0      
+   350       0.020±0.001      0.0037±0.0003     0.0011±0.0008   -0.00056±0.0009      0.019±0.0008     0.0020±0.0004   -0.00094±0.0007        0.0±0             0.0±0      
+   370       0.022±0.0009     0.0039±0.0007   -0.00094±0.0008    -0.0017±0.0007      0.018±0.0009    -0.0022±0.001      0.0022±0.0007        0.0±0             0.0±0      
+   390       0.021±0.001      0.0037±0.0009    -0.0011±0.0009    -0.0017±0.0008      0.017±0.001      0.0018±0.0008   -0.00069±0.001         0.0±0             0.0±0      
+   410       0.022±0.0009     0.0054±0.0009    0.00053±0.0009    -0.0021±0.0008      0.019±0.0006   -0.00023±0.0008    -0.0010±0.0003        0.0±0             0.0±0      
+   430       0.023±0.0005     0.0064±0.0008    0.00056±0.0006    -0.0017±0.0007      0.019±0.0007    0.00060±0.001    -0.00053±0.0009        0.0±0             0.0±0      
+   450       0.023±0.0009     0.0086±0.0005     0.0020±0.001      0.0025±0.0009      0.018±0.0005     0.0043±0.001      0.0013±0.0005        0.0±0             0.0±0      
+   470       0.024±0.0007     0.0076±0.0009     0.0036±0.001      0.0030±0.001       0.019±0.0006     0.0038±0.0005     0.0039±0.001         0.0±0             0.0±0      
+
+SEPARATED REGIONS (≥ 2 contiguous columns, one-sided p ≤ 0.005)
+  A1-r1: none
+  A1-r1.5: none
+  A1-r2: none
+  A1-r2.5: none
+  A05-r1: none
+  A05-r2: none
+  A05-r2.5: none
+  A0-r1: none
+  A0-r2.5: none
+
+THRESHOLD (order parameters vs expansion; reported)
+  aw1   A1-r1        r 1  min column u_wall 0.146  reversed length 0  region u_wall 0.172±0.0024 (t 70.3)  region τ_w 0.0217±0.00015
+  aw1   A1-r1.5      r 1.5  min column u_wall 0.0222  reversed length 0  region u_wall 0.0446±0.0028 (t 15.7)  region τ_w 0.00583±0.00012
+  aw1   A1-r2        r 2  min column u_wall -0.00935  reversed length 0  region u_wall 0.00673±0.0027 (t 2.51)  region τ_w 0.00102±0.00020
+  aw1   A1-r2.5      r 2.5  min column u_wall -0.0181  reversed length 0  region u_wall -0.00217±0.0033 (t -0.666)  region τ_w -0.000242±0.00016
+  aw05  A05-r1       r 1  min column u_wall 0.242  reversed length 0  region u_wall 0.275±0.0030 (t 91.5)  region τ_w 0.0180±0.00015
+  aw05  A05-r2       r 2  min column u_wall 0.00593  reversed length 0  region u_wall 0.0303±0.0034 (t 8.97)  region τ_w 0.00151±0.00029
+  aw05  A05-r2.5     r 2.5  min column u_wall -0.0163  reversed length 0  region u_wall 0.00873±0.0024 (t 3.62)  region τ_w 0.000672±0.00012
+  aw0   A0-r1        r 1  min column u_wall 0.978  reversed length 0  region u_wall 0.988±0.0064 (t 153)  region τ_w 0.00±0.0
+  aw0   A0-r2.5      r 2.5  min column u_wall 0.561  reversed length 0  region u_wall 0.601±0.0089 (t 67.4)  region τ_w 0.00±0.0
+
+EXTERNAL COMPARISON (labelled; never used by the classification)
+  Re_plate = ρ U_e L_plate / μ ≈ 357 (μ = 0.351, φ = 0.2 Couette sweep, INCONCLUSIVE; Enskog 0.379)
+  Mp = U_e / c ≈ 0.494 (c = 2.17, Item 2 registered c₀; small-amplitude post-hoc ≈ 2.26 → 0.474)
+  x−x_LE 50: measured δ₁ 10.8 vs Blasius 1.72√(νx/U) = 12.9 (continuum, zero pressure gradient, no slip — not expected to hold here)
+  x−x_LE 110: measured δ₁ 14.2 vs Blasius 1.72√(νx/U) = 18.2 (continuum, zero pressure gradient, no slip — not expected to hold here)
+  x−x_LE 210: measured δ₁ 15.8 vs Blasius 1.72√(νx/U) = 24.2 (continuum, zero pressure gradient, no slip — not expected to hold here)
+  x−x_LE 310: measured δ₁ 16.4 vs Blasius 1.72√(νx/U) = 28.2 (continuum, zero pressure gradient, no slip — not expected to hold here)
+  domain fluid area 39200; n₀ 0.2546
+
+CHECKS
+  [PASS        ] S-safety: numerical safety
+      criterion: no run halted
+      measured:  0 halted of 78
+  [PASS        ] S-energy: energy accounting closes (kinetic, wall heat, fringe work)
+      criterion: max |relative residual| < 1e-9
+      measured:  3.18e-13
+  [PASS        ] S-momentum: momentum accounting closes
+      criterion: max relative residual < 1e-9
+      measured:  7.48e-14
+  [PASS        ] S-empty-space: no empty space / particle loss
+      criterion: no POTENTIAL MODEL / NUMERICAL FAILURE flag; particle count constant
+      measured:  0 flagged
+  [PASS        ] I1-structure-A1-r1: Q1/Q2: does the stationary wall create a near-wall region of lower mean streamwise velocity?
+      criterion: at every station 150, 210, 310, 410: velocity deficit U_e − u_wall and deficit thickness δ₁ each with seed t ≥ 5 (FAIL if at every station the deficit's 95 % CI lies below 0.05)
+      measured:  x 150: deficit 0.903 ± 0.0081 (t 112, n 8), δ₁ 10.8 ± 0.10 (t 106, n 8); x 210: deficit 1.03 ± 0.0085 (t 121, n 8), δ₁ 14.2 ± 0.12 (t 121, n 8); x 310: deficit 1.13 ± 0.0047 (t 241, n 8), δ₁ 15.8 ± 0.11 (t 147, n 8); x 410: deficit 1.21 ± 0.010 (t 115, n 8), δ₁ 16.4 ± 0.13 (t 123, n 8)
+  [PASS        ] I1-structure-A05-r1: Q1/Q2: does the stationary wall create a near-wall region of lower mean streamwise velocity?
+      criterion: at every station 150, 210, 310, 410: velocity deficit U_e − u_wall and deficit thickness δ₁ each with seed t ≥ 5 (FAIL if at every station the deficit's 95 % CI lies below 0.05)
+      measured:  x 150: deficit 0.738 ± 0.0092 (t 80.6, n 6), δ₁ 8.76 ± 0.11 (t 79.9, n 6); x 210: deficit 0.895 ± 0.0092 (t 97.7, n 6), δ₁ 12.3 ± 0.15 (t 84.7, n 6); x 310: deficit 0.987 ± 0.0098 (t 101, n 6), δ₁ 14.3 ± 0.11 (t 132, n 6); x 410: deficit 1.05 ± 0.0094 (t 112, n 6), δ₁ 14.9 ± 0.16 (t 91.0, n 6)
+  [PASS        ] I2-specular-control: falsification: is the near-wall structure caused by wall momentum transfer (absent for a specular wall)?
+      criterion: Aw = 0: the 95 % CI of the deficit lies within ±0.2 × the Aw = 1 deficit at every station (FAIL if entirely outside), and the floor's tangential impulse is exactly 0
+      measured:  x 150: 0.00257 CI [-0.025, 0.030] vs ±0.18 (Aw=1 deficit 0.903); x 210: 0.0127 CI [-0.027, 0.052] vs ±0.21 (Aw=1 deficit 1.03); x 310: 0.0120 CI [-0.052, 0.076] vs ±0.23 (Aw=1 deficit 1.13); x 410: 0.00859 CI [-0.027, 0.044] vs ±0.24 (Aw=1 deficit 1.21); tangential impulse exactly 0: true
+  [PASS        ] I-upstream-control: is the inflow over the specular lead-in free of a near-wall deficit?
+      criterion: |deficit| at x = 70 ≤ 0.05 + 3 SE in every case
+      measured:  A1-r1 0.031±0.008; A1-r1.5 0.033±0.007; A1-r2 0.029±0.009; A1-r2.5 0.029±0.009; A0-r1 0.0080±0.009; A0-r2.5 -0.00064±0.01; A1-rib 0.031±0.01; A1-r2.5-dt 0.023±0.008; A1-r2.5-len 0.043±0.01; A1-r2.5-res 0.038±0.006; A1-r2.5-H 0.051±0.02; A1-r1-H 0.051±0.009; A05-r1 0.032±0.008; A05-r2 0.016±0.02; A05-r2.5 0.025±0.01
+  [PASS        ] I3-wall-momentum-transfer: is the wall momentum transfer (tangential impulse) measurable?
+      criterion: plate-mean τ_w (impulse per time per length) seed t ≥ 5 for Aw = 1 and 0.5
+      measured:  A1-r1: 0.02235 ± 0.00012 (t 187, n 8); A05-r1: 0.01948 ± 0.000077 (t 254, n 6)
+  [PASS        ] I4-seed-halves: Q2: is the structure reproducible across independent seeds?
+      criterion: odd/even seed halves: δ₁ agree (|z| < 3) and the deficit is significant (t ≥ 3) in each half, at every station
+      measured:  x 150: δ₁ 10.6 vs 10.9 (z -1.4), deficit t 2.9e+2/53; x 210: δ₁ 14.1 vs 14.2 (z -0.53), deficit t 1.4e+2/62; x 310: δ₁ 15.8 vs 15.7 (z 0.36), deficit t 1.3e+2/2.4e+2; x 410: δ₁ 16.4 vs 16.3 (z 0.034), deficit t 95/65
+  [INCONCLUSIVE] I5-sampling-duration: Q3: is the near-wall structure stationary over the measurement (sampling-duration convergence)?
+      criterion: near-wall velocity, second vs first half of the measurement: the 95 % CI of the paired relative change lies within ±0.15 at every station (FAIL if entirely outside)
+      measured:  x 150: 0.170 → 0.167 (rel -0.020, CI [-0.15, 0.11]); x 210: 0.150 → 0.145 (rel -0.033, CI [-0.18, 0.12]); x 310: 0.137 → 0.155 (rel 0.12, CI [-0.049, 0.30]); x 410: 0.170 → 0.191 (rel 0.12, CI [-0.021, 0.25])
+  [INCONCLUSIVE] I6-bin-width: Q3: does the thickness depend on the spatial bin width?
+      criterion: half-deficit height y½ and near-wall velocity at (Δx, Δy) = (20, 2) vs (40, 4), and y½ at Δy = 1: 95 % CI of each relative difference within ±0.15 (FAIL if entirely outside)
+      measured:  x 150: y½ 9.64 / 9.34 / 9.43 (rel -0.032 CI [-0.073, 0.0088], -0.022), u_wall rel 0.097; x 210: y½ 12.5 / 13.6 / 12.2 (rel 0.084 CI [0.053, 0.12], -0.024), u_wall rel 0.010; x 310: y½ 13.8 / 14.6 / 13.4 (rel 0.059 CI [0.0097, 0.11], -0.027), u_wall rel 0.021; x 410: y½ 14.2 / 15.2 / 13.8 (rel 0.071 CI [0.018, 0.12], -0.024), u_wall rel 0.015
+  [INCONCLUSIVE] I-variant-A1-r2.5-dt-x150: Q3: is the near-wall structure converged in timestep?
+      criterion: δ₁ and τ_w at x = 150: 95 % CI of each relative difference within ±0.15 (FAIL if entirely outside)
+      measured:  δ₁ 11.0 → 10.9 (rel -0.0052, CI [-0.061, 0.050]); τ_w 0.0246 → 0.0242 (rel -0.017, CI [-0.23, 0.20]); deficit t 74.2
+  [INCONCLUSIVE] I-variant-A1-r2.5-len-x150: Q3: is the near-wall structure converged in length?
+      criterion: δ₁ and τ_w at x = 150: 95 % CI of each relative difference within ±0.15 (FAIL if entirely outside)
+      measured:  δ₁ 11.0 → 11.1 (rel 0.0074, CI [-0.028, 0.043]); τ_w 0.0246 → 0.0242 (rel -0.017, CI [-0.23, 0.20]); deficit t 94.6
+  [PASS        ] I-variant-A1-r2.5-res-x150: Q3/falsification: does the structure survive higher particle resolution?
+      criterion: deficit still significant (t ≥ 5); FAIL if its 95 % CI lies below 0.2 × the reference deficit; thickness ratio reported
+      measured:  δ₁ 11.0 → 10.2 (rel -0.075, CI [-0.11, -0.035]); τ_w 0.0246 → 0.0336 (rel 0.36, CI [0.14, 0.59]); deficit t 185
+  [INCONCLUSIVE] I-variant-A1-r2.5-H-x150: Q3: is the near-wall structure converged in height?
+      criterion: δ₁ and τ_w at x = 150: 95 % CI of each relative difference within ±0.15 (FAIL if entirely outside)
+      measured:  δ₁ 11.0 → 11.7 (rel 0.070, CI [0.0090, 0.13]); τ_w 0.0246 → 0.0213 (rel -0.14, CI [-0.36, 0.087]); deficit t 140
+  [INCONCLUSIVE] I-variant-A1-r1-H-x150: Q3: is the near-wall structure converged in height?
+      criterion: δ₁ and τ_w at x = 150: 95 % CI of each relative difference within ±0.15 (FAIL if entirely outside)
+      measured:  δ₁ 10.8 → 10.2 (rel -0.048, CI [-0.097, 0.0012]); τ_w 0.0263 → 0.0247 (rel -0.060, CI [-0.18, 0.057]); deficit t 139
+  [INCONCLUSIVE] I-variant-A1-r1-H-x210: Q3: is the near-wall structure converged in height?
+      criterion: δ₁ and τ_w at x = 210: 95 % CI of each relative difference within ±0.15 (FAIL if entirely outside)
+      measured:  δ₁ 14.2 → 16.0 (rel 0.13, CI [0.097, 0.16]); τ_w 0.0217 → 0.0186 (rel -0.14, CI [-0.37, 0.081]); deficit t 153
+  [INCONCLUSIVE] II1-response-A1-r1.5: Q4: does the deceleration create a measured wall-pressure rise, and does the near-wall flow respond?
+      criterion: wall-pressure rise (impulse-measured) seed t ≥ 5, and near-wall velocity over x ∈ (280, 480) lower than the attached control (Welch z ≤ −5)
+      measured:  Δp_w 0.00235 ± 0.0014 (t 1.63, n 8); u_wall 0.0446 vs 0.172 (z -34.0)
+  [PASS        ] II1-response-A1-r2: Q4: does the deceleration create a measured wall-pressure rise, and does the near-wall flow respond?
+      criterion: wall-pressure rise (impulse-measured) seed t ≥ 5, and near-wall velocity over x ∈ (280, 480) lower than the attached control (Welch z ≤ −5)
+      measured:  Δp_w 0.0306 ± 0.0012 (t 24.8, n 8); u_wall 0.00673 vs 0.172 (z -45.6)
+  [PASS        ] II1-response-A1-r2.5: Q4: does the deceleration create a measured wall-pressure rise, and does the near-wall flow respond?
+      criterion: wall-pressure rise (impulse-measured) seed t ≥ 5, and near-wall velocity over x ∈ (280, 480) lower than the attached control (Welch z ≤ −5)
+      measured:  Δp_w 0.0361 ± 0.0014 (t 25.7, n 8); u_wall -0.00217 vs 0.172 (z -42.7)
+  [PASS        ] II9-response-A1-r2.5-dt: Q3/Q4: is the near-wall response to the deceleration converged in the timestep variant?
+      criterion: response-window u_wall and τ_w: 95 % CI of the difference from the reference within ±0.02 and ±0.002 (FAIL if entirely outside)
+      measured:  u_wall -0.00217 → -0.000546 (Δ 0.0016, CI [-0.012, 0.016]); τ_w -0.000242 → 0.000346 (Δ 0.00059, CI [-0.00025, 0.0014]); vs attached z -45.4
+  [INCONCLUSIVE] II9-response-A1-r2.5-len: Q3/Q4: is the near-wall response to the deceleration converged in the length variant?
+      criterion: response-window u_wall and τ_w: 95 % CI of the difference from the reference within ±0.02 and ±0.002 (FAIL if entirely outside)
+      measured:  u_wall -0.00217 → -0.0101 (Δ -0.0079, CI [-0.023, 0.0072]); τ_w -0.000242 → -0.00115 (Δ -0.00091, CI [-0.0019, 0.000051]); vs attached z -43.0
+  [PASS        ] II9-response-A1-r2.5-res: Q3/Q4: is the near-wall response to the deceleration converged in the resolution variant?
+      criterion: the variant still responds (u_wall below the attached control, Welch z ≤ −5); differences reported
+      measured:  u_wall -0.00217 → -0.00388 (Δ -0.0017, CI [-0.014, 0.010]); τ_w -0.000242 → -0.000586 (Δ -0.00034, CI [-0.0012, 0.00051]); vs attached z -57.3
+  [PASS        ] II9-response-A1-r2.5-H: Q3/Q4: is the near-wall response to the deceleration converged in the height variant?
+      criterion: the variant still responds (u_wall below the attached control, Welch z ≤ −5); differences reported
+      measured:  u_wall -0.00217 → -0.00412 (Δ -0.0019, CI [-0.018, 0.014]); τ_w -0.000242 → -0.000813 (Δ -0.00057, CI [-0.0011, 0.0000055]); vs attached z -37.9
+  [INCONCLUSIVE] PC-positive-control: detector sensitivity: does the same detector find the recirculation behind a floor rib (geometric separation)?
+      criterion: a separated region in (220, 400) with region-mean τ_w and ψ_wall t ≤ −t_0.025 and a bounded return-flow layer in most columns
+      measured:  no separated region
+  [INCONCLUSIVE] II2-local-reversal: Q5 / indicator A: does local reverse streamwise motion appear (strong deceleration)?
+      criterion: ≥ 1 run of ≥ 2 contiguous columns in (120, 480) with seed-mean near-wall u < 0, one-sided p ≤ 0.005 each; FAIL if every column is significantly forward (u_wall and τ_w both t ≥ t_0.005)
+      measured:  none; most negative column x 370: u_wall -0.0181 ± 0.0051 (t -3.56, n 8)
+  [PASS        ] II4-null: thermal-noise null: does the attached control produce apparent separation?
+      criterion: no separated region in the attached control (same rule as II2)
+      measured:  0 region(s); most negative column t 18.0; max fraction of negative block means 0.0125
+  [PASS        ] II7-downstream-deficit: indicator E: does a larger momentum deficit develop downstream of the deceleration?
+      criterion: momentum-flux deficit thickness δ₂ at x = 470: strong case > attached control, Welch z ≥ 3
+      measured:  δ₂ 14.5 vs 5.54 (z 35.2)
+  [REPORTED    ] Q8-accommodation-shift: Q8: does the separation threshold move when the wall accommodation changes?
+      criterion: reported: smallest expansion with a separated region for Aw = 1 and Aw = 0.5, and the region-mean near-wall velocity difference at equal expansion
+      measured:  threshold Aw=1: none in range; Aw=0.5: none in range; r 2: 0.0303 vs 0.00673 (z 5.47); r 2.5: 0.00873 vs -0.00217 (z 2.69)
+
+PART I (near-wall structure): INCONCLUSIVE
+PART II (separation): INCONCLUSIVE
+ITEM 3 CLASSIFICATION: INCONCLUSIVE
+
+FILES
+  results/plots/bl_separation/snapshot_A1-r1.svg
+  results/plots/bl_separation/snapshot_A1-r2.5.svg
+  results/plots/bl_separation/snapshot_A1-rib.svg
+  results/plots/bl_separation/velocity_A1-r1.svg
+  results/plots/bl_separation/reverse_flow_A1-r1.svg
+  results/plots/bl_separation/occupancy_A1-r1.svg
+  results/plots/bl_separation/velocity_A1-r1.5.svg
+  results/plots/bl_separation/reverse_flow_A1-r1.5.svg
+  results/plots/bl_separation/occupancy_A1-r1.5.svg
+  results/plots/bl_separation/velocity_A1-r2.svg
+  results/plots/bl_separation/reverse_flow_A1-r2.svg
+  results/plots/bl_separation/occupancy_A1-r2.svg
+  results/plots/bl_separation/velocity_A1-r2.5.svg
+  results/plots/bl_separation/reverse_flow_A1-r2.5.svg
+  results/plots/bl_separation/occupancy_A1-r2.5.svg
+  results/plots/bl_separation/velocity_A0-r1.svg
+  results/plots/bl_separation/reverse_flow_A0-r1.svg
+  results/plots/bl_separation/occupancy_A0-r1.svg
+  results/plots/bl_separation/velocity_A0-r2.5.svg
+  results/plots/bl_separation/reverse_flow_A0-r2.5.svg
+  results/plots/bl_separation/occupancy_A0-r2.5.svg
+  results/plots/bl_separation/velocity_A1-rib.svg
+  results/plots/bl_separation/reverse_flow_A1-rib.svg
+  results/plots/bl_separation/occupancy_A1-rib.svg
+  results/plots/bl_separation/velocity_A1-r2.5-dt.svg
+  results/plots/bl_separation/reverse_flow_A1-r2.5-dt.svg
+  results/plots/bl_separation/occupancy_A1-r2.5-dt.svg
+  results/plots/bl_separation/velocity_A1-r2.5-len.svg
+  results/plots/bl_separation/reverse_flow_A1-r2.5-len.svg
+  results/plots/bl_separation/occupancy_A1-r2.5-len.svg
+  results/plots/bl_separation/velocity_A1-r2.5-res.svg
+  results/plots/bl_separation/reverse_flow_A1-r2.5-res.svg
+  results/plots/bl_separation/occupancy_A1-r2.5-res.svg
+  results/plots/bl_separation/velocity_A1-r2.5-H.svg
+  results/plots/bl_separation/reverse_flow_A1-r2.5-H.svg
+  results/plots/bl_separation/occupancy_A1-r2.5-H.svg
+  results/plots/bl_separation/velocity_A1-r1-H.svg
+  results/plots/bl_separation/reverse_flow_A1-r1-H.svg
+  results/plots/bl_separation/occupancy_A1-r1-H.svg
+  results/plots/bl_separation/velocity_A05-r1.svg
+  results/plots/bl_separation/reverse_flow_A05-r1.svg
+  results/plots/bl_separation/occupancy_A05-r1.svg
+  results/plots/bl_separation/velocity_A05-r2.svg
+  results/plots/bl_separation/reverse_flow_A05-r2.svg
+  results/plots/bl_separation/occupancy_A05-r2.svg
+  results/plots/bl_separation/velocity_A05-r2.5.svg
+  results/plots/bl_separation/reverse_flow_A05-r2.5.svg
+  results/plots/bl_separation/occupancy_A05-r2.5.svg
+  results/plots/bl_separation/profile_x150.svg
+  results/plots/bl_separation/momentum_deficit_x150.svg
+  results/plots/bl_separation/profile_x210.svg
+  results/plots/bl_separation/momentum_deficit_x210.svg
+  results/plots/bl_separation/profile_x310.svg
+  results/plots/bl_separation/momentum_deficit_x310.svg
+  results/plots/bl_separation/profile_x410.svg
+  results/plots/bl_separation/momentum_deficit_x410.svg
+  results/plots/bl_separation/tauW_vs_x.svg
+  results/plots/bl_separation/pW_vs_x.svg
+  results/plots/bl_separation/uWall_vs_x.svg
+  results/plots/bl_separation/psiWall_vs_x.svg
+  results/plots/bl_separation/delta1_vs_x.svg
+  results/plots/bl_separation/Ue_vs_x.svg
+  results/plots/bl_separation/time_evolution_region.svg
+  results/plots/bl_separation/seeds_uwall_A1-r1.svg
+  results/plots/bl_separation/seeds_uwall_A1-r2.5.svg
+  results/plots/bl_separation/convergence_A1-r2.5-dt.svg
+  results/plots/bl_separation/convergence_A1-r2.5-len.svg
+  results/plots/bl_separation/convergence_A1-r2.5-res.svg
+  results/plots/bl_separation/convergence_A1-r2.5-H.svg
+  results/plots/bl_separation/convergence_A1-r1-H.svg
+  results/plots/bl_separation/threshold.svg
+  results/plots/bl_separation/animation_A1-r1.html
+  results/plots/bl_separation/animation_A1-r2.5.html
+  results/plots/bl_separation/animation_A1-rib.html
+  results/plots/bl_separation/report_bl_separation.json
