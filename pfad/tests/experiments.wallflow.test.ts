@@ -145,6 +145,21 @@ describe('grid sums and observables', () => {
     expect(s2.px).toEqual([4, -2, 0, 0]);
   });
 
+  it('coarsening drops a trailing partial column and leaves whole columns exact', () => {
+    const st = new ParticleStore(4);
+    st.add({ x: 1, y: 1, vx: 2, vy: 0, mass: 1, radius: 0.5 });
+    st.add({ x: 3, y: 3, vx: -1, vy: 1, mass: 1, radius: 0.5 });
+    st.add({ x: 5, y: 1, vx: 7, vy: 0, mass: 1, radius: 0.5 }); // in the trailing third column
+    const g = new GridSums({ x0: 0, y0: 0, x1: 6, y1: 4 }, 2, 2); // 3 × 2 cells
+    g.add(st);
+    const c = coarsen(g.data(), 2, 2);
+    expect(c.nx).toBe(1);
+    expect(c.ny).toBe(1);
+    expect(c.count).toEqual([2]);
+    expect(c.px).toEqual([1]);
+    expect(() => coarsen(g.data(), 1, 3)).toThrow();
+  });
+
   it('column observables: wall shear and pressure are impulse per time per length', () => {
     const r = runToEnd({ ...small, expansion: 1 }, 15).result();
     const o = columnObservables(r.config, r.nearWall, r.outer, floorOf(r), r.measurementTime, {

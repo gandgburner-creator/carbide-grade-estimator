@@ -231,7 +231,7 @@ for (const k of keysPresent) {
   const sx = 4;
   const w = (W.x1 - W.x0) * sx + 80;
   const h = W.height * sx + 60;
-  const parts = [`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" font-family="sans-serif" font-size="11"><rect width="${w}" height="${h}" fill="#fff"/>`, `<text x="10" y="16" font-size="13" font-weight="600">${k} seed ${rs[0].seed}: particles near the wall at t = ${f(fr.t, 5)} (colour: v_x, blue < 0 < red)</text>`];
+  const parts = [`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" font-family="sans-serif" font-size="11"><rect width="${w}" height="${h}" fill="#fff"/>`, `<text x="10" y="16" font-size="13" font-weight="600">${k} seed ${rs[0].seed}: particles near the wall at t = ${f(fr.t, 5)} (colour: v_x, blue &lt; 0 &lt; red)</text>`];
   for (let q = 0; q < fr.p.length; q += 4) {
     const vx = fr.p[q + 2];
     const a = Math.min(1, Math.abs(vx) / 1.5);

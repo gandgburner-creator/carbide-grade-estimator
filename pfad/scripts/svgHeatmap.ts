@@ -1,4 +1,8 @@
 /** Minimal SVG heat map of a cell field (CLI result inspection; not part of the lab UI). */
+
+/** Escape text for SVG/XML content. */
+const esc = (s: string) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
 export interface HeatmapOptions {
   title: string;
   /** row-major values [j * nx + i]; NaN cells are drawn grey */
@@ -58,7 +62,7 @@ export function svgHeatmap(o: HeatmapOptions): string {
   const parts: string[] = [];
   parts.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" font-family="sans-serif" font-size="11">`);
   parts.push(`<rect width="${W}" height="${H}" fill="#fff"/>`);
-  parts.push(`<text x="${m.l}" y="22" font-size="13" font-weight="600">${o.title}</text>`);
+  parts.push(`<text x="${m.l}" y="22" font-size="13" font-weight="600">${esc(o.title)}</text>`);
   for (let j = 0; j < o.ny; j++) {
     for (let i = 0; i < o.nx; i++) {
       const v = o.values[j * o.nx + i];
@@ -92,7 +96,7 @@ export function svgHeatmap(o: HeatmapOptions): string {
   }
   parts.push(`<text x="${cbx + 18}" y="${m.t + 8}">${hi.toPrecision(3)}</text>`);
   parts.push(`<text x="${cbx + 18}" y="${m.t + cbh}">${lo.toPrecision(3)}</text>`);
-  parts.push(`<text x="${cbx}" y="${m.t + cbh + 16}">${o.label}</text>`);
+  parts.push(`<text x="${cbx}" y="${m.t + cbh + 16}">${esc(o.label)}</text>`);
   parts.push('</svg>');
   return parts.join('\n');
 }

@@ -1,4 +1,8 @@
 /** Minimal SVG line/point plot for CLI result inspection (not part of the lab UI). */
+
+/** Escape text for SVG/XML content. */
+const esc = (s: string) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
 export interface Series {
   label: string;
   x: number[];
@@ -44,7 +48,7 @@ export function svgPlot(opts: {
   const parts: string[] = [];
   parts.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" font-family="sans-serif" font-size="12">`);
   parts.push(`<rect width="${W}" height="${H}" fill="#fff"/>`);
-  parts.push(`<text x="${W / 2}" y="22" text-anchor="middle" font-size="14" font-weight="600">${opts.title}</text>`);
+  parts.push(`<text x="${W / 2}" y="22" text-anchor="middle" font-size="14" font-weight="600">${esc(opts.title)}</text>`);
   for (let k = 0; k <= 5; k++) {
     const v = y0 + ((y1 - y0) * k) / 5;
     const yy = H - m.b - ((v - y0) / (y1 - y0 || 1)) * (H - m.t - m.b);
@@ -56,8 +60,8 @@ export function svgPlot(opts: {
   }
   parts.push(`<line x1="${m.l}" x2="${m.l}" y1="${m.t}" y2="${H - m.b}" stroke="#333"/>`);
   parts.push(`<line x1="${m.l}" x2="${W - m.r}" y1="${H - m.b}" y2="${H - m.b}" stroke="#333"/>`);
-  parts.push(`<text x="${W / 2}" y="${H - 12}" text-anchor="middle">${opts.xLabel}</text>`);
-  parts.push(`<text transform="translate(16 ${H / 2}) rotate(-90)" text-anchor="middle">${opts.yLabel}</text>`);
+  parts.push(`<text x="${W / 2}" y="${H - 12}" text-anchor="middle">${esc(opts.xLabel)}</text>`);
+  parts.push(`<text transform="translate(16 ${H / 2}) rotate(-90)" text-anchor="middle">${esc(opts.yLabel)}</text>`);
   opts.series.forEach((s) => {
     const pts = s.x.map((xv, i) => `${px(xv).toFixed(1)},${py(s.y[i]).toFixed(1)}`).join(' ');
     if (!s.noLine) {
@@ -80,7 +84,7 @@ export function svgPlot(opts: {
     .filter((s) => !s.thin && s.label)
     .forEach((s, k) => {
       parts.push(`<rect x="${W - m.r - 230}" y="${m.t + 6 + k * 18}" width="14" height="3" fill="${s.color}"/>`);
-      parts.push(`<text x="${W - m.r - 210}" y="${m.t + 11 + k * 18}">${s.label}</text>`);
+      parts.push(`<text x="${W - m.r - 210}" y="${m.t + 11 + k * 18}">${esc(s.label)}</text>`);
     });
   parts.push('</svg>');
   return parts.join('\n');

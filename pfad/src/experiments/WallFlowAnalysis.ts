@@ -10,16 +10,22 @@ import { wallFlowGeometry, type WallFlowConfig, type WallFlowRunResult } from '.
  * integral of measured data, and are marked as such.
  */
 
-/** Coarsen a grid of raw sums by integer factors (exact: sums of sums). */
+/**
+ * Coarsen a grid of raw sums by integer factors (exact: sums of sums).
+ * A trailing strip of fewer than fx columns at the downstream end (a domain
+ * length that is not a multiple of the coarse column width) is dropped; the
+ * rows must divide exactly. Grids that divide exactly are unaffected.
+ */
 export function coarsen(g: GridSumsData, fx: number, fy: number): GridSumsData {
   if (!(Number.isInteger(fx) && Number.isInteger(fy) && fx >= 1 && fy >= 1)) throw new Error('integer factors ≥ 1');
-  if (g.nx % fx !== 0 || g.ny % fy !== 0) throw new Error(`grid ${g.nx}×${g.ny} is not divisible by ${fx}×${fy}`);
-  const nx = g.nx / fx;
+  if (g.ny % fy !== 0) throw new Error(`grid ${g.nx}×${g.ny} rows are not divisible by ${fy}`);
+  const nx = Math.floor(g.nx / fx);
+  if (nx < 1) throw new Error(`grid ${g.nx}×${g.ny} has fewer than ${fx} columns`);
   const ny = g.ny / fy;
   const sum = (a?: number[]) => {
     if (!a) return undefined;
     const out = new Array<number>(nx * ny).fill(0);
-    for (let j = 0; j < g.ny; j++) for (let i = 0; i < g.nx; i++) out[Math.floor(j / fy) * nx + Math.floor(i / fx)] += a[j * g.nx + i];
+    for (let j = 0; j < g.ny; j++) for (let i = 0; i < nx * fx; i++) out[Math.floor(j / fy) * nx + Math.floor(i / fx)] += a[j * g.nx + i];
     return out;
   };
   return {
