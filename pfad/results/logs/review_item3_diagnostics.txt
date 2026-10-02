@@ -1,0 +1,163 @@
+ITEM 3 — DESIGN-REVIEW DIAGNOSTICS (read-only; not part of any classification)
+
+R1. Near-wall momentum budget, band y < 4 (seed mean ± SE). Terms per unit length per unit time:
+    force = −dB/dx (stress-difference force on the band; < 0 adverse), supply = −Π_xy(h) (forward momentum entering from above),
+    τ_w (forward momentum given to the wall), residual = force + supply − τ_w (≈ 0 in a steady state; measures the estimator)
+  A1-r1 (collisions lost from the log: 0)
+    x 150: force    0.0033 ± 0.0002  supply     0.024 ± 0.0008  τ_w     0.026 ± 0.0009  residual   0.00088 ± 0.0009
+    x 210: force    0.0025 ± 0.0003  supply     0.019 ± 0.0008  τ_w     0.022 ± 0.0008  residual  -0.00025 ± 0.0006
+    x 310: force    0.0018 ± 0.0002  supply     0.019 ± 0.001   τ_w     0.020 ± 0.0006  residual   0.00077 ± 0.001
+    x 410: force    0.0023 ± 0.0002  supply     0.020 ± 0.001   τ_w     0.022 ± 0.0009  residual   0.00040 ± 0.0007
+  A1-r2.5 (collisions lost from the log: 0)
+    x 110: force     0.023 ± 0.0002  supply     0.016 ± 0.001   τ_w     0.056 ± 0.0004  residual    -0.018 ± 0.001
+    x 130: force    0.0094 ± 0.0005  supply     0.025 ± 0.001   τ_w     0.031 ± 0.001   residual    0.0038 ± 0.0005
+    x 150: force    0.0026 ± 0.0002  supply     0.022 ± 0.001   τ_w     0.025 ± 0.001   residual   0.00035 ± 0.001
+    x 170: force    0.0019 ± 0.0003  supply     0.019 ± 0.0007  τ_w     0.022 ± 0.0005  residual   -0.0016 ± 0.0008
+    x 190: force    0.0017 ± 0.0002  supply     0.016 ± 0.0008  τ_w     0.018 ± 0.0008  residual  -0.00061 ± 0.0005
+    x 210: force   0.00037 ± 0.0002  supply     0.014 ± 0.0006  τ_w     0.015 ± 0.0005  residual  -0.00018 ± 0.0006
+    x 230: force   -0.0011 ± 0.0001  supply    0.0097 ± 0.0008  τ_w    0.0090 ± 0.0007  residual  -0.00047 ± 0.0004
+    x 250: force   -0.0011 ± 0.0002  supply    0.0060 ± 0.0009  τ_w    0.0044 ± 0.001   residual   0.00047 ± 0.0006
+    x 270: force  -0.00078 ± 0.0002  supply    0.0041 ± 0.0007  τ_w    0.0027 ± 0.0007  residual   0.00063 ± 0.0007
+    x 290: force  -0.00087 ± 0.0002  supply   0.00052 ± 0.0007  τ_w   0.00094 ± 0.0009  residual   -0.0013 ± 0.0008
+    x 310: force  -0.00086 ± 0.0002  supply   0.00029 ± 0.0007  τ_w  -0.00067 ± 0.0007  residual   0.00011 ± 0.0007
+    x 330: force  -0.00054 ± 0.0003  supply   0.00042 ± 0.0006  τ_w  -0.00045 ± 0.001   residual   0.00032 ± 0.0007
+    x 350: force  -0.00026 ± 0.0002  supply   -0.0015 ± 0.0008  τ_w  -0.00056 ± 0.0009  residual   -0.0012 ± 0.001
+    x 370: force  -0.00070 ± 0.0002  supply  -0.00091 ± 0.0004  τ_w   -0.0017 ± 0.0007  residual  0.000060 ± 0.0005
+    x 390: force  -0.00076 ± 0.0003  supply   -0.0011 ± 0.0008  τ_w   -0.0017 ± 0.0008  residual  -0.00019 ± 0.001
+    x 410: force  -0.00048 ± 0.0003  supply   -0.0010 ± 0.0006  τ_w   -0.0021 ± 0.0008  residual   0.00059 ± 0.001
+    x 430: force  -0.00032 ± 0.0003  supply  -0.00032 ± 0.0007  τ_w   -0.0017 ± 0.0007  residual    0.0011 ± 0.0009
+    x 450: force  -0.00016 ± 0.0004  supply    0.0013 ± 0.0005  τ_w    0.0025 ± 0.0009  residual   -0.0014 ± 0.0008
+    x 470: force   0.00048 ± 0.0002  supply    0.0045 ± 0.001   τ_w    0.0030 ± 0.001   residual    0.0019 ± 0.001
+    x 490: force   0.00033 ± 0.0003  supply    0.0072 ± 0.001   τ_w     0.013 ± 0.001   residual   -0.0054 ± 0.001
+  A1-rib (collisions lost from the log: 0)
+    x 170: force   0.00054 ± 0.0004  supply     0.017 ± 0.002   τ_w     0.014 ± 0.001   residual    0.0033 ± 0.002
+    x 190: force     0.054 ± 0.0007  supply    0.0035 ± 0.002   τ_w    0.0030 ± 0.002   residual     0.055 ± 0.002
+    x 210: force     0.035 ± 0.001   supply       0.0 ± 0       τ_w       0.0 ± 0       residual     0.035 ± 0.001
+    x 230: force    -0.022 ± 0.0004  supply   0.00069 ± 0.0004  τ_w   -0.0048 ± 0.0009  residual    -0.017 ± 0.0006
+    x 250: force   -0.0063 ± 0.0004  supply    0.0020 ± 0.002   τ_w   -0.0017 ± 0.002   residual   -0.0026 ± 0.002
+    x 270: force   -0.0041 ± 0.0004  supply    0.0064 ± 0.001   τ_w    0.0024 ± 0.001   residual  -0.00014 ± 0.001
+    x 290: force   -0.0025 ± 0.0002  supply    0.0099 ± 0.001   τ_w    0.0050 ± 0.001   residual    0.0024 ± 0.0007
+    x 310: force   -0.0016 ± 0.0001  supply     0.011 ± 0.001   τ_w     0.010 ± 0.001   residual  -0.00064 ± 0.001
+    x 330: force  -0.00040 ± 0.0003  supply     0.011 ± 0.0008  τ_w     0.011 ± 0.0005  residual   0.00037 ± 0.001
+
+R1. Near-wall momentum budget, band y < 10 (seed mean ± SE). Terms per unit length per unit time:
+    force = −dB/dx (stress-difference force on the band; < 0 adverse), supply = −Π_xy(h) (forward momentum entering from above),
+    τ_w (forward momentum given to the wall), residual = force + supply − τ_w (≈ 0 in a steady state; measures the estimator)
+  A1-r1 (collisions lost from the log: 0)
+    x 150: force     0.014 ± 0.0008  supply     0.013 ± 0.001   τ_w     0.026 ± 0.0009  residual   0.00033 ± 0.001
+    x 210: force    0.0060 ± 0.0004  supply     0.015 ± 0.001   τ_w     0.022 ± 0.0008  residual  -0.00058 ± 0.001
+    x 310: force    0.0052 ± 0.0005  supply     0.014 ± 0.0007  τ_w     0.020 ± 0.0006  residual  -0.00020 ± 0.001
+    x 410: force    0.0067 ± 0.0005  supply     0.016 ± 0.001   τ_w     0.022 ± 0.0009  residual   0.00045 ± 0.002
+  A1-r2.5 (collisions lost from the log: 0)
+    x 110: force     0.049 ± 0.0006  supply    -0.019 ± 0.001   τ_w     0.056 ± 0.0004  residual    -0.026 ± 0.001
+    x 130: force     0.031 ± 0.0009  supply    0.0052 ± 0.0008  τ_w     0.031 ± 0.001   residual    0.0050 ± 0.001
+    x 150: force     0.013 ± 0.0006  supply     0.014 ± 0.001   τ_w     0.025 ± 0.001   residual    0.0023 ± 0.001
+    x 170: force    0.0080 ± 0.0004  supply     0.013 ± 0.0008  τ_w     0.022 ± 0.0005  residual   -0.0018 ± 0.0007
+    x 190: force    0.0060 ± 0.0006  supply     0.012 ± 0.001   τ_w     0.018 ± 0.0008  residual  0.000033 ± 0.0009
+    x 210: force    0.0037 ± 0.0004  supply     0.011 ± 0.001   τ_w     0.015 ± 0.0005  residual   0.00026 ± 0.001
+    x 230: force   0.00046 ± 0.0002  supply    0.0094 ± 0.0007  τ_w    0.0090 ± 0.0007  residual   0.00079 ± 0.001
+    x 250: force   -0.0015 ± 0.0006  supply    0.0069 ± 0.0007  τ_w    0.0044 ± 0.001   residual    0.0011 ± 0.0007
+    x 270: force   -0.0022 ± 0.0004  supply    0.0049 ± 0.001   τ_w    0.0027 ± 0.0007  residual  0.000011 ± 0.001
+    x 290: force   -0.0021 ± 0.0003  supply    0.0035 ± 0.0009  τ_w   0.00094 ± 0.0009  residual   0.00042 ± 0.0006
+    x 310: force   -0.0016 ± 0.0003  supply    0.0013 ± 0.0007  τ_w  -0.00067 ± 0.0007  residual   0.00042 ± 0.0008
+    x 330: force   -0.0016 ± 0.0003  supply   0.00054 ± 0.001   τ_w  -0.00045 ± 0.001   residual  -0.00058 ± 0.001
+    x 350: force   -0.0010 ± 0.0002  supply   0.00084 ± 0.0009  τ_w  -0.00056 ± 0.0009  residual   0.00037 ± 0.001
+    x 370: force   -0.0015 ± 0.0004  supply  -0.00060 ± 0.0005  τ_w   -0.0017 ± 0.0007  residual  -0.00042 ± 0.0008
+    x 390: force   -0.0018 ± 0.0003  supply -0.000035 ± 0.0007  τ_w   -0.0017 ± 0.0008  residual  -0.00011 ± 0.0005
+    x 410: force   -0.0011 ± 0.0003  supply  -0.00018 ± 0.0008  τ_w   -0.0021 ± 0.0008  residual   0.00077 ± 0.001
+    x 430: force   -0.0011 ± 0.0004  supply   0.00074 ± 0.0008  τ_w   -0.0017 ± 0.0007  residual    0.0014 ± 0.001
+    x 450: force  -0.00044 ± 0.0004  supply   0.00042 ± 0.0006  τ_w    0.0025 ± 0.0009  residual   -0.0025 ± 0.0007
+    x 470: force   0.00078 ± 0.0005  supply    0.0050 ± 0.0008  τ_w    0.0030 ± 0.001   residual    0.0027 ± 0.001
+    x 490: force  -0.00057 ± 0.0004  supply    0.0061 ± 0.0006  τ_w     0.013 ± 0.001   residual   -0.0075 ± 0.001
+  A1-rib (collisions lost from the log: 0)
+    x 170: force    0.0070 ± 0.001   supply     0.013 ± 0.001   τ_w     0.014 ± 0.001   residual    0.0056 ± 0.002
+    x 190: force      0.15 ± 0.002   supply    0.0020 ± 0.0008  τ_w    0.0030 ± 0.002   residual      0.15 ± 0.001
+    x 210: force     0.093 ± 0.002   supply       0.0 ± 0       τ_w       0.0 ± 0       residual     0.093 ± 0.002
+    x 230: force    -0.060 ± 0.0009  supply    0.0039 ± 0.0007  τ_w   -0.0048 ± 0.0009  residual    -0.052 ± 0.0009
+    x 250: force    -0.016 ± 0.0005  supply     0.013 ± 0.0005  τ_w   -0.0017 ± 0.002   residual  -0.00085 ± 0.002
+    x 270: force    -0.012 ± 0.0006  supply     0.014 ± 0.001   τ_w    0.0024 ± 0.001   residual  -0.00033 ± 0.002
+    x 290: force   -0.0085 ± 0.0009  supply     0.015 ± 0.001   τ_w    0.0050 ± 0.001   residual    0.0012 ± 0.001
+    x 310: force   -0.0056 ± 0.0007  supply     0.014 ± 0.0005  τ_w     0.010 ± 0.001   residual   -0.0017 ± 0.001
+    x 330: force   -0.0021 ± 0.0005  supply     0.014 ± 0.001   τ_w     0.011 ± 0.0005  residual    0.0011 ± 0.0005
+
+R2. Along the plate (A1-r2.5 vs A1-r1): wall pressure p_w, core U_e and density n_e, ceiling H, near-wall kT (y < 4)
+  A1-r1
+    x     H      p_w        U_e     n_e     kT(y<4)
+    110   70.0   0.5037     0.951   0.300   1.049
+    150   70.0   0.4613     1.07    0.292   1.021
+    190   70.0   0.4397     1.15    0.286   1.020
+    230   70.0   0.4185     1.20    0.279   1.019
+    270   70.0   0.3984     1.23    0.272   1.028
+    310   70.0   0.3784     1.28    0.265   1.016
+    350   70.0   0.3568     1.32    0.258   1.007
+    390   70.0   0.3324     1.37    0.250   1.014
+    430   70.0   0.3076     1.42    0.241   1.012
+    470   70.0   0.2726     1.48    0.231   1.027
+  A1-r2.5
+    x     H      p_w        U_e     n_e     kT(y<4)
+    110   70.0   0.4316     0.985   0.274   1.059
+    150   70.0   0.3952     1.12    0.266   1.020
+    190   70.7   0.3785     1.26    0.252   1.017
+    230   83.0   0.3824     1.17    0.247   1.014
+    270   108    0.3942     0.915   0.253   1.011
+    310   137    0.4068     0.745   0.257   0.9998
+    350   162    0.4143     0.658   0.261   1.006
+    390   174    0.4183     0.616   0.263   1.010
+    430   175    0.4258     0.579   0.263   1.005
+    470   175    0.4295     0.486   0.267   1.011
+
+R3. The post-hoc τ_w band (300, 440) — chosen on A1-r2.5 seeds 7001–7008 — evaluated on independent seed sets
+  A1-r2.5      band (300, 440): τ_w -0.00127 ± 0.00023 (t -5.51; 8/8 seeds < 0); u_wall -0.00837 ± 0.0036
+  A1-r2.5-dt   band (300, 440): τ_w -0.000190 ± 0.00034 (t -0.555; 2/4 seeds < 0); u_wall -0.00485 ± 0.0034
+  A1-r2.5-len  band (300, 440): τ_w -0.00100 ± 0.00027 (t -3.71; 4/4 seeds < 0); u_wall -0.00899 ± 0.0041
+  A1-r2.5-res  band (300, 440): τ_w -0.00150 ± 0.00041 (t -3.64; 4/4 seeds < 0); u_wall -0.00775 ± 0.0015
+  A1-r2.5-H    band (360, 570): τ_w -0.00116 ± 0.000053 (t -21.9; 4/4 seeds < 0); u_wall -0.00426 ± 0.0037
+  A05-r2.5     band (300, 440): τ_w -0.00000916 ± 0.00015 (t -0.0602; 2/4 seeds < 0); u_wall -0.00473 ± 0.0037
+  A1-r2        band (300, 440): τ_w 0.000421 ± 0.00025 (t 1.72; 3/8 seeds < 0); u_wall 0.00121 ± 0.0030
+  A1-r1        band (300, 440): τ_w 0.0214 ± 0.00026 (t 83.4; 0/8 seeds < 0); u_wall 0.166 ± 0.0029
+
+R4. Wall impulse decomposition (A1-r2.5 and A1-r1, seed-summed): per column, incident tangential momentum per hit
+    (flux-weighted velocity of the arriving particles), emitted tangential momentum per hit (≈ 0 for a diffuse wall at rest),
+    and the density-weighted mean u of the first row (y < 1) and of y < 4
+  A1-r1
+    x 150: incident 0.147 per hit, emitted 0.0038 per hit, diffuse fraction 1.000; u(y<1) 0.0822, u(y<4) 0.169
+    x 310: incident 0.130 per hit, emitted -0.0014 per hit, diffuse fraction 1.000; u(y<1) 0.0577, u(y<4) 0.146
+    x 350: incident 0.150 per hit, emitted 0.0059 per hit, diffuse fraction 1.000; u(y<1) 0.0948, u(y<4) 0.164
+    x 370: incident 0.151 per hit, emitted -0.0091 per hit, diffuse fraction 1.000; u(y<1) 0.0712, u(y<4) 0.166
+    x 390: incident 0.153 per hit, emitted -0.0076 per hit, diffuse fraction 1.000; u(y<1) 0.0804, u(y<4) 0.167
+    x 410: incident 0.174 per hit, emitted -0.0020 per hit, diffuse fraction 1.000; u(y<1) 0.0943, u(y<4) 0.181
+    x 430: incident 0.181 per hit, emitted -0.0037 per hit, diffuse fraction 1.000; u(y<1) 0.0891, u(y<4) 0.186
+  A1-r2.5
+    x 150: incident 0.165 per hit, emitted 0.0083 per hit, diffuse fraction 1.000; u(y<1) 0.0873, u(y<4) 0.194
+    x 310: incident -0.0129 per hit, emitted -0.0088 per hit, diffuse fraction 1.000; u(y<1) -0.0106, u(y<4) -0.0128
+    x 350: incident 0.000215 per hit, emitted 0.0036 per hit, diffuse fraction 1.000; u(y<1) 0.00178, u(y<4) 0.00161
+    x 370: incident -0.0144 per hit, emitted -0.0043 per hit, diffuse fraction 1.000; u(y<1) -0.0147, u(y<4) -0.0181
+    x 390: incident -0.0149 per hit, emitted -0.0048 per hit, diffuse fraction 1.000; u(y<1) -0.00937, u(y<4) -0.0117
+    x 410: incident -0.0116 per hit, emitted 0.00097 per hit, diffuse fraction 1.000; u(y<1) -0.0124, u(y<4) -0.00919
+    x 430: incident -0.00411 per hit, emitted 0.0060 per hit, diffuse fraction 1.000; u(y<1) -0.000537, u(y<4) -0.00546
+
+R5. Per-seed signs by column (A1-r2.5, 8 seeds; rib, 4 seeds): number of seeds with u_wall < 0 / τ_w < 0 / ψ(y = 10) < 0
+  A1-r2.5: 290: 3/3/2  310: 6/4/4  330: 5/4/4  350: 5/3/4  370: 8/5/8  390: 5/6/6  410: 5/6/5  430: 4/6/4  450: 2/1/2  470: 0/2/0
+  A1-rib: 210: 0/0/0  230: 4/4/4  250: 4/3/3  270: 1/1/0  290: 0/0/0  310: 0/0/0
+
+R6. Detector statistics
+  A1-r1    window (280, 480): block lag-1 autocorrelation -0.13 (median of 80: -0.12); adjacent-column correlation of block deviations 0.19; within-run SE of a seed's column mean 0.016 vs seed-to-seed SD 0.016
+  A1-r2.5  window (280, 480): block lag-1 autocorrelation -0.063 (median of 80: -0.057); adjacent-column correlation of block deviations 0.27; within-run SE of a seed's column mean 0.016 vs seed-to-seed SD 0.018
+  A1-rib   window (220, 260): block lag-1 autocorrelation -0.072 (median of 8: -0.0049); adjacent-column correlation of block deviations 0.13; within-run SE of a seed's column mean 0.018 vs seed-to-seed SD 0.016
+  rib, n = 4: power of the registered 2-column test (each p ≤ 0.005) ≈ 0.16; power of a pre-declared region-mean test (220–260, p ≤ 0.025) ≈ 0.99  [effect and SD as observed; columns treated as independent]
+  rib, n = 8: power of the registered 2-column test (each p ≤ 0.005) ≈ 0.92; power of a pre-declared region-mean test (220–260, p ≤ 0.025) ≈ 1.0  [effect and SD as observed; columns treated as independent]
+  rib, n = 12: power of the registered 2-column test (each p ≤ 0.005) ≈ 1.0; power of a pre-declared region-mean test (220–260, p ≤ 0.025) ≈ 1.0  [effect and SD as observed; columns treated as independent]
+  rib, n = 16: power of the registered 2-column test (each p ≤ 0.005) ≈ 1.0; power of a pre-declared region-mean test (220–260, p ≤ 0.025) ≈ 1.0  [effect and SD as observed; columns treated as independent]
+
+R7. Budget onset (band y < 10): first column on the plate (x > 200) where the forward supply from above no longer exceeds the adverse
+    stress-difference force (supply + force ≤ 0), and the τ_w zero crossings; seed means
+  A1-r1        onset none  min(supply + force) 0.020 at x 310; τ_w sign changes near x —
+  A1-r1.5      onset none  min(supply + force) 0.0029 at x 350; τ_w sign changes near x —
+  A1-r2        onset 370   min(supply + force) -0.0019 at x 370; τ_w sign changes near x 360, 400
+  A1-r2.5      onset 310   min(supply + force) -0.0021 at x 370; τ_w sign changes near x 300, 440
+  A05-r1       onset none  min(supply + force) 0.016 at x 310; τ_w sign changes near x —
+  A05-r2       onset none  min(supply + force) 0.00019 at x 350; τ_w sign changes near x 360, 380, 400, 420
+  A05-r2.5     onset 310   min(supply + force) -0.0015 at x 310; τ_w sign changes near x 320, 360, 380, 440
+  A1-r2.5-dt   onset 370   min(supply + force) -0.0020 at x 370; τ_w sign changes near x 300, 320, 360, 400, 420, 440
+  A1-r2.5-len  onset 310   min(supply + force) -0.0020 at x 430; τ_w sign changes near x 280, 380, 400, 520
+  A1-r2.5-res  onset 290   min(supply + force) -0.0039 at x 410; τ_w sign changes near x 320, 360, 380, 420
