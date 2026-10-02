@@ -21,6 +21,7 @@ convergence studies, and at present they have not (see
 - Small-amplitude sound speed (criteria pre-registered before the validation data, full report): [`docs/CRITERIA_SOUND_SPEED.md`](docs/CRITERIA_SOUND_SPEED.md), [`docs/REPORT_SOUND_SPEED.md`](docs/REPORT_SOUND_SPEED.md)
 - Boundary layer + separation discovery, Item 3 (criteria pre-registered before the validation data, full report; classification INCONCLUSIVE): [`docs/CRITERIA_BOUNDARY_LAYER_SEPARATION.md`](docs/CRITERIA_BOUNDARY_LAYER_SEPARATION.md), [`docs/REPORT_BOUNDARY_LAYER_SEPARATION.md`](docs/REPORT_BOUNDARY_LAYER_SEPARATION.md)
 - Design review after Item 3 (what to do next; not a pre-registration): [`docs/REVIEW_AFTER_ITEM3.md`](docs/REVIEW_AFTER_ITEM3.md)
+- Design review of Universe B and scale bridging (theory and a minimal feasibility design; not a pre-registration): [`docs/REVIEW_UNIVERSE_B_SCALE_BRIDGING.md`](docs/REVIEW_UNIVERSE_B_SCALE_BRIDGING.md)
 
 ## The rules the code keeps
 
