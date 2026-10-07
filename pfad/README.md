@@ -26,6 +26,7 @@ convergence studies, and at present they have not (see
 - UB-0 Phase 1 analytical predictions (no Universe B data): [`docs/UB0_ANALYTICAL_PREDICTIONS.md`](docs/UB0_ANALYTICAL_PREDICTIONS.md)
 - UB-0 design amendment 1 (errata, replacement wall rule, pilot and uncertainty rules; before any Universe B simulation): [`docs/UB0_DESIGN_AMENDMENT_1.md`](docs/UB0_DESIGN_AMENDMENT_1.md)
 - UB-0 Stage 0 protocol (Universe A inputs and references; written before any Stage 0 run): [`docs/CRITERIA_UB0_STAGE0.md`](docs/CRITERIA_UB0_STAGE0.md)
+- UB-0 implementation record (safeguards, findings, and the open energy-drift item; before any Universe B pilot or judged run): [`docs/UB0_IMPLEMENTATION_RECORD.md`](docs/UB0_IMPLEMENTATION_RECORD.md)
 
 ## The rules the code keeps
 
