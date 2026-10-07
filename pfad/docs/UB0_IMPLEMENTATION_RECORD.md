@@ -104,6 +104,24 @@ This is a numbering change made before any run, like the Stage 0 change (8001–
 | B0 | 9901+ |
 | unit and plumbing tests, integrator check | 9001–9999, never judged |
 
+### 3.4 Code audit against L1 (design §14), and the assumption register
+
+**The audit.** No transport coefficient or transport operator enters the Universe B dynamics.
+
+- **Code searched:** the map, the occupancy force, the run set-up, the integrator, the collider and the walls. The search covered viscosity, conductivity and diffusivity, ν, μ as an input, gradients and Laplacians of fields, and Navier–Stokes terms.
+- **Matches:** only the reduced mass μ in the collision law, and a comment stating that Aw is not a viscosity.
+- **Where ν_D does appear:** only in `UB0Plans` (run lengths, A1 §4.2) and in the estimators' fit windows. These are measurement design, not dynamics.
+
+**The assumption register.** `MODEL_ASSUMPTIONS.md` now has:
+
+| entry | content |
+|---|---|
+| A-21 | the map |
+| A-22 | the shear-wave method |
+| A-23 | the preparation rescale |
+| A-08 | a p0.5 note |
+| A-16 | its wording clarified to the coded behaviour: the release takes the reservoirs after this collision's own loss |
+
 ---
 
 ## 4. OPEN ITEM — the energy-drift gate cannot be met at N_c = 4 over the long windows
