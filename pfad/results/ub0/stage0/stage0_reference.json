@@ -1,0 +1,40 @@
+{
+ "label": "Stage 0 Universe A measurements",
+ "phi": 0.2,
+ "Z": {
+  "value": 1.570862168334226,
+  "se": 0.00038694709170636224,
+  "df": 7,
+  "source": "Stage 0 Universe A measurement (results/ub0/stage0): static boxes φ = 0.20"
+ },
+ "KTred": {
+  "value": 2.375642918671131,
+  "se": 0.0024936923714026305,
+  "df": 13.870799467569885,
+  "source": "Stage 0 Universe A measurement (results/ub0/stage0): central difference φ = 0.18/0.22 — THE MAPPING INPUT"
+ },
+ "cA": {
+  "value": 2.194137969278335,
+  "se": 0.027388104517147335,
+  "df": 14,
+  "source": "Stage 0 Universe A measurement (results/ub0/stage0): standing wave L = 160 d"
+ },
+ "lambda": {
+  "value": 0.9734980137167984,
+  "se": 0.00024914177489644555,
+  "df": 7,
+  "source": "Stage 0 Universe A measurement (results/ub0/stage0): long static boxes"
+ },
+ "nu": {
+  "value": 1.5151122084898172,
+  "se": 0.016574309594031833,
+  "df": 93,
+  "source": "Stage 0 Universe A measurement (results/ub0/stage0): shear wave L = 80 d, U₀ = c_th"
+ },
+ "collisionRate": {
+  "value": 1.2874405773589814,
+  "se": 0.0002981769990896277,
+  "df": 7,
+  "source": "Stage 0 Universe A measurement (results/ub0/stage0): long static boxes"
+ }
+}

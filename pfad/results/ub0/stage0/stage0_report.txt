@@ -1,0 +1,55 @@
+UB-0 Stage 0 — Universe A inputs and references
+analysis commit f0bd9bc5bcf65b155bf895d62e2f4ed500553941; 265 runs used; Universe A only (N_c = 1)
+
+MAPPING INPUT (the only Stage 0 quantity that may set a Universe B parameter):
+  K_T,A/(n kT) = 2.37564 ± 0.00249 (95 % CI [2.37029, 2.38100], n = 16, df = 13.9)
+
+REFERENCES (targets and prediction inputs; never Universe B parameters):
+  Z_A                      1.57086 ± 0.00039 (95 % CI [1.56995, 1.57178], n = 8, df = 7.0)
+  P_A_phi020               0.40002 ± 0.00010 (95 % CI [0.39978, 0.40025], n = 8, df = 7.0)
+  P_A_phi018               0.34227 ± 0.00009 (95 % CI [0.34206, 0.34247], n = 8, df = 7.0)
+  P_A_phi022               0.46326 ± 0.00009 (95 % CI [0.46303, 0.46348], n = 8, df = 7.0)
+  S_A_shell1               0.42018 ± 0.01068 (95 % CI [0.39493, 0.44542], n = 8, df = 7.0)
+  S_A_shell2               0.42722 ± 0.00563 (95 % CI [0.41391, 0.44053], n = 8, df = 7.0)
+  S_A_shell3               0.41841 ± 0.00563 (95 % CI [0.40509, 0.43172], n = 8, df = 7.0)
+  collisionRate            1.28744 ± 0.00030 (95 % CI [1.28674, 1.28815], n = 8, df = 7.0)
+  lambda                   0.97350 ± 0.00025 (95 % CI [0.97291, 0.97409], n = 8, df = 7.0)
+  Tkin_long                1.00000 ± 0.00000 (95 % CI [1.00000, 1.00000], n = 8, df = 7.0)
+  a2_long                  -0.00023 ± 0.00015 (95 % CI [-0.00059, 0.00014], n = 8, df = 7.0)
+  psi6_long                0.02258 ± 0.00022 (95 % CI [0.02205, 0.02311], n = 8, df = 7.0)
+  Dself_long               1.07938 ± 0.01942 (95 % CI [1.03345, 1.12531], n = 8, df = 7.0)
+  nu_L80_U1                1.51511 ± 0.01657 (95 % CI [1.48220, 1.54803], n = 94, df = 93.0)
+  nu_L80_U05               1.50414 ± 0.03140 (95 % CI [1.44180, 1.56649], n = 96, df = 95.0)
+  nu_L160_U1               1.59850 ± 0.02299 (95 % CI [1.54790, 1.64910], n = 12, df = 11.0)
+  nu_L320_U1               1.57598 ± 0.02097 (95 % CI [1.50923, 1.64272], n = 4, df = 3.0)
+  nuRaw_L80_U1             1.64307 ± 0.01821 (95 % CI [1.60692, 1.67922], n = 94, df = 93.0)
+  occShare_L80_U1          0.00000 ± 0.00000 (95 % CI [0.00000, 0.00000], n = 94, df = 93.0)
+  nuStress_L80_U1          1.63281 ± 0.01640 (95 % CI [1.60023, 1.66538], n = 94, df = 93.0)
+  c_A                      2.19414 ± 0.02739 (95 % CI [2.13540, 2.25288], n = 15, df = 14.0)
+  c_A_densityMode          1.89583 ± 0.17780 (95 % CI [1.51448, 2.27719], n = 15, df = 14.0)
+  Gamma_A                  2.02650 ± 0.05064 (95 % CI [1.91793, 2.13507], n = 31, df = 14.0)
+  Delta_A                  1.02650 ± 0.05064 (95 % CI [0.91793, 1.13507], n = 31, df = 14.0)
+  soundDamping             0.00188 ± 0.00133 (95 % CI [-0.00098, 0.00474], n = 15, df = 14.0)
+  wall_gw1                 1.00307 ± 0.00304 (95 % CI [0.99339, 1.01275], n = 4, df = 3.0)
+  wall_gw2                 0.99834 ± 0.02055 (95 % CI [0.93293, 1.06375], n = 4, df = 3.0)
+  wall_gw3                 0.99873 ± 0.00090 (95 % CI [0.99587, 1.00159], n = 4, df = 3.0)
+  wall_contactOverCore     1.58603 ± 0.03616 (95 % CI [1.47096, 1.70110], n = 4, df = 3.0)
+  couette_mu_H40           0.38173 ± 0.01708 (95 % CI [0.32738, 0.43609], n = 4, df = 3.0)
+  couette_mu_H80           0.39979 ± 0.01450 (95 % CI [0.35364, 0.44594], n = 4, df = 3.0)
+  couette_slipBottom_H40   0.01093 ± 0.00916 (95 % CI [-0.01821, 0.04007], n = 4, df = 3.0)
+
+PRECISION TARGETS (protocol §7):
+  KTred        rel SE 0.0010 target 0.015 met
+  nu_L80_U1    rel SE 0.0109 target 0.01 NOT MET
+  c_A          rel SE 0.0125 target 0.01 NOT MET
+  S_A_shell1   rel SE 0.0254 target 0.05 met
+
+EXCLUSIONS AND EXTENSIONS:
+  excluded s0-T80a1-10100 (unexplained late contacts 1) → replaced by s0-T80a1-10113
+  excluded s0-T80a1-10108 (unexplained late contacts 1) → replaced by s0-T80a1-10114
+  excluded s0-T160a1-10361 (unexplained late contacts 1) → replaced by s0-T160a1-10365
+  excluded s0-T160a1-10362 (unexplained late contacts 1) → replaced by s0-T160a1-10366
+  excluded s0-T320a1-10377 (unexplained late contacts 1) → replaced by s0-T320a1-10381
+  excluded s0-L160-10392 (unexplained late contacts 1) → replaced by s0-L160-10393
+  precision target for nu_L80_U1 missed (rel SE 0.0155 > 0.01) → reserves of T80a1 activated
+  precision target for c_A missed (rel SE 0.0168 > 0.01) → reserves of L160 activated
