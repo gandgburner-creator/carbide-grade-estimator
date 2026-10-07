@@ -104,6 +104,27 @@ This is a numbering change made before any run, like the Stage 0 change (8001–
 | B0 | 9901+ |
 | unit and plumbing tests, integrator check | 9001–9999, never judged |
 
+### 3.5 Phase-boundary late contacts (Stage 0 exclusions) — instrument fixed for Universe B
+
+**What Stage 0 found.** 6 of the 212 planned Stage 0 runs failed the "unexplained late contacts = 0" quality gate, with exactly one each, in the measured phase:
+
+- T80a1 (2 runs), T160a1 (2), T320a1 (1);
+- L160 (1).
+
+All are wave runs. As the protocol pre-declares, they are replaced by the next reserve seeds (§7 of the Stage 0 protocol), at f0bd9bc.
+
+**Cause.** An instrument artifact, not dynamics.
+
+- `UB0Run` starts each phase in a new `Simulation`.
+- That wipes the collider's per-particle event history, which is used **only** to classify a late contact as explained or not.
+- An overlapping, separating pair left at the end of the settle phase can be turned into an approaching pair by the imposed wave. It is then counted as "unexplained" because its history was wiped.
+
+**Fix (Universe B instrument).** `carryContactHistory()` carries the history across the phase boundary, re-based, and marks parcels already overlapping at the phase start as having an event at step −1.
+
+**Verification.** The two failing T80a1 runs were re-run with the fix. Their results are **identical** to the stored ones (every sample, ledger and tally) apart from the counter, which falls from 1 to 0. The dynamics are untouched, so the Stage 0 data stand as recorded.
+
+**Why this mattered.** In the judged analysis, an unexplained late contact in any included run is a PQ7(e) violation ⇒ F0 for the whole bulk verdict. At Stage 0's rate (about 1 in 20–50 wave runs at U₀ = σ_v), several of the ≈ 400 judged wave runs would have voided UB-0 on an instrument artifact.
+
 ### 3.4 Code audit against L1 (design §14), and the assumption register
 
 **The audit.** No transport coefficient or transport operator enters the Universe B dynamics.

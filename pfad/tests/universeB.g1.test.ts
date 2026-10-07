@@ -176,3 +176,36 @@ describe('G1 (7) checkpoint/resume byte-identical at N_c > 1', () => {
     });
   }
 });
+
+describe('contact history across phase boundaries (diagnostic only)', () => {
+  it('re-bases the event history and marks parcels overlapping at the phase start', async () => {
+    const { Simulation } = await import('../src/core/Simulation');
+    const { carryContactHistory } = await import('../src/universeB/UB0Run');
+    const mk = () => {
+      const s = new ParticleStore(3);
+      s.add({ x: 5, y: 5, vx: 0.1, vy: 0, radius: 0.5, mass: 1 });
+      s.add({ x: 5.9, y: 5, vx: 0.3, vy: 0, radius: 0.5, mass: 1 }); // overlapping, separating
+      s.add({ x: 15, y: 15, vx: 0, vy: 0.2, radius: 0.5, mass: 1 });
+      return new Simulation(
+        {
+          domain: { xmin: 0, xmax: 20, ymin: 0, ymax: 20, periodicX: true, periodicY: true },
+          walls: [],
+          collision: { enabled: true, restitution: 1, contact: 'rewind-to-contact', dissipationTarget: 'external' },
+          timestep: { kind: 'fixed', dt: 0.01 },
+          seed: 1,
+        },
+        s,
+      );
+    };
+    const prev = mk();
+    for (let k = 0; k < 5; k++) prev.step();
+    const pc = prev.collider as unknown as { lastEventStep: Int32Array };
+    pc.lastEventStep[2] = prev.stepCount - 1; // an event in the last step of the old phase
+    const next = mk();
+    carryContactHistory(prev, next);
+    const nc = next.collider as unknown as { lastEventStep: Int32Array };
+    expect(nc.lastEventStep[2]).toBe(-1);
+    expect(nc.lastEventStep[0]).toBe(-1); // overlapping at the start of the new phase
+    expect(nc.lastEventStep[1]).toBe(-1);
+  });
+});

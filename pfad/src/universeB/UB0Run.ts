@@ -2,6 +2,7 @@ import type { CollisionConfig } from '../core/CollisionModel';
 import type { DomainSpec } from '../core/Domain';
 import { ParticleStore } from '../core/ParticleStore';
 import { Simulation, type ForceModel, type SimulationConfig } from '../core/Simulation';
+import { SpatialGrid } from '../core/SpatialGrid';
 import { createGas } from '../gas/InitialConditions';
 import type { PlaneWallConfig } from '../walls/WallModel';
 import { parcelMap, UB0_PHI, type ParcelMap } from './CoarseGrainMap';
@@ -173,6 +174,42 @@ export function simConfigOf(spec: UB0Spec, m: ParcelMap, phase: Phase): Simulati
     // drift is measured (PQ7) and only gross blow-ups halt a run
     safety: hasForces ? { energyTolerance: 1e-2 } : {},
   };
+}
+
+/**
+ * A phase starts a new Simulation, which would wipe the collider's per-particle
+ * event history used ONLY to classify late contacts (diagnostic; no effect on the
+ * dynamics). Without it, an overlap left at the end of the previous phase that
+ * the rescale or the imposed wave turns into an approaching pair is counted as an
+ * "unexplained" late contact (seen in 6 of 212 Stage 0 runs, all wave runs). So
+ * the history is carried over, re-based so that the previous phase's last step
+ * is −1, and parcels already overlapping at the phase start count as having an
+ * event at step −1. An unexplained late contact then again means an overlap that
+ * appeared with no preceding event.
+ */
+export function carryContactHistory(prev: Simulation, next: Simulation): void {
+  type C = { lastStep: Int32Array; lastEventStep: Int32Array };
+  const a = prev.collider as unknown as C;
+  const b = next.collider as unknown as C;
+  const n = next.store.count;
+  const shift = prev.stepCount;
+  for (let i = 0; i < n; i++) {
+    b.lastEventStep[i] = Math.max(-10, a.lastEventStep[i] - shift);
+    b.lastStep[i] = Math.max(-10, a.lastStep[i] - shift);
+  }
+  const s = next.store;
+  let rmax = 0;
+  for (let i = 0; i < n; i++) if (s.radius[i] > rmax) rmax = s.radius[i];
+  if (n < 2 || rmax <= 0) return;
+  const grid = new SpatialGrid(next.domain, 2 * rmax, s.capacity);
+  grid.build(s);
+  grid.forEachPairWithin(s, 2 * rmax, (i, j, _dx, _dy, r2) => {
+    const R = s.radius[i] + s.radius[j];
+    if (r2 < R * R) {
+      b.lastEventStep[i] = Math.max(b.lastEventStep[i], -1);
+      b.lastEventStep[j] = Math.max(b.lastEventStep[j], -1);
+    }
+  });
 }
 
 function forcesOf(m: ParcelMap): ForceModel[] {
@@ -364,7 +401,9 @@ export class UB0Run {
     this.phaseStart = captureStore(store);
     const forces = forcesOf(this.map);
     this.occ = (forces[0] as UBOccupancyForce | undefined) ?? null;
+    const prev = this.sim;
     this.sim = new Simulation(simConfigOf(this.spec, this.map, this.phase), store, forces);
+    carryContactHistory(prev, this.sim);
     this.logCursor = this.sim.log.count;
     if (this.phase === 'measure') this.startMeasure();
   }
