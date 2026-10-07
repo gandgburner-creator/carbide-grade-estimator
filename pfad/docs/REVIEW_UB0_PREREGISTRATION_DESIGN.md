@@ -1,5 +1,16 @@
 # UB-0 pre-registration design review: the Universe B coarse-graining consistency test
 
+> **Notice added 2026-10-07. The text below is unchanged from commit d068755.**
+> This design is amended by [`UB0_DESIGN_AMENDMENT_1.md`](UB0_DESIGN_AMENDMENT_1.md) (A1):
+> - errata for three numbers and for the word "fundamental-measure";
+> - a replacement wall rule (§9.3 here, whose INCONCLUSIVE-THEORY condition was triggered by the Phase 1 calculation, a7a1889);
+> - SE-only Universe B pilots withdrawn;
+> - Universe A uncertainties propagated;
+> - a separate Stage 0 protocol;
+> - disclosures.
+>
+> Where they differ, the amendment governs the pre-registration. The committed analytical output (`results/ub0/predictions_*`) is authoritative for every predicted number.
+
 **Status.** This is a design review. It is not a pre-registration and not an
 implementation.
 

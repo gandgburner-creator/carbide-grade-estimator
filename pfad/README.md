@@ -23,6 +23,8 @@ convergence studies, and at present they have not (see
 - Design review after Item 3 (what to do next; not a pre-registration): [`docs/REVIEW_AFTER_ITEM3.md`](docs/REVIEW_AFTER_ITEM3.md)
 - Design review of Universe B and scale bridging (theory and a minimal feasibility design; not a pre-registration): [`docs/REVIEW_UNIVERSE_B_SCALE_BRIDGING.md`](docs/REVIEW_UNIVERSE_B_SCALE_BRIDGING.md)
 - UB-0 pre-registration design review (the Universe B coarse-graining test; design only, nothing implemented or run): [`docs/REVIEW_UB0_PREREGISTRATION_DESIGN.md`](docs/REVIEW_UB0_PREREGISTRATION_DESIGN.md)
+- UB-0 Phase 1 analytical predictions (no Universe B data): [`docs/UB0_ANALYTICAL_PREDICTIONS.md`](docs/UB0_ANALYTICAL_PREDICTIONS.md)
+- UB-0 design amendment 1 (errata, replacement wall rule, pilot and uncertainty rules; before any Universe B simulation): [`docs/UB0_DESIGN_AMENDMENT_1.md`](docs/UB0_DESIGN_AMENDMENT_1.md)
 
 ## The rules the code keeps
 
