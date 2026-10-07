@@ -1,7 +1,7 @@
 {
  "label": "review-inputs",
- "commit": "7b8e548f23784531aef3ed9ae7c2b3bb86752a44",
- "generated": "2026-10-07T08:22:14.886Z",
+ "commit": "27c88e6943ba1ca6dda0557e1955ef8aebaab200",
+ "generated": "2026-10-07T08:39:29.463Z",
  "reference": {
   "label": "design-review inputs (Henderson EOS; Item 1/2 measurements)",
   "phi": 0.2,
@@ -95,6 +95,12 @@
   "mf.cLo.64": 0.7096870702975063,
   "mf.cHi.64": 0.7150467140827749,
   "mf.allow.64": 0.006589785831960464,
+  "pq3.lo.4": 1.0116225700164745,
+  "pq3.hi.4": 1.2964902800658982,
+  "pq3.lo.16": 0.9538514106260296,
+  "pq3.hi.16": 1.1116225700164746,
+  "pq3.lo.64": 0.9502407131641268,
+  "pq3.hi.64": 1.0654056425041187,
   "mf.KTpressureRatio": 0.7549751243781094,
   "mf.What160.4": 0.9988990100080984,
   "mf.What160.16": 0.9956023728082268,

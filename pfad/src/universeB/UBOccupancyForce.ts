@@ -1,0 +1,117 @@
+import type { Domain } from '../core/Domain';
+import type { ParticleStore } from '../core/ParticleStore';
+import type { ForceModel } from '../core/Simulation';
+import { SpatialGrid } from '../core/SpatialGrid';
+import { lucyDW, lucyW, OCCUPANCY_MODEL_VERSION, type OccupancyModelConfig } from '../occupancy/OccupancyModel';
+
+/**
+ * The A-15 occupancy force (occupancy/OccupancyModel) for UB-0.
+ *
+ * `computeForces` is a line-for-line copy of OccupancyForce.computeForces: same
+ * pair loop, kernel and floating-point operation order. A test checks that forces
+ * and potential energy are bit-identical to OccupancyForce.
+ *
+ * Stress diagnostics are a SEPARATE, read-only pass (`measure`) over the same
+ * pairs. It never writes forces and never feeds back into the dynamics. With
+ * r_ij = x_i − x_j (minimum image) and f_ij = force on i from j it returns:
+ *   pair virial         W_αβ = Σ_{i<j} r_ij,α f_ij,β
+ *   shear projection    C = Σ f_ij,x y_ij cos(k ȳ) sinc(k y_ij/2),  S = … sin(k ȳ) …,
+ *                       ȳ = y_j + y_ij/2 (exact pair form of the Fourier stress)
+ *   method of planes    flux(y₀) += f |y_ij| for each plane y₀ between y_j and y_i
+ */
+export interface OccupancyMeasurement {
+  wxx: number;
+  wyy: number;
+  wxy: number;
+  projCos: number;
+  projSin: number;
+}
+
+export class UBOccupancyForce implements ForceModel {
+  readonly name = 'occupancy';
+  readonly version = OCCUPANCY_MODEL_VERSION;
+  readonly config: OccupancyModelConfig;
+  private grid: SpatialGrid | null = null;
+  private mgrid: SpatialGrid | null = null;
+
+  constructor(config: OccupancyModelConfig) {
+    if (!(config.ks >= 0)) throw new Error(`ks must be ≥ 0, got ${config.ks}`);
+    if (!(config.h > 0)) throw new Error(`kernel width h must be > 0, got ${config.h}`);
+    this.config = config;
+  }
+
+  computeForces(store: ParticleStore, domain: Domain): number {
+    const { ks, h } = this.config;
+    if (ks === 0) return 0;
+    if (!this.grid || this.grid.cellItems.length < store.capacity) {
+      this.grid = new SpatialGrid(domain, h, store.capacity);
+    }
+    this.grid.build(store);
+    const { fx, fy, radius } = store;
+    let U = 0;
+    this.grid.forEachPairWithin(store, h, (i, j, dx, dy, r2) => {
+      const r = Math.sqrt(r2);
+      if (r === 0) return;
+      const a = 0.5 * Math.PI * (radius[i] * radius[i] + radius[j] * radius[j]);
+      U += ks * a * lucyW(r, h);
+      // F_i = −ks a dW/dr · (x_i − x_j)/r ;  F_j = −F_i
+      const f = (-ks * a * lucyDW(r, h)) / r;
+      fx[i] += f * dx;
+      fy[i] += f * dy;
+      fx[j] -= f * dx;
+      fy[j] -= f * dy;
+    });
+    return U;
+  }
+
+  /**
+   * Read-only diagnostic pass at the current positions.
+   * kY: shear-projection wavenumber (0 = off). planes: method-of-planes tallies
+   * (bounded y only), flux added into `planes.flux`.
+   */
+  measure(
+    store: ParticleStore,
+    domain: Domain,
+    kY: number,
+    planes: { y0: number; spacing: number; flux: Float64Array } | null = null,
+  ): OccupancyMeasurement {
+    const { ks, h } = this.config;
+    const out = { wxx: 0, wyy: 0, wxy: 0, projCos: 0, projSin: 0 };
+    if (ks === 0) return out;
+    if (!this.mgrid || this.mgrid.cellItems.length < store.capacity) {
+      this.mgrid = new SpatialGrid(domain, h, store.capacity);
+    }
+    this.mgrid.build(store);
+    const { radius, y } = store;
+    const nPlanes = planes ? planes.flux.length : 0;
+    this.mgrid.forEachPairWithin(store, h, (i, j, dx, dy, r2) => {
+      const r = Math.sqrt(r2);
+      if (r === 0) return;
+      const a = 0.5 * Math.PI * (radius[i] * radius[i] + radius[j] * radius[j]);
+      const f = (-ks * a * lucyDW(r, h)) / r;
+      out.wxx += f * dx * dx;
+      out.wyy += f * dy * dy;
+      out.wxy += f * dx * dy;
+      if (kY !== 0) {
+        const ybar = y[j] + 0.5 * dy;
+        const u = 0.5 * kY * dy;
+        const sinc = u === 0 ? 1 : Math.sin(u) / u;
+        const w = f * dx * dy * sinc;
+        out.projCos += w * Math.cos(kY * ybar);
+        out.projSin += w * Math.sin(kY * ybar);
+      }
+      if (planes) {
+        const lo = Math.min(y[i], y[j]);
+        const hi = Math.max(y[i], y[j]);
+        let p = Math.ceil((lo - planes.y0) / planes.spacing);
+        if (p < 0) p = 0;
+        const fv = f * Math.abs(dy);
+        for (; p < nPlanes; p++) {
+          if (planes.y0 + p * planes.spacing >= hi) break;
+          planes.flux[p] += fv;
+        }
+      }
+    });
+    return out;
+  }
+}

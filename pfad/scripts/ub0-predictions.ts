@@ -27,6 +27,7 @@ import {
   reviewReference,
   shearWaveConditions,
   soundBand,
+  soundBandWithUncertainty,
   soundOmegaTau,
   wallProfile,
   type UniverseAReference,
@@ -131,6 +132,13 @@ for (const Nc of NC) {
   put(`mf.cLo.${Nc}`, b.cRatio[0]);
   put(`mf.cHi.${Nc}`, b.cRatio[1]);
   put(`mf.allow.${Nc}`, b.collisionlessAllowance);
+}
+say('   PQ3 judged band with Universe A uncertainty propagated (amendment A1 §5): Δ_A at its 95 % limits, then ± 0.05');
+for (const Nc of NC) {
+  const u = soundBandWithUncertainty(Nc, ref);
+  put(`pq3.lo.${Nc}`, u.judged[0]);
+  put(`pq3.hi.${Nc}`, u.judged[1]);
+  say(`     N_c = ${String(Nc).padStart(2)}: Γ_A = ${f(u.GammaA)} ± ${f(u.seGammaA)} (df ${Number.isFinite(u.dfGammaA) ? f(u.dfGammaA, 1) : '∞'}); band [${f(u.band[0])}, ${f(u.band[1])}]; judged interval [${f(u.judged[0])}, ${f(u.judged[1])}]`);
 }
 put('mf.KTpressureRatio', ref.KTred.value / (2 * ref.Z.value));
 say(`   K_T,A/(2 n kT Z) = ${f(ref.KTred.value / (2 * ref.Z.value))}  (the fraction of the internal-dof pressure the single-constant law reproduces)`);

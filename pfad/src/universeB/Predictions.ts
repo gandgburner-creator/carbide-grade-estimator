@@ -32,6 +32,9 @@ export interface Quantity {
 export interface RefValue {
   value: number;
   source: string;
+  /** standard error and degrees of freedom (Stage 0 measurements; absent for external benchmarks) */
+  se?: number;
+  df?: number;
 }
 
 /** Universe A reference values at φ = 0.2 (molecular units m = d = kT = 1). */
@@ -169,6 +172,38 @@ export function soundBand(Nc: number, ref: UniverseAReference) {
     /** largest extra stiffness of a collisionless kinetic share, n_p kT / K_B */
     collisionlessAllowance: 1 / (Nc * ref.KTred.value),
   };
+}
+
+/**
+ * The judged PQ3 band with Universe A uncertainty propagated (amendment A1 §5):
+ * Γ_A = c_A²/(K_T,A/(nkT)), SE by the delta method, Welch–Satterthwaite df;
+ * band edges at the 95 % limits of Δ_A = Γ_A − 1, then ±0.05 outside.
+ * Without SEs (external inputs) the point band is returned with zero widening.
+ */
+export function soundBandWithUncertainty(Nc: number, ref: UniverseAReference, tolerance = 0.05) {
+  const b = soundBand(Nc, ref);
+  const c = ref.cA;
+  const K = ref.KTred;
+  const relC = c.se !== undefined ? (2 * c.se) / c.value : 0;
+  const relK = K.se !== undefined ? K.se / K.value : 0;
+  const seGamma = b.GammaA * Math.hypot(relC, relK);
+  let t = 0;
+  let df = Number.POSITIVE_INFINITY;
+  if (seGamma > 0) {
+    const terms = [
+      { v: relC ** 2, d: c.df ?? Number.POSITIVE_INFINITY },
+      { v: relK ** 2, d: K.df ?? Number.POSITIVE_INFINITY },
+    ];
+    const num = (terms[0].v + terms[1].v) ** 2;
+    const den = terms.reduce((a, x) => a + (Number.isFinite(x.d) && x.v > 0 ? (x.v * x.v) / x.d : 0), 0);
+    df = den > 0 ? num / den : Number.POSITIVE_INFINITY;
+    t = tTwoSidedCritical(0.05, Number.isFinite(df) ? df : 1e6);
+  }
+  const dLo = b.deltaA - t * seGamma;
+  const dHi = b.deltaA + t * seGamma;
+  const lo = 1 + dLo / (Nc * Nc);
+  const hi = 1 + dHi / Nc;
+  return { GammaA: b.GammaA, seGammaA: seGamma, dfGammaA: df, deltaLo: dLo, deltaHi: dHi, band: [lo, hi] as [number, number], judged: [lo - tolerance, hi + tolerance] as [number, number] };
 }
 
 // ───────────────────────── coupling (RPA estimates) ─────────────────────────

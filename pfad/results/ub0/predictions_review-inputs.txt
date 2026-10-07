@@ -1,5 +1,5 @@
 UB-0 analytical predictions — review-inputs
-commit 7b8e548f23784531aef3ed9ae7c2b3bb86752a44; φ = 0.2; molecular units m = d = kT = 1 unless stated; parcel units D, σ_v where stated
+commit 27c88e6943ba1ca6dda0557e1955ef8aebaab200; φ = 0.2; molecular units m = d = kT = 1 unless stated; parcel units D, σ_v where stated
 No Universe B simulation data is used. Status legend: exact | mechanics | mean-field | estimate | design | input.
 
 UNIVERSE A REFERENCE (status: input)
@@ -33,6 +33,10 @@ UNIVERSE A REFERENCE (status: input)
      4   0.8162     0.694        5.127   [1.0616, 1.2465]   [0.7311, 0.7922]   0.1054
     16   0.7703     0.919       19.354   [1.0039, 1.0616]   [0.7110, 0.7311]   0.0264
     64   0.7588     0.979       76.260   [1.0002, 1.0154]   [0.7097, 0.7150]   0.0066
+   PQ3 judged band with Universe A uncertainty propagated (amendment A1 §5): Δ_A at its 95 % limits, then ± 0.05
+     N_c =  4: Γ_A = 1.9860 ± 0.0000 (df ∞); band [1.0616, 1.2465]; judged interval [1.0116, 1.2965]
+     N_c = 16: Γ_A = 1.9860 ± 0.0000 (df ∞); band [1.0039, 1.0616]; judged interval [0.9539, 1.1116]
+     N_c = 64: Γ_A = 1.9860 ± 0.0000 (df ∞); band [1.0002, 1.0154]; judged interval [0.9502, 1.0654]
    K_T,A/(2 n kT Z) = 0.7550  (the fraction of the internal-dof pressure the single-constant law reproduces)
    Finite-k occupancy response W̃(kh) at the longitudinal-wave box L = 160 D (exact for the Lucy kernel):
      N_c = 4: kh = 0.1571, W̃ = 0.99890
@@ -143,4 +147,4 @@ UNIVERSE A REFERENCE (status: input)
    ERRATUM (A1)  le.minRe.16              review 48  recomputed 47.22655  (-1.61 %)  §13
    142 values checked: 133 agree, 6 rounding-level, 3 acknowledged errata (A1), 0 DISCREPANCY
 
-runtime 123.8 s
+runtime 126.0 s

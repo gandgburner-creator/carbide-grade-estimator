@@ -85,3 +85,22 @@ describe('UB-0 analytical predictions', () => {
     expect(N).toBeCloseTo((UB0_PHI / a) * 6 * 4, 6);
   });
 });
+
+describe('PQ3 band with propagated Universe A uncertainty (A1 §5)', () => {
+  it('reduces to the point band without SEs and widens with them', async () => {
+    const { soundBandWithUncertainty, soundBand } = await import('../src/universeB/Predictions');
+    const point = soundBandWithUncertainty(4, ref);
+    const b = soundBand(4, ref);
+    expect(point.band[0]).toBeCloseTo(b.Gamma[0], 12);
+    expect(point.band[1]).toBeCloseTo(b.Gamma[1], 12);
+    expect(point.judged[0]).toBeCloseTo(b.Gamma[0] - 0.05, 12);
+    const withSE = soundBandWithUncertainty(4, {
+      ...ref,
+      cA: { ...ref.cA, se: 0.02, df: 7 },
+      KTred: { ...ref.KTred, se: 0.03, df: 12 },
+    });
+    expect(withSE.band[0]).toBeLessThan(point.band[0]);
+    expect(withSE.band[1]).toBeGreaterThan(point.band[1]);
+    expect(withSE.seGammaA).toBeCloseTo(withSE.GammaA * Math.hypot(0.04 / 2.17, 0.03 / ref.KTred.value), 12);
+  });
+});
