@@ -1,5 +1,5 @@
 UB-0 analytical predictions — review-inputs
-commit d068755518fcb74511ef36613eb8085530dddccb; φ = 0.2; molecular units m = d = kT = 1 unless stated; parcel units D, σ_v where stated
+commit 7b8e548f23784531aef3ed9ae7c2b3bb86752a44; φ = 0.2; molecular units m = d = kT = 1 unless stated; parcel units D, σ_v where stated
 No Universe B simulation data is used. Status legend: exact | mechanics | mean-field | estimate | design | input.
 
 UNIVERSE A REFERENCE (status: input)
@@ -114,19 +114,33 @@ UNIVERSE A REFERENCE (status: input)
      N_c= 64: bulk inside; wall OUTSIDE (φ_contact 0.758 ≥ 0.70)
      N_c=256: bulk OUTSIDE (L/h = 5.0 < 10 at L = 160 D); wall not computed
 
+6b. WALL REGIME AND THE W-MF FUNCTIONAL (design amendment A1)
+   Contact-layer core stress = P_B exactly (occupancy stress vanishes at the wall). In parcel units
+   βP_B D² = (P_B/(n_p kT))·n_p D², n_p D² = φ/(π/4). EXTERNAL comparison: hard-disk liquid–hexatic
+   transition pressure βPσ² ≈ 9.2 (Bernard & Krauth 2011). Above it the contact layer is expected to order.
+     N_c =  4: βP_B D² = 1.306  < 9.2: fluid contact layer expected  (factor 0.14)
+     N_c = 16: βP_B D² = 4.928  < 9.2: fluid contact layer expected  (factor 0.54)
+     N_c = 64: βP_B D² = 19.419  > 9.2: above melting — wall test ill-posed (excluded)  (factor 2.11)
+   W-MF functional check: P_MF[n](y₀) = Σ_{y_j<y₀<y_l} λ_j λ_l g(y_l − y_j) for a uniform density should equal
+   ½ k_s a n² (the bulk mean-field closure). Bins of D/4, plane in the middle of a 20h slab (molecular units):
+     N_c =  4: P_MF/(½ k_s a n²) = 1.00003
+     N_c = 16: P_MF/(½ k_s a n²) = 1.00000
+     N_c = 64: P_MF/(½ k_s a n²) = 1.00000
+
 7. CHECK AGAINST THE DESIGN REVIEW (docs/REVIEW_UB0_PREREGISTRATION_DESIGN.md, d068755)
    agree       = rounds to the printed value
    rounding    = does not round to it but differs by ≤ 1 % (input rounding, e.g. 1.29 vs 1.287 collisions)
+   ERRATUM (A1) = a discrepancy acknowledged in docs/UB0_DESIGN_AMENDMENT_1.md §1.1 (the computed value is authoritative)
    DISCREPANCY = anything else
-   rounding    map.rate.16              review 0.081  recomputed 0.08044  (-0.69 %)  §2.1
-   rounding    mf.GammaHi.4             review 1.247  recomputed 1.24649  (-0.04 %)  §2.1
-   rounding    mf.What160.64            review 0.9824  recomputed 0.98251  (0.01 %)  §8.1
-   DISCREPANCY cp.GammaC.64.2           review 3.7  recomputed 3.64695  (-1.43 %)  §2.4
-   DISCREPANCY cp.uD.4.2                review 2  recomputed 2.05141  (2.57 %)  §2.4
-   rounding    wallGC.phiC.16.2         review 0.6  recomputed 0.59475  (-0.88 %)  §9.2
-   rounding    wave.coll.4.80           review 152  recomputed 151.37396  (-0.41 %)  §5
-   rounding    wave.coll.64.160         review 607  recomputed 605.49585  (-0.25 %)  §5
-   DISCREPANCY le.minRe.16              review 48  recomputed 47.22655  (-1.61 %)  §13
-   142 values checked: 133 agree, 6 rounding-level, 3 DISCREPANCY
+   rounding      map.rate.16              review 0.081  recomputed 0.08044  (-0.69 %)  §2.1
+   rounding      mf.GammaHi.4             review 1.247  recomputed 1.24649  (-0.04 %)  §2.1
+   rounding      mf.What160.64            review 0.9824  recomputed 0.98251  (0.01 %)  §8.1
+   ERRATUM (A1)  cp.GammaC.64.2           review 3.7  recomputed 3.64695  (-1.43 %)  §2.4
+   ERRATUM (A1)  cp.uD.4.2                review 2  recomputed 2.05141  (2.57 %)  §2.4
+   rounding      wallGC.phiC.16.2         review 0.6  recomputed 0.59475  (-0.88 %)  §9.2
+   rounding      wave.coll.4.80           review 152  recomputed 151.37396  (-0.41 %)  §5
+   rounding      wave.coll.64.160         review 607  recomputed 605.49585  (-0.25 %)  §5
+   ERRATUM (A1)  le.minRe.16              review 48  recomputed 47.22655  (-1.61 %)  §13
+   142 values checked: 133 agree, 6 rounding-level, 3 acknowledged errata (A1), 0 DISCREPANCY
 
-runtime 125.2 s
+runtime 123.8 s

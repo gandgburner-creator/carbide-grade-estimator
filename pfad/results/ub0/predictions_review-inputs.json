@@ -1,7 +1,7 @@
 {
  "label": "review-inputs",
- "commit": "d068755518fcb74511ef36613eb8085530dddccb",
- "generated": "2026-10-04T17:32:37.106Z",
+ "commit": "7b8e548f23784531aef3ed9ae7c2b3bb86752a44",
+ "generated": "2026-10-07T08:22:14.886Z",
  "reference": {
   "label": "design-review inputs (Henderson EOS; Item 1/2 measurements)",
   "phi": 0.2,
@@ -234,7 +234,13 @@
   "le.bound1000": 338.7925034299024,
   "le.minRe.4": 11.806636686185168,
   "le.minRe.16": 47.22654674474067,
-  "le.hTarget": 30.983866769659336
+  "le.hTarget": 30.983866769659336,
+  "regime.betaPD2.4": 1.3055678925507035,
+  "regime.betaPD2.16": 4.9283322846799695,
+  "regime.betaPD2.64": 19.419389853197035,
+  "wmf.bulk.4": 1.0000269635417434,
+  "wmf.bulk.16": 1.000002524511881,
+  "wmf.bulk.64": 1.0000002288702874
  },
  "reviewCheck": [
   {
@@ -918,7 +924,7 @@
    "decimals": 1,
    "where": "§2.4",
    "recomputed": 3.6469459533691393,
-   "verdict": "DISCREPANCY",
+   "verdict": "ERRATUM (A1)",
    "relDiff": -0.014338931521854293
   },
   {
@@ -936,7 +942,7 @@
    "decimals": 1,
    "where": "§2.4",
    "recomputed": 2.051407098770141,
-   "verdict": "DISCREPANCY",
+   "verdict": "ERRATUM (A1)",
    "relDiff": 0.02570354938507058
   },
   {
@@ -1503,7 +1509,7 @@
    "decimals": 0,
    "where": "§13",
    "recomputed": 47.22654674474067,
-   "verdict": "DISCREPANCY",
+   "verdict": "ERRATUM (A1)",
    "relDiff": -0.016113609484569302
   },
   {

@@ -15,6 +15,7 @@ import { execSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { henderson, UB0_PHI } from '../src/universeB/CoarseGrainMap';
+import { occupancyStressMF } from '../src/universeB/WallStress';
 import {
   coupling,
   lucyHat,
@@ -310,6 +311,35 @@ for (const Nc of [2, 4, 16, 64, 256]) {
 }
 say();
 
+// ─────────── 6b. wall regime and the W-MF functional (amendment A1 §2.4–§2.5) ───────────
+say('6b. WALL REGIME AND THE W-MF FUNCTIONAL (design amendment A1)');
+say('   Contact-layer core stress = P_B exactly (occupancy stress vanishes at the wall). In parcel units');
+say('   βP_B D² = (P_B/(n_p kT))·n_p D², n_p D² = φ/(π/4). EXTERNAL comparison: hard-disk liquid–hexatic');
+say('   transition pressure βPσ² ≈ 9.2 (Bernard & Krauth 2011). Above it the contact layer is expected to order.');
+const MELT = 9.2;
+for (const Nc of NC) {
+  const v = meanFieldPressure(Nc, ref).total * (UB0_PHI / (Math.PI / 4));
+  put(`regime.betaPD2.${Nc}`, v);
+  say(`     N_c = ${String(Nc).padStart(2)}: βP_B D² = ${f(v, 3)}  ${v < MELT ? '< 9.2: fluid contact layer expected' : '> 9.2: above melting — wall test ill-posed (excluded)'}  (factor ${f(v / MELT, 2)})`);
+}
+say('   W-MF functional check: P_MF[n](y₀) = Σ_{y_j<y₀<y_l} λ_j λ_l g(y_l − y_j) for a uniform density should equal');
+say('   ½ k_s a n² (the bulk mean-field closure). Bins of D/4, plane in the middle of a 20h slab (molecular units):');
+for (const Nc of NC) {
+  const q = mapQuantities(Nc, 2, E, ref);
+  const ksA = q.ks * q.parcelArea;
+  const D = q.diameter;
+  const n = q.numberDensity;
+  const span = 20 * q.h;
+  const dy = D / 4;
+  const nb = Math.round(span / dy);
+  const bins = { y: Array.from({ length: nb }, (_, i) => (i + 0.5) * dy), width: Array(nb).fill(dy), n: Array(nb).fill(n) };
+  const pmf = occupancyStressMF(bins, [Math.round(nb / 2) * dy], q.h, ksA)[0];
+  const exact = 0.5 * ksA * n * n;
+  put(`wmf.bulk.${Nc}`, pmf / exact);
+  say(`     N_c = ${String(Nc).padStart(2)}: P_MF/(½ k_s a n²) = ${f(pmf / exact, 5)}`);
+}
+say();
+
 // ─────────── 7. review check ───────────
 interface Check {
   key: string;
@@ -372,7 +402,7 @@ const checks: Check[] = [
 
 interface CheckResult extends Check {
   recomputed: number;
-  verdict: 'agree' | 'rounding' | 'DISCREPANCY';
+  verdict: 'agree' | 'rounding' | 'ERRATUM (A1)' | 'DISCREPANCY';
   relDiff: number;
 }
 const results: CheckResult[] = [];
@@ -380,23 +410,32 @@ if (checkAgainstReview) {
   say('7. CHECK AGAINST THE DESIGN REVIEW (docs/REVIEW_UB0_PREREGISTRATION_DESIGN.md, d068755)');
   say('   agree       = rounds to the printed value');
   say('   rounding    = does not round to it but differs by ≤ 1 % (input rounding, e.g. 1.29 vs 1.287 collisions)');
+  say('   ERRATUM (A1) = a discrepancy acknowledged in docs/UB0_DESIGN_AMENDMENT_1.md §1.1 (the computed value is authoritative)');
   say('   DISCREPANCY = anything else');
   for (const c of checks) {
     const v = flat[c.key];
     const scale = 10 ** c.decimals;
     const rounded = Math.round(v * scale) / scale;
     const relDiff = c.review !== 0 ? (v - c.review) / Math.abs(c.review) : v;
+    const errata = new Set(['cp.GammaC.64.2', 'cp.uD.4.2', 'le.minRe.16']);
     const verdict: CheckResult['verdict'] =
-      Math.abs(rounded - c.review) < 1e-9 ? 'agree' : Math.abs(relDiff) <= 0.01 ? 'rounding' : 'DISCREPANCY';
+      Math.abs(rounded - c.review) < 1e-9
+        ? 'agree'
+        : Math.abs(relDiff) <= 0.01
+          ? 'rounding'
+          : errata.has(c.key)
+            ? 'ERRATUM (A1)'
+            : 'DISCREPANCY';
     results.push({ ...c, recomputed: v, verdict, relDiff });
   }
   for (const r of results.filter((x) => x.verdict !== 'agree')) {
-    say(`   ${r.verdict.padEnd(11)} ${r.key.padEnd(24)} review ${r.review}  recomputed ${f(r.recomputed, 5)}  (${f(100 * r.relDiff, 2)} %)  ${r.where}`);
+    say(`   ${r.verdict.padEnd(13)} ${r.key.padEnd(24)} review ${r.review}  recomputed ${f(r.recomputed, 5)}  (${f(100 * r.relDiff, 2)} %)  ${r.where}`);
   }
   const nAgree = results.filter((x) => x.verdict === 'agree').length;
   const nRound = results.filter((x) => x.verdict === 'rounding').length;
+  const nErr = results.filter((x) => x.verdict === 'ERRATUM (A1)').length;
   const nDisc = results.filter((x) => x.verdict === 'DISCREPANCY').length;
-  say(`   ${results.length} values checked: ${nAgree} agree, ${nRound} rounding-level, ${nDisc} DISCREPANCY`);
+  say(`   ${results.length} values checked: ${nAgree} agree, ${nRound} rounding-level, ${nErr} acknowledged errata (A1), ${nDisc} DISCREPANCY`);
   say();
 }
 say(`runtime ${((Date.now() - t0) / 1000).toFixed(1)} s`);

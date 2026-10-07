@@ -1,5 +1,14 @@
 # UB-0 Phase 1: analytical predictions recomputed
 
+> **Notice added 2026-10-07. The text below is unchanged from a7a1889.** The two open decisions at the end of this document are settled in [`UB0_DESIGN_AMENDMENT_1.md`](UB0_DESIGN_AMENDMENT_1.md):
+> - the three values are recorded as errata, and the computed values are authoritative;
+> - the wall rule is replaced.
+>
+> The regenerated output (`results/ub0/predictions_review-inputs.*`) now also contains:
+> - the wall-regime table;
+> - the bulk-limit check of the W-MF functional;
+> - the errata classification.
+
 **Status.** This is the Phase 1 analytical calculation for UB-0.
 
 - It uses no Universe B simulation data.
