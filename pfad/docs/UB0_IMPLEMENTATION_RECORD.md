@@ -11,7 +11,10 @@ It records:
 - the safeguards and how each is tested;
 - implementation findings;
 - the clarifications made in turning design rules into code;
-- **two open items that need a decision before the pre-registration can be frozen** (§4: the energy-drift gate; §5: the release fraction ρ_rel).
+- **three open items that need a decision before the pre-registration can be frozen**:
+  - §4: the energy-drift gate;
+  - §5: the release fraction ρ_rel;
+  - §6: the power of the transverse-wave primaries.
 
 Sources: the design review (`REVIEW_UB0_PREREGISTRATION_DESIGN.md`, d068755), amendment A1 (`UB0_DESIGN_AMENDMENT_1.md`, 7b8e548), the Stage 0 protocol (`CRITERIA_UB0_STAGE0.md`, f0bd9bc).
 
@@ -282,7 +285,55 @@ The derivation behind ρ_rel assumed release from the pre-collision reservoir. A
 
 ---
 
-## 6. Clarifications made in turning design rules into code
+## 6. OPEN ITEM — the transverse-wave primaries are under-powered by ≈ 3×
+
+**This needs your decision. Nothing has been changed.** It is established from Universe A (Stage 0, frozen at 9c5d530), which is unrestricted. No Universe B data is involved.
+
+**The measurement.** Stage 0's per-seed scatter of ν_A (thermal-time fit, A-22) is:
+
+| box | per-seed relative SD |
+|---|---|
+| L 80 d, U₀ = c_th | 10.6 % (n = 94) |
+| L 80 d, U₀ = c_th/2 | 20.5 % (n = 96) |
+| L 160 d, U₀ = c_th | 5.0 % |
+| L 320 d, U₀ = c_th | 2.7 % |
+
+It scales as 1/√N, as the design assumed, but with **≈ 3× the prefactor** of the design's §11.3 estimate (3.5 % at N = 1630, U₀ = σ_v). Universe B at L = 80 D has the same N and the same relative mode noise. The Universe A scatter is therefore the legitimate estimate of the Universe B scatter; A1 forbids estimating it from Universe B pilots.
+
+**Expected 95 % CI half-widths at the pre-registered seed counts.** This assumes the Universe B scatter equals Universe A's, and includes ν_A's frozen SE where it enters.
+
+| primary | expected CI | margin | ⅓-margin rule (design §11.2) | design's expectation |
+|---|---|---|---|---|
+| PQ1, N_c 4/16 (48 seeds) | ± 3.7 % | ± 10 % | 3.3 % (meets ½) | ± 1.4 % |
+| PQ1, N_c 64 (6 seeds, L 160) | ± 6.1 % | ± 10 % | 3.3 % | ± 1.9 % |
+| PQ6a (48 vs 96) | **± 5.1 %** | ± 5 % | 1.7 % | ± 1.7 % |
+| PQ6b (48 vs 48) | ± 4.3 % | ± 5 % | 1.7 % | ± 1.4 % |
+| PQ6c-ν (24 vs 48) | ± 5.3 % | ± 7 % | 2.3 % | ± 1.8 % |
+| PQ7d (48 vs 48) | **± 4.3 %** | ± 3 % | (½ accepted: 1.5 %) | ± 1.4 % |
+
+**Consequence.**
+
+- PQ6a can essentially never PASS. Its CI is as wide as its margin. Even after the extension (± 3.6 %) it passes only if the true ratio is within ± 1.4 % of 1.
+- PQ6b passes only within ± 0.7 %, PQ6c-ν only within ± 1.7 %.
+- PQ7d cannot PASS. That is only a caveat by design; it can FAIL (⇒ F0) only for a > 7 % dt effect.
+- The bulk PASS, and the PARTIAL PASS category, both require PQ6a–c PASS. **As pre-registered, UB-0 would most likely end INCONCLUSIVE whatever the physics.**
+- A1 §4.2 accepted the risk that "a Universe B precision proves insufficient". The size of the shortfall is new information from Universe A.
+
+**Options (the decision is yours).** Costs are from the B0 projection at Courant 0.025; they double at 0.0125.
+
+| option | change | extra cost |
+|---|---|---|
+| **P1. Accept** | none | 0. Expect INCONCLUSIVE on the robustness arms, hence overall |
+| **P2. More seeds for the arms**, to reach ½ of each margin | PQ6a ×4.2 (T4/T16 a1 and a05), PQ6b ×3, PQ6c ×2.3, PQ7d ×8 | ≈ 150 core-hours (≈ 40 h on 4 cores); PQ7d alone ≈ 80 |
+| **P2′.** P2 without PQ7d (it is a caveat by design) | as P2 minus the dt arm | ≈ 65 core-hours |
+| **P3. Wider margins for the arms** | a criterion change | none. This relaxes criteria, so it is yours to make or reject |
+| **P4. A more efficient ν estimator** | e.g. a shorter fit window | it would also have to be applied to Stage 0's ν_A, which is frozen with its estimator. Not recommended |
+
+**For you to weigh, not a decision:** P2′. It keeps every margin, and spends compute where the design's own ⅓/½ rule says it is needed. PQ7d stays a reported caveat, as the design already accepted.
+
+---
+
+## 7. Clarifications made in turning design rules into code
 
 These follow the design's wording where it is explicit. Where it is not, the more conservative reading was taken. Each is listed for acknowledgement.
 
@@ -329,7 +380,7 @@ These follow the design's wording where it is explicit. Where it is not, the mor
 
 ---
 
-## 7. Status of the sequence
+## 8. Status of the sequence
 
 | step | status |
 |---|---|
@@ -338,8 +389,12 @@ These follow the design's wording where it is explicit. Where it is not, the mor
 | Stage 0 protocol + instrument | f0bd9bc |
 | Universe B infrastructure, p0.5 | 2d4b3f7 |
 | integrator check, implementation record | 2900d89 |
-| G1 tests (2)–(7), release-law item | this update |
-| Stage 0 (Universe A only) | running at f0bd9bc; results, freeze and G3 to follow |
-| B0 | after Stage 0, on an idle machine |
-| stability pilots | **not run**: see §4 and §5 |
-| final pre-registration | **not frozen**: depends on §4 and §5 |
+| G1 tests (2)–(7), release-law item | b4edaad |
+| assumption entries A-21–A-23, L1 audit | b63e16e |
+| phase-boundary contact history (instrument) | 7b1f3b7 |
+| power item (§6), draft pre-registration | this update |
+| B0 | a84411a (timing), f8cb934 (projection) |
+| Stage 0 | frozen at 9c5d530 (271 runs; 265 used) |
+| G3 predictions, frozen inputs, B0 projection | f8cb934 |
+| stability pilots | **not run**: see §4–§6 |
+| final pre-registration | `CRITERIA_UB0_COARSE_GRAINING.md` committed as a **DRAFT**: depends on §4–§6 |
