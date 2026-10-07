@@ -2,7 +2,10 @@
  * B0 — the empirical cost benchmark (design §12.4; amendment A1 §4.3).
  *
  *   npx tsx scripts/ub0-b0.ts [--frozen results/ub0/frozen_inputs.json] [--out results/ub0/b0]
- *                             [--repeats 3] [--warmup 500] [--steps 2000]
+ *                             [--repeats 3] [--warmup 500] [--steps 2000] [--reuse <b0.json>]
+ *
+ * --reuse takes the measured rows of an earlier B0 record and redoes only the
+ * fit, the gains and the projection (e.g. once the frozen inputs exist).
  *
  * Static periodic boxes at φ = 0.2, N_c ∈ {1, 4, 16, 64} × c_h ∈ {2, 4}, wherever
  * L ≥ 3h, at N ≈ 1630 (L = 80 D) and N ≈ 6520 (L = 160 D). Design seeds 9901+,
@@ -46,6 +49,7 @@ const repeats = Number(arg('--repeats', '3'));
 const warmup = Number(arg('--warmup', '500'));
 const steps = Number(arg('--steps', '2000'));
 const B0_SEED_START = 9901;
+const reuse = arg('--reuse', '');
 
 const frozen: FrozenInputs | null = existsSync(frozenFile) ? (JSON.parse(readFileSync(frozenFile, 'utf8')) as FrozenInputs) : null;
 const KTred = frozen?.KTred ?? henderson.KTred(UB0_PHI);
@@ -186,9 +190,10 @@ interface Row {
   meanDtP: number;
   repeatsStepUs: number[];
 }
-const rows: Row[] = [];
+const reused = reuse ? (JSON.parse(readFileSync(reuse, 'utf8')) as { rows: Row[]; machine: unknown; commit: string }) : null;
+const rows: Row[] = reused ? reused.rows : [];
 console.log('  N_c  c_h    L      N   step µs  occ grid  occ pairs  coll grid    rest   dt (D/σ_v)');
-for (const c of cases) {
+for (const c of reused ? [] : cases) {
   const { N, reps } = bench(c);
   const md = (f: (r: Rep) => number) => median(reps.map(f));
   const stepUs = md((r) => r.stepUs);
@@ -287,8 +292,9 @@ if (frozen) {
 
 mkdirSync(out, { recursive: true });
 const record = {
-  machine,
-  commit,
+  machine: reused ? reused.machine : machine,
+  commit: reused ? reused.commit : commit,
+  ...(reused ? { reusedRowsFrom: reuse, projectionCommit: commit } : {}),
   KTred,
   KTredSource: frozen ? frozenFile : 'henderson',
   repeats,
