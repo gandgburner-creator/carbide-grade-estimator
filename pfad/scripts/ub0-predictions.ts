@@ -24,6 +24,8 @@ import {
   meanFieldPressure,
   minReDelta,
   ratioHalfWidth,
+  releaseEquilibrium,
+  rhoBalanced,
   reviewReference,
   shearWaveConditions,
   soundBand,
@@ -109,6 +111,20 @@ for (const Nc of [1, ...NC]) {
 }
 put('map.ksPerNcMinus1', ref.KTred.value / UB0_PHI);
 say(`   k_s/(N_c − 1) = K_T,A/(nφ) = ${f(ref.KTred.value / UB0_PHI, 3)} kT`);
+say();
+
+// ─────────── 1b. mean balance of the implemented release law (PQ4) ───────────
+say('1b. EQUIPARTITION UNDER THE IMPLEMENTED RELEASE LAW (A-16 as coded: release = ρ·(E_i + E_j + this loss))');
+say('   T_kin/T_int = 2(N_c − 1)ρ/((1 − e²)(1 − ρ)); the design ρ_rel gives 1/(1 − ρ_rel). PQ4 margin [0.97, 1.03].');
+say('   ρ* = (1 − e²)/(2(N_c − 1) + 1 − e²) balances at T_kin = T_int. Means only (fluctuation correlations neglected).');
+for (const [Nc, e] of [[4, 0.9], [16, 0.9], [64, 0.9], [16, 0.8], [16, 0.95]] as const) {
+  const rho = (1 - e * e) / (2 * (Nc - 1));
+  const r = releaseEquilibrium(Nc, e, rho);
+  const star = rhoBalanced(Nc, e);
+  put(`pq4.pred.${Nc}.${e}`, r);
+  put(`map.rhoStar.${Nc}.${e}`, star);
+  say(`     N_c = ${String(Nc).padStart(2)}, e = ${e}: ρ_rel = ${f(rho, 5)} → T_kin/T_int = ${f(r, 4)} ${r > 1.03 || r < 0.97 ? '(OUTSIDE the PQ4 margin)' : '(inside the PQ4 margin)'};  ρ* = ${f(star, 5)} → ${f(releaseEquilibrium(Nc, e, star), 4)}`);
+}
 say();
 
 // ─────────── 2. mean-field pressure, modulus, sound ───────────

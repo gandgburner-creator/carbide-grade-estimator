@@ -11,7 +11,7 @@ It records:
 - the safeguards and how each is tested;
 - implementation findings;
 - the clarifications made in turning design rules into code;
-- **one open item that needs a decision before the pre-registration can be frozen** (§4).
+- **two open items that need a decision before the pre-registration can be frozen** (§4: the energy-drift gate; §5: the release fraction ρ_rel).
 
 Sources: the design review (`REVIEW_UB0_PREREGISTRATION_DESIGN.md`, d068755), amendment A1 (`UB0_DESIGN_AMENDMENT_1.md`, 7b8e548), the Stage 0 protocol (`CRITERIA_UB0_STAGE0.md`, f0bd9bc).
 
@@ -46,6 +46,7 @@ Sources: the design review (`REVIEW_UB0_PREREGISTRATION_DESIGN.md`, d068755), am
 | byte-identical checkpoint/resume | exact state capture (typed arrays as raw bytes) | `universeB.instrument.test.ts`: all five run kinds and the runner |
 | every estimator on synthetic data | known decay rates, frequencies, profiles | `universeB.estimators.test.ts`, `universeB.stage0.test.ts`, `universeB.wallstress.test.ts` |
 | every F-rule and verdict on synthetic data | constructed outcome sets | `universeB.analysis.test.ts`, `universeB.judged.test.ts`, `universeB.selection.test.ts` |
+| design G1 tests (2)–(7) | release-law mean balance on synthetic collisions; occupancy virial vs analytic two-body and lattice sums; Fourier projection on a constructed field; contact theorem in a wall box; ledger closure with occupancy, reservoir and walls; resume at N_c > 1 | `universeB.release.test.ts`, `universeB.g1.test.ts` |
 | the whole judged chain runs | miniature versions of all 31 judged groups at design seeds 9601+ | `universeB.pipeline.test.ts` (asserts plumbing only, never a value) |
 | pilots are blind | `observables: false` (no sampling, no tallies) **and** a whitelisted stored record | `universeB.blind.test.ts` |
 | the timestep rule is fixed before any pilot | `timestepDecision()` encodes A1 §4.3 | `universeB.blind.test.ts` |
@@ -199,7 +200,50 @@ Option D is cheaper but is the kind of criterion relaxation you asked me not to 
 
 ---
 
-## 5. Clarifications made in turning design rules into code
+## 5. OPEN ITEM — the design's ρ_rel does not give T_kin = T_int under the implemented release law
+
+**This needs your decision. Nothing has been changed.**
+
+**Where it came from.** The design's G1 test (2), "release-law mean balance on synthetic collisions", had not been written. Writing it (`tests/universeB.release.test.ts`) exposed the item.
+
+**The rule as coded (A-16, `CollisionModel`).** At each collision:
+
+1. the inelastic loss (1 − e²)·½μv_n² is added to the pair's reservoirs;
+2. the release takes the fraction ρ of E_i + E_j **including that loss**.
+
+The test confirms the identity release = ρ·(E_i + E_j + loss) to 10⁻¹² on 20 000 synthetic collisions per case.
+
+**The consequence.** With flux-weighted contacts (⟨½μv_n²⟩ = kT_kin) and reservoirs at (N_c − 1)kT_int, stationarity of the reservoir requires
+
+  (1 − ρ)(1 − e²) kT_kin = ρ · 2(N_c − 1) kT_int, so T_kin/T_int = 2(N_c − 1)ρ / ((1 − e²)(1 − ρ)).
+
+The design (§2) and A1 take ρ_rel = (1 − e²)/(2(N_c − 1)) as "the equilibrium of A-16 at T_kin = T_int". Under the coded law it gives **T_kin/T_int = 1/(1 − ρ_rel)**, a mean-field prediction (means only):
+
+| configuration | ρ_rel | predicted T_kin/T_int | PQ4 margin [0.97, 1.03] |
+|---|---|---|---|
+| N_c 4, e 0.9 | 0.03167 | **1.0327** | **outside** |
+| N_c 16, e 0.9 | 0.00633 | 1.0064 | inside |
+| N_c 64, e 0.9 | 0.00151 | 1.0015 | inside |
+| N_c 16, e 0.8 | 0.01200 | 1.0121 | inside |
+| N_c 16, e 0.95 | 0.00325 | 1.0033 | inside |
+
+The derivation behind ρ_rel assumed release from the pre-collision reservoir. As things stand, the design predicts its own PQ4 FAIL at N_c = 4, which is F1 and an overall FAIL. That would come from a slip in a derived constant, not from the coarse-graining hypothesis.
+
+**Options (the decision is yours).**
+
+| option | change | effect |
+|---|---|---|
+| **R1. Correct the derived constant** | ρ* = (1 − e²)/(2(N_c − 1) + 1 − e²), the exact mean balance of the coded law at T_kin = T_int (0.03069, 0.00629, 0.00151; e-arms 0.01186, 0.00324) | keeps A-16 unchanged; matches the design's stated intent ("equilibrium of A-16 at T_kin = T_int"); derived from the model's own rule, with no Universe B data; a map erratum like those in A1 |
+| **R2. Change the coded law** | release from the pre-collision reservoir only | keeps the design's formula; changes a physical rule (A-16; a model version and changelog entry); Universe A untouched (no reservoir at N_c = 1) |
+| **R3. Keep both** | — | PQ4 at N_c = 4 is predicted to FAIL by construction |
+
+**For you to weigh, not a decision:** R1. It is the smallest change that makes the map do what the design says it does. It touches no physical rule, and it is checked exactly by the new test. PQ4 still tests it, since T_kin = T_int then holds only in the mean.
+
+**Not affected.** Universe A and Stage 0 (no reservoir at N_c = 1). The drift item (§4) is independent of this one.
+
+---
+
+## 6. Clarifications made in turning design rules into code
 
 These follow the design's wording where it is explicit. Where it is not, the more conservative reading was taken. Each is listed for acknowledgement.
 
@@ -246,7 +290,7 @@ These follow the design's wording where it is explicit. Where it is not, the mor
 
 ---
 
-## 6. Status of the sequence
+## 7. Status of the sequence
 
 | step | status |
 |---|---|
@@ -254,8 +298,9 @@ These follow the design's wording where it is explicit. Where it is not, the mor
 | mean-field wall function, pressure/melting table, corrected record | 27c88e6 |
 | Stage 0 protocol + instrument | f0bd9bc |
 | Universe B infrastructure, p0.5 | 2d4b3f7 |
-| integrator check | this record |
+| integrator check, implementation record | 2900d89 |
+| G1 tests (2)–(7), release-law item | this update |
 | Stage 0 (Universe A only) | running at f0bd9bc; results, freeze and G3 to follow |
 | B0 | after Stage 0, on an idle machine |
-| stability pilots | **not run**: see §4 |
-| final pre-registration | **not frozen**: depends on §4 |
+| stability pilots | **not run**: see §4 and §5 |
+| final pre-registration | **not frozen**: depends on §4 and §5 |

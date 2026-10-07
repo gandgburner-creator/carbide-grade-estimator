@@ -539,3 +539,21 @@ export function mapQuantities(Nc: number, ch: number, e: number, ref: UniverseAR
     Nnb: m.numberDensity * Math.PI * m.h * m.h,
   };
 }
+
+/**
+ * Mean balance of the IMPLEMENTED A-16 release law (CollisionModel): the inelastic
+ * loss (1 − e²)·½μv_n² goes into the pair's reservoirs FIRST, and the release takes
+ * the fraction ρ of E_i + E_j INCLUDING that loss. With flux-weighted contacts
+ * (⟨½μv_n²⟩ = kT_kin) and reservoirs at (N_c − 1)kT_int, stationarity
+ * (1 − ρ)(1 − e²)kT_kin = ρ·2(N_c − 1)kT_int gives
+ *   T_kin/T_int = 2(N_c − 1)ρ / ((1 − e²)(1 − ρ)).
+ * The design's ρ_rel = (1 − e²)/(2(N_c − 1)) then gives 1/(1 − ρ_rel), not 1;
+ * T_kin = T_int needs ρ* = (1 − e²)/(2(N_c − 1) + 1 − e²). Means only.
+ */
+export function releaseEquilibrium(Nc: number, e: number, rho: number): number {
+  return (2 * (Nc - 1) * rho) / ((1 - e * e) * (1 - rho));
+}
+
+export function rhoBalanced(Nc: number, e: number): number {
+  return (1 - e * e) / (2 * (Nc - 1) + 1 - e * e);
+}

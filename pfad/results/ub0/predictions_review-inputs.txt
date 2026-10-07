@@ -1,5 +1,5 @@
 UB-0 analytical predictions — review-inputs
-commit 27c88e6943ba1ca6dda0557e1955ef8aebaab200; φ = 0.2; molecular units m = d = kT = 1 unless stated; parcel units D, σ_v where stated
+commit 2900d895e15e6340defc1e39af7ada70c17f4b3f; φ = 0.2; molecular units m = d = kT = 1 unless stated; parcel units D, σ_v where stated
 No Universe B simulation data is used. Status legend: exact | mechanics | mean-field | estimate | design | input.
 
 UNIVERSE A REFERENCE (status: input)
@@ -23,6 +23,15 @@ UNIVERSE A REFERENCE (status: input)
     16   16  4.000   0.01592  0.2500     15  0.00633   177.83   8.0  32.0   51.2    0.0625     0.0804   3.840  0.0264
     64   64  8.000   0.00398  0.1250     63  0.00151   746.89  16.0 128.0  204.8    0.0156     0.0201   7.680  0.0066
    k_s/(N_c − 1) = K_T,A/(nφ) = 11.855 kT
+
+1b. EQUIPARTITION UNDER THE IMPLEMENTED RELEASE LAW (A-16 as coded: release = ρ·(E_i + E_j + this loss))
+   T_kin/T_int = 2(N_c − 1)ρ/((1 − e²)(1 − ρ)); the design ρ_rel gives 1/(1 − ρ_rel). PQ4 margin [0.97, 1.03].
+   ρ* = (1 − e²)/(2(N_c − 1) + 1 − e²) balances at T_kin = T_int. Means only (fluctuation correlations neglected).
+     N_c =  4, e = 0.9: ρ_rel = 0.03167 → T_kin/T_int = 1.0327 (OUTSIDE the PQ4 margin);  ρ* = 0.03069 → 1.0000
+     N_c = 16, e = 0.9: ρ_rel = 0.00633 → T_kin/T_int = 1.0064 (inside the PQ4 margin);  ρ* = 0.00629 → 1.0000
+     N_c = 64, e = 0.9: ρ_rel = 0.00151 → T_kin/T_int = 1.0015 (inside the PQ4 margin);  ρ* = 0.00151 → 1.0000
+     N_c = 16, e = 0.8: ρ_rel = 0.01200 → T_kin/T_int = 1.0121 (inside the PQ4 margin);  ρ* = 0.01186 → 1.0000
+     N_c = 16, e = 0.95: ρ_rel = 0.00325 → T_kin/T_int = 1.0033 (inside the PQ4 margin);  ρ* = 0.00324 → 1.0000
 
 2. PRESSURE CLOSURE AND SOUND (mean-field unless stated)
    P_occ/(n_p kT) = ½(N_c − 1) K_T,A/(nkT);   P_B/(n_p kT) = Z + P_occ/(n_p kT);   Z_B/Z_A = 1/N_c + (1 − 1/N_c)·K_T,A/(2 n kT Z)
@@ -147,4 +156,4 @@ UNIVERSE A REFERENCE (status: input)
    ERRATUM (A1)  le.minRe.16              review 48  recomputed 47.22655  (-1.61 %)  §13
    142 values checked: 133 agree, 6 rounding-level, 3 acknowledged errata (A1), 0 DISCREPANCY
 
-runtime 126.0 s
+runtime 136.2 s

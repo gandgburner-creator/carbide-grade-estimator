@@ -7,7 +7,8 @@
 > The regenerated output (`results/ub0/predictions_review-inputs.*`) now also contains:
 > - the wall-regime table;
 > - the bulk-limit check of the W-MF functional;
-> - the errata classification.
+> - the errata classification;
+> - section 1b, added after the G1 release-law test (see [`UB0_IMPLEMENTATION_RECORD.md`](UB0_IMPLEMENTATION_RECORD.md) §5). It gives the equipartition that the implemented release law gives with the design's ρ_rel. No earlier value changed.
 
 **Status.** This is the Phase 1 analytical calculation for UB-0.
 
