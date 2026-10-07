@@ -527,6 +527,8 @@ export class UB0Run {
       momentumResidual: sim.relativeMomentumResidual(),
       collisions: sim.log.count,
     };
+    // occupancy stiffness diagnostic (design §11.6, report only): max ω·dt over parcels
+    if (this.occ) sample.omegaDt = this.occ.maxOmega(s, sim.domain) * sim.lastDt;
     if (kind === 'static') {
       let sxx = 0;
       let syy = 0;

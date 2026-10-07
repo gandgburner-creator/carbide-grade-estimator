@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { gunzipSync, gzipSync } from 'node:zlib';
+import { blindRecord } from '../src/universeB/UB0Blind';
 import { UB0Run, type UB0RunState, type UB0Spec } from '../src/universeB/UB0Run';
 
 export interface JobMessage {
@@ -44,7 +45,9 @@ export function runJob(m: JobMessage): { seconds: number; resumed: boolean; halt
     }
   }
   const res = run.result();
-  writeJsonGz(m.resultPath, res);
+  // a blind run (stability pilot) stores the whitelisted record only (A1 §4.3)
+  writeJsonGz(m.resultPath, m.spec.observables ? res : blindRecord(res));
+  // the checkpoint holds the microstate: removed on completion, never read except to resume
   if (existsSync(m.statePath)) rmSync(m.statePath);
   return { seconds: (Date.now() - t0) / 1000, resumed, halted: res.info.halted === 1 };
 }

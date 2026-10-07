@@ -148,6 +148,38 @@ was then applied unchanged to fresh reference runs.
   no penetration, zero mean force, and face pressure equal to the planar-wall
   pressure within statistics.
 
+## 0.2.0-p0.5 — plane-wall events evaluated at the contact instant when forces act
+
+- **Change:** with continuous forces present, a plane-wall event (specular or
+  diffuse) is evaluated with the velocity at the contact instant,
+  v_c = v_½ + (F/m)(dt/2 − τ), exactly as pair collisions have been since p0.2.
+  The wall law maps v_c to the outgoing contact velocity, and the difference is
+  applied to the stored half-step velocity v_½. The ledgered wall energy and
+  impulse are evaluated at the contact instant. If v_c is already leaving the
+  wall (possible only with a force pushing outward), v_½ is used and the event
+  is counted in `PlaneWall.contactFallbacks`. `WALL_MODEL_VERSION` →
+  `maxwell-accommodation-plane/2`.
+- **Why:** measured, not assumed, during UB-0 implementation testing (before
+  any Universe B pilot or judged run). p0.2 corrected pair collisions only.
+  A particle under a uniform force (which velocity Verlet integrates exactly)
+  bouncing on a wall for 200 time units:
+  - before: |ΔE| = 3.3 × 10⁻², 9.1 × 10⁻³, 2.7 × 10⁻³, 3.2 × 10⁻³ at
+    dt = 0.02, 0.01, 0.005, 0.0025 (specular; diffuse similar), first order per
+    wall event with a sign set by τ, so not converging;
+  - after: ≤ 2 × 10⁻¹³ at every dt, specular and diffuse
+    (`tests/walls.forces.test.ts`).
+  In miniature Universe B wall and Couette boxes (design seeds, 3 D/σ_v), the
+  measured-window relative energy residual fell from 2 × 10⁻⁵ … 1.4 × 10⁻⁴ to
+  5 × 10⁻⁷ … 4 × 10⁻⁶.
+- **Effect on earlier results:** none. Without forces the wall executes exactly
+  the operations of `/1` (the contact velocity is v_½ itself and the outgoing
+  velocity is assigned, not added), so every Universe A record, Items 1–3 and
+  UB-0 Stage 0 included, replays bit for bit. No earlier experiment combined
+  walls with forces.
+- **Not changed:** polygon bodies (`walls/SolidBody`) still use v_½; no
+  experiment combines bodies with forces. A body with forces would need the
+  same correction first.
+
 ### Configuration changes after the first Phase 0 reference runs (no model change)
 
 Statistics and duration only; the physical configuration of each experiment

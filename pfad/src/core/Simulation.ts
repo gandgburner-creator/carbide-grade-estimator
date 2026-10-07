@@ -217,7 +217,7 @@ export class Simulation {
     }
     let wallInteractions = 0;
     for (const w of this.walls) {
-      wallInteractions += w.interact(s, dt, this.wallRng, this.ledger, this.collider.lastEventStep, this.stepCount);
+      wallInteractions += w.interact(s, dt, this.wallRng, this.ledger, this.collider.lastEventStep, this.stepCount, hasForces);
     }
     for (const b of this.bodies) {
       wallInteractions += b.interact(s, dt, this.wallRng, this.ledger, this.collider.lastEventStep, this.stepCount);

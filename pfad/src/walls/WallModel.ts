@@ -53,7 +53,7 @@ export interface WallSegment {
   tangentialVelocity?: number;
 }
 
-export const WALL_MODEL_VERSION = 'maxwell-accommodation-plane/1';
+export const WALL_MODEL_VERSION = 'maxwell-accommodation-plane/2';
 
 export class PlaneWall {
   readonly config: Required<PlaneWallConfig>;
@@ -161,9 +161,20 @@ export class PlaneWall {
     return (along - this.position) * inward;
   }
 
+  /** wall events whose contact-instant velocity was already leaving (forces only; v_½ used instead) */
+  contactFallbacks = 0;
+
   /**
    * Resolve every particle that overlaps this wall and moves into it.
    * Returns the number of interactions.
+   *
+   * With continuous forces (forcesActive) the stored velocities are the
+   * velocity-Verlet half-step velocities v_½. As for pair collisions (model
+   * p0.2), the wall law is then evaluated with the velocity AT THE CONTACT
+   * INSTANT, v_c = v_½ + (F/m)(dt/2 − τ), and the resulting velocity change is
+   * applied to v_½. Using v_½ leaves an energy error F·Δv·(dt/2 − τ) per wall
+   * event, first order in dt (model p0.5; docs/MODEL_CHANGELOG.md). Without
+   * forces the operations are exactly those of /1.
    */
   interact(
     store: ParticleStore,
@@ -172,8 +183,9 @@ export class PlaneWall {
     ledger: Ledger,
     eventStep?: Int32Array,
     step = 0,
+    forcesActive = false,
   ): number {
-    const { x, y, vx, vy, mass, radius, wallHits } = store;
+    const { x, y, vx, vy, fx, fy, mass, radius, wallHits } = store;
     const { nx, ny, tx, ty } = this;
     const Aw = this.config.accommodation;
     const kTw = this.config.temperature;
@@ -196,7 +208,24 @@ export class PlaneWall {
       const px = x[i] - vx[i] * tau;
       const py = y[i] - vy[i] * tau;
       const m = mass[i];
-      const vt = vx[i] * tx + vy[i] * ty;
+      // velocity at the contact instant (differs from v_½ only when forces act)
+      let cvx = vx[i];
+      let cvy = vy[i];
+      let cvn = vn;
+      if (forcesActive) {
+        const shift = 0.5 * dt - tau;
+        const ax = cvx + (fx[i] / m) * shift;
+        const ay = cvy + (fy[i] / m) * shift;
+        const an = ax * nx + ay * ny;
+        if (an < 0) {
+          cvx = ax;
+          cvy = ay;
+          cvn = an;
+        } else {
+          this.contactFallbacks++;
+        }
+      }
+      const vt = cvx * tx + cvy * ty;
       let aw = Aw;
       let kt = kTw;
       let uw = Uw;
@@ -220,18 +249,23 @@ export class PlaneWall {
         vn2 = Math.sqrt(-2 * (kt / m) * Math.log(rng.nextOpen()));
         vt2 = uw + sigma * rng.gaussian();
       } else {
-        vn2 = -vn;
+        vn2 = -cvn;
         vt2 = vt;
       }
       const nvx = vn2 * nx + vt2 * tx;
       const nvy = vn2 * ny + vt2 * ty;
-      const dpx = m * (nvx - vx[i]);
-      const dpy = m * (nvy - vy[i]);
-      const dE = 0.5 * m * (vx[i] * vx[i] + vy[i] * vy[i] - nvx * nvx - nvy * nvy);
-      vx[i] = nvx;
-      vy[i] = nvy;
-      x[i] = px + nvx * tau;
-      y[i] = py + nvy * tau;
+      const dpx = m * (nvx - cvx);
+      const dpy = m * (nvy - cvy);
+      const dE = 0.5 * m * (cvx * cvx + cvy * cvy - nvx * nvx - nvy * nvy);
+      if (cvx === vx[i] && cvy === vy[i]) {
+        vx[i] = nvx;
+        vy[i] = nvy;
+      } else {
+        vx[i] += nvx - cvx;
+        vy[i] += nvy - cvy;
+      }
+      x[i] = px + vx[i] * tau;
+      y[i] = py + vy[i] * tau;
 
       // bookkeeping: impulse on the wall is −Δp_particle
       const along = (tx !== 0 ? px : py) - this.t0;
@@ -239,10 +273,10 @@ export class PlaneWall {
       if (b < 0) b = 0;
       else if (b >= bins) b = bins - 1;
       this.hits[b] += 1;
-      this.normalImpulse[b] += m * (vn2 - vn); // pushes the wall outward (> 0)
+      this.normalImpulse[b] += m * (vn2 - cvn); // pushes the wall outward (> 0)
       this.tangentialImpulse[b] += m * (vt - vt2); // along +tangent, on the wall
       this.energyIn[b] += dE;
-      this.incidentEnergy[b] += 0.5 * m * (vn * vn + vt * vt);
+      this.incidentEnergy[b] += 0.5 * m * (cvn * cvn + vt * vt);
       this.emittedEnergy[b] += 0.5 * m * (vn2 * vn2 + vt2 * vt2);
       this.incidentTangential[b] += m * vt;
       this.emittedTangential[b] += m * vt2;

@@ -17,7 +17,8 @@ import { appendFileSync, existsSync, mkdirSync } from 'node:fs';
 import { cpus } from 'node:os';
 import { join } from 'node:path';
 import { Worker } from 'node:worker_threads';
-import { specCost, stage0Plan, type PlannedRun } from '../src/universeB/UB0Plans';
+import { readFileSync } from 'node:fs';
+import { pilotPlan, specCost, stage0Plan, ub0Plan, type FrozenInputs, type PlannedRun } from '../src/universeB/UB0Plans';
 import { readJsonGz, writeAtomic, type JobMessage } from './ub0Job';
 
 const argv = process.argv.slice(2);
@@ -31,10 +32,31 @@ const out = arg('--out', `results/ub0/${planName}`);
 const filter = arg('--filter', '');
 const reserve = argv.includes('--reserve');
 const checkpointSeconds = Number(arg('--checkpoint-seconds', '300'));
+const courant = Number(arg('--courant', '0.025'));
+const frozenFile = arg('--frozen', 'results/ub0/frozen_inputs.json');
+const frozen = (): FrozenInputs => JSON.parse(readFileSync(frozenFile, 'utf8')) as FrozenInputs;
 
 const plans: Record<string, () => PlannedRun[]> = {
-  stage0: () => stage0Plan({ reserve }),
+  stage0: () => stage0Plan({ reserve, courant }),
+  pilots: () => pilotPlan(frozen(), courant),
+  ub0: () => ub0Plan(frozen(), { reserve, courant }),
 };
+// Interlock: judged Universe B runs only at the approved pre-registration commit, on a clean tree.
+if (planName === 'ub0') {
+  const approved = arg('--approved-commit', '');
+  let head = '';
+  let dirty = '';
+  try {
+    head = execSync('git rev-parse HEAD', { encoding: 'utf8' }).trim();
+    dirty = execSync('git status --porcelain -- src scripts docs', { encoding: 'utf8' }).trim();
+  } catch {
+    /* not a git checkout */
+  }
+  if (!approved || approved !== head || dirty) {
+    console.error('refusing to run judged UB-0: pass --approved-commit <the approved pre-registration commit>, which must be HEAD, with a clean tree');
+    process.exit(2);
+  }
+}
 if (!plans[planName]) {
   console.error(`unknown plan '${planName}'; known: ${Object.keys(plans).join(', ')}`);
   process.exit(1);

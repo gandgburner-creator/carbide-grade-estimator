@@ -114,4 +114,53 @@ export class UBOccupancyForce implements ForceModel {
     });
     return out;
   }
+
+  /**
+   * Read-only stiffness diagnostic (design §11.6): the largest occupancy angular
+   * frequency over parcels, ω_i = √(|λ|_max(K_i)/M_i), with K_i = Σ_j the Hessian
+   * of k_s a W(r_ij): φ″ n̂n̂ + (φ′/r)(1 − n̂n̂). Lucy: W″ = −60/(π h⁴)(1 − q)(1 − 3q).
+   * The caller multiplies by dt; the design requires max ω·dt ≤ 0.02 on sample steps.
+   */
+  maxOmega(store: ParticleStore, domain: Domain): number {
+    const { ks, h } = this.config;
+    if (ks === 0) return 0;
+    if (!this.mgrid || this.mgrid.cellItems.length < store.capacity) {
+      this.mgrid = new SpatialGrid(domain, h, store.capacity);
+    }
+    this.mgrid.build(store);
+    const n = store.count;
+    const kxx = new Float64Array(n);
+    const kyy = new Float64Array(n);
+    const kxy = new Float64Array(n);
+    const { radius, mass } = store;
+    const c2 = -60 / (Math.PI * h * h * h * h);
+    this.mgrid.forEachPairWithin(store, h, (i, j, dx, dy, r2) => {
+      const r = Math.sqrt(r2);
+      if (r === 0) return;
+      const a = 0.5 * Math.PI * (radius[i] * radius[i] + radius[j] * radius[j]);
+      const q = r / h;
+      const d1 = ks * a * lucyDW(r, h);
+      const d2 = ks * a * c2 * (1 - q) * (1 - 3 * q);
+      const nx = dx / r;
+      const ny = dy / r;
+      const t = d1 / r;
+      const hxx = d2 * nx * nx + t * (1 - nx * nx);
+      const hyy = d2 * ny * ny + t * (1 - ny * ny);
+      const hxy = (d2 - t) * nx * ny;
+      kxx[i] += hxx;
+      kyy[i] += hyy;
+      kxy[i] += hxy;
+      kxx[j] += hxx;
+      kyy[j] += hyy;
+      kxy[j] += hxy;
+    });
+    let w2 = 0;
+    for (let i = 0; i < n; i++) {
+      const m = 0.5 * (kxx[i] + kyy[i]);
+      const d = Math.hypot(0.5 * (kxx[i] - kyy[i]), kxy[i]);
+      const lam = Math.max(Math.abs(m + d), Math.abs(m - d));
+      if (lam / mass[i] > w2) w2 = lam / mass[i];
+    }
+    return Math.sqrt(w2);
+  }
 }
