@@ -10,16 +10,18 @@
   ]
  },
  "commit": "a95dd40c8ecaecbfc0c1807124c1f5d211520762",
- "KTred": 2.371093749999999,
- "KTredSource": "henderson",
+ "reusedRowsFrom": "results/ub0/b0/b0.json",
+ "projectionCommit": "9c5d53026ca937cfd0f57c2040577577597c11b2",
+ "KTred": 2.375642918671131,
+ "KTredSource": "results/ub0/frozen_inputs.json",
  "repeats": 3,
  "warmup": 500,
  "steps": 2000,
- "finished": "2026-10-07T11:56:02.238Z",
+ "finished": "2026-10-07T12:14:43.017Z",
  "loadavgAtEnd": [
-  1.2,
-  1.72,
-  1.9
+  0.69,
+  1.79,
+  2.38
  ],
  "rows": [
   {
@@ -373,6 +375,193 @@
    "ratio": 178.3403166304939
   }
  ],
- "projection": [],
- "projectedCoreHours": 0
+ "projection": [
+  {
+   "group": "SK4c2p18",
+   "n": 8,
+   "coreHoursPerSeed": 0.038904341957642544,
+   "coreHours": 0.31123473566114035
+  },
+  {
+   "group": "SK4c2p20",
+   "n": 8,
+   "coreHoursPerSeed": 0.04322704661960283,
+   "coreHours": 0.34581637295682266
+  },
+  {
+   "group": "SK4c2p22",
+   "n": 8,
+   "coreHoursPerSeed": 0.04767176479378932,
+   "coreHours": 0.38137411835031454
+  },
+  {
+   "group": "SK16c2p18",
+   "n": 8,
+   "coreHoursPerSeed": 0.12238855507241506,
+   "coreHours": 0.9791084405793204
+  },
+  {
+   "group": "SK16c2p20",
+   "n": 8,
+   "coreHoursPerSeed": 0.1359872834137945,
+   "coreHours": 1.087898267310356
+  },
+  {
+   "group": "SK16c2p22",
+   "n": 8,
+   "coreHoursPerSeed": 0.14961854620683826,
+   "coreHours": 1.196948369654706
+  },
+  {
+   "group": "SK64c2p18",
+   "n": 8,
+   "coreHoursPerSeed": 0.4210317852602437,
+   "coreHours": 3.3682542820819497
+  },
+  {
+   "group": "SK64c2p20",
+   "n": 8,
+   "coreHoursPerSeed": 0.46781309473360405,
+   "coreHours": 3.7425047578688324
+  },
+  {
+   "group": "SK64c2p22",
+   "n": 8,
+   "coreHoursPerSeed": 0.5156628681856292,
+   "coreHours": 4.125302945485034
+  },
+  {
+   "group": "SK4c4p18",
+   "n": 8,
+   "coreHoursPerSeed": 0.12692684236970114,
+   "coreHours": 1.0154147389576091
+  },
+  {
+   "group": "SK4c4p20",
+   "n": 8,
+   "coreHoursPerSeed": 0.1410298248552235,
+   "coreHours": 1.128238598841788
+  },
+  {
+   "group": "SK4c4p22",
+   "n": 8,
+   "coreHoursPerSeed": 0.15495532653592617,
+   "coreHours": 1.2396426122874094
+  },
+  {
+   "group": "SL4",
+   "n": 4,
+   "coreHoursPerSeed": 0.30119490547852285,
+   "coreHours": 1.2047796219140914
+  },
+  {
+   "group": "SL16",
+   "n": 4,
+   "coreHoursPerSeed": 0.9475242973348261,
+   "coreHours": 3.7900971893393045
+  },
+  {
+   "group": "T4a1",
+   "n": 48,
+   "coreHoursPerSeed": 0.02513125905357863,
+   "coreHours": 1.2063004345717743
+  },
+  {
+   "group": "T4a05",
+   "n": 96,
+   "coreHoursPerSeed": 0.02289893823465886,
+   "coreHours": 2.1982980705272506
+  },
+  {
+   "group": "T16a1",
+   "n": 48,
+   "coreHoursPerSeed": 0.07906003103887015,
+   "coreHours": 3.794881489865767
+  },
+  {
+   "group": "T16a05",
+   "n": 96,
+   "coreHoursPerSeed": 0.07203740822255,
+   "coreHours": 6.9155911893648
+  },
+  {
+   "group": "T64a1",
+   "n": 6,
+   "coreHoursPerSeed": 3.219405929573501,
+   "coreHours": 19.316435577441005
+  },
+  {
+   "group": "T16e08",
+   "n": 48,
+   "coreHoursPerSeed": 0.07906003103887015,
+   "coreHours": 3.794881489865767
+  },
+  {
+   "group": "T16e095",
+   "n": 48,
+   "coreHoursPerSeed": 0.07906003103887015,
+   "coreHours": 3.794881489865767
+  },
+  {
+   "group": "T4c4",
+   "n": 24,
+   "coreHoursPerSeed": 0.08199165429706169,
+   "coreHours": 1.9677997031294807
+  },
+  {
+   "group": "T16dt",
+   "n": 48,
+   "coreHoursPerSeed": 0.1581200620777403,
+   "coreHours": 7.589762979731534
+  },
+  {
+   "group": "L4",
+   "n": 4,
+   "coreHoursPerSeed": 0.2511900390324147,
+   "coreHours": 1.0047601561296589
+  },
+  {
+   "group": "L16",
+   "n": 4,
+   "coreHoursPerSeed": 0.4377131477149955,
+   "coreHours": 1.750852590859982
+  },
+  {
+   "group": "L64",
+   "n": 4,
+   "coreHoursPerSeed": 1.0189266545693176,
+   "coreHours": 4.0757066182772705
+  },
+  {
+   "group": "W4c2",
+   "n": 4,
+   "coreHoursPerSeed": 0.046015888336996554,
+   "coreHours": 0.18406355334798621
+  },
+  {
+   "group": "W16c2",
+   "n": 4,
+   "coreHoursPerSeed": 0.2895213130745302,
+   "coreHours": 1.1580852522981209
+  },
+  {
+   "group": "W4c4",
+   "n": 4,
+   "coreHoursPerSeed": 0.3002570464659597,
+   "coreHours": 1.2010281858638387
+  },
+  {
+   "group": "C4",
+   "n": 4,
+   "coreHoursPerSeed": 0.125193932537821,
+   "coreHours": 0.500775730151284
+  },
+  {
+   "group": "C16",
+   "n": 4,
+   "coreHoursPerSeed": 0.39384561558243597,
+   "coreHours": 1.5753824623297439
+  }
+ ],
+ "projectedCoreHours": 85.9461020249097
 }

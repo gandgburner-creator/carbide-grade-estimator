@@ -1,0 +1,143 @@
+UB-0 analytical predictions — stage0
+commit 9c5d53026ca937cfd0f57c2040577577597c11b2; φ = 0.2; molecular units m = d = kT = 1 unless stated; parcel units D, σ_v where stated
+No Universe B simulation data is used. Status legend: exact | mechanics | mean-field | estimate | design | input.
+
+UNIVERSE A REFERENCE (status: input)
+  Z                1.57086   Stage 0 Universe A measurement (results/ub0/stage0): static boxes φ = 0.20
+  KTred            2.37564   Stage 0 Universe A measurement (results/ub0/stage0): central difference φ = 0.18/0.22 — THE MAPPING INPUT
+  cA               2.19414   Stage 0 Universe A measurement (results/ub0/stage0): standing wave L = 160 d
+  lambda           0.97350   Stage 0 Universe A measurement (results/ub0/stage0): long static boxes
+  nu               1.51511   Stage 0 Universe A measurement (results/ub0/stage0): shear wave L = 80 d, U₀ = c_th
+  collisionRate    1.28744   Stage 0 Universe A measurement (results/ub0/stage0): long static boxes
+  derived: Γ_A = c_A²/(K_T/(nkT)) = 2.0265  (Δ_A = Γ_A − 1 = 1.0265); S_A(0) = 1/(K_T/(nkT)) = 0.4209
+
+1. THE MAP (per N_c; e = 0.9, c_h = 2)
+   exact:      M = N_c m;  D = √N_c d;  n_p = n/N_c;  φ_p = φ;  ρ = n m;  σ_v = √(kT/M);  E_int = (N_c − 1) kT
+   exact (hard-core parcel gas = scaled copy of A): P_kin,B/P_A = 1/N_c;  λ_p/D = λ_A/d;
+               collision rate per parcel = (rate_A)·σ_v/D, i.e. rate_A/N_c per (d/c_th);  ν, μ invariant for the hard-core gas alone
+   derived:    ρ_rel = (1 − e²)/(2(N_c − 1))  [equilibrium of A-16 at T_kin = T_int, means only]
+   mean-field: k_s = (N_c − 1) K_T,A/(n φ);  h = c_h √N_c D (choice)
+   N_c   M     D      n_p       σ_v     E_int   ρ_rel     k_s      h(D)  h(d)   N_nb   P_kin/P_A  rate/(d/c)  λ_p(d)  S_p(0)
+     1    1  1.000   0.25465  1.0000      0  0.00000     0.00   0.0   0.0    0.0    1.0000     1.2874   0.973  0.4209
+     4    4  2.000   0.06366  0.5000      3  0.03167    35.63   4.0   8.0   12.8    0.2500     0.3219   1.947  0.1052
+    16   16  4.000   0.01592  0.2500     15  0.00633   178.17   8.0  32.0   51.2    0.0625     0.0805   3.894  0.0263
+    64   64  8.000   0.00398  0.1250     63  0.00151   748.33  16.0 128.0  204.8    0.0156     0.0201   7.788  0.0066
+   k_s/(N_c − 1) = K_T,A/(nφ) = 11.878 kT
+
+1b. EQUIPARTITION UNDER THE IMPLEMENTED RELEASE LAW (A-16 as coded: release = ρ·(E_i + E_j + this loss))
+   T_kin/T_int = 2(N_c − 1)ρ/((1 − e²)(1 − ρ)); the design ρ_rel gives 1/(1 − ρ_rel). PQ4 margin [0.97, 1.03].
+   ρ* = (1 − e²)/(2(N_c − 1) + 1 − e²) balances at T_kin = T_int. Means only (fluctuation correlations neglected).
+     N_c =  4, e = 0.9: ρ_rel = 0.03167 → T_kin/T_int = 1.0327 (OUTSIDE the PQ4 margin);  ρ* = 0.03069 → 1.0000
+     N_c = 16, e = 0.9: ρ_rel = 0.00633 → T_kin/T_int = 1.0064 (inside the PQ4 margin);  ρ* = 0.00629 → 1.0000
+     N_c = 64, e = 0.9: ρ_rel = 0.00151 → T_kin/T_int = 1.0015 (inside the PQ4 margin);  ρ* = 0.00151 → 1.0000
+     N_c = 16, e = 0.8: ρ_rel = 0.01200 → T_kin/T_int = 1.0121 (inside the PQ4 margin);  ρ* = 0.01186 → 1.0000
+     N_c = 16, e = 0.95: ρ_rel = 0.00325 → T_kin/T_int = 1.0033 (inside the PQ4 margin);  ρ* = 0.00324 → 1.0000
+
+2. PRESSURE CLOSURE AND SOUND (mean-field unless stated)
+   P_occ/(n_p kT) = ½(N_c − 1) K_T,A/(nkT);   P_B/(n_p kT) = Z + P_occ/(n_p kT);   Z_B/Z_A = 1/N_c + (1 − 1/N_c)·K_T,A/(2 n kT Z)
+   K_B = K_kin + K_occ = K_T,A/N_c + (1 − 1/N_c) K_T,A = K_T,A   (mean-field, by construction)
+   Γ_self band = [1 + Δ_A/N_c², 1 + Δ_A/N_c]  (full … no reservoir exchange during a period; kinetic share only)
+   c_B/c_A = √(Γ_self/Γ_A)  if K_B = K_T,A;   collisionless kinetic allowance ≤ n_p kT/K_B = 1/(N_c K_T,A/(nkT))
+   N_c   Z_B/Z_A  occ.share  P_B/(n_p kT)   Γ_self band          c_B/c_A band        allowance
+     4   0.8171     0.694        5.134   [1.0642, 1.2566]   [0.7247, 0.7875]   0.1052
+    16   0.7714     0.919       19.388   [1.0040, 1.0642]   [0.7039, 0.7247]   0.0263
+    64   0.7600     0.979       76.404   [1.0003, 1.0160]   [0.7026, 0.7081]   0.0066
+   PQ3 judged band with Universe A uncertainty propagated (amendment A1 §5): Δ_A at its 95 % limits, then ± 0.05
+     N_c =  4: Γ_A = 2.0265 ± 0.0506 (df 14.0); band [1.0574, 1.2838]; judged interval [1.0074, 1.3338]
+     N_c = 16: Γ_A = 2.0265 ± 0.0506 (df 14.0); band [1.0036, 1.0709]; judged interval [0.9536, 1.1209]
+     N_c = 64: Γ_A = 2.0265 ± 0.0506 (df 14.0); band [1.0002, 1.0177]; judged interval [0.9502, 1.0677]
+   K_T,A/(2 n kT Z) = 0.7562  (the fraction of the internal-dof pressure the single-constant law reproduces)
+   Finite-k occupancy response W̃(kh) at the longitudinal-wave box L = 160 D (exact for the Lucy kernel):
+     N_c = 4: kh = 0.1571, W̃ = 0.99890
+     N_c = 16: kh = 0.3142, W̃ = 0.99560
+     N_c = 64: kh = 0.6283, W̃ = 0.98251
+
+3. WALL CONTACT DENSITY (mechanics: exact identity n_contact kT = P_wall = P_bulk; value uses the MF bulk pressure)
+   Universe A: n_contact/n = Z = 1.571
+   N_c = 4: n_contact/n_p = P_B/(n_p kT) = 5.134
+   N_c = 16: n_contact/n_p = P_B/(n_p kT) = 19.388
+   N_c = 64: n_contact/n_p = P_B/(n_p kT) = 76.404
+
+4. COUPLING (RPA estimates, parcel units D = kT = 1; S_hc taken as S_A(0))
+   N_nb = n_p π h²;  Γ_c = k_s a W(0)/kT;  u(D) = k_s a W(D)/kT;
+   ⟨δψ²⟩ = ∫d²k/(2π)² n û² S;  ⟨δF_x²⟩ = ∫d²k/(2π)² (k²/2) n û² S;  1/S = 1/S_A(0) + n û/kT
+   N_c  c_h   h/D    N_nb    1/N_nb   Γ_c     u(D)    rms ψ   rms F·D
+     4    2   4.00    12.8   0.0781   2.784   2.055   1.239    0.777
+    16    2   8.00    51.2   0.0195   3.480   3.206   1.689    0.576
+    64    2  16.00   204.8   0.0049   3.654   3.575   1.842    0.332
+     4    4   8.00    51.2   0.0195   0.696   0.641   0.619    0.194
+     2    2   2.83     6.4   0.1563   1.856   1.033   0.768    0.644
+   256    2  32.00   819.2   0.0012   3.697   3.677   1.893    0.178
+
+5. NEAR-WALL PROFILE (mean-field occupancy + hard-core functional; parcel units D = 1)
+   ln n + βμ_ex[n] + β k_s a ∫W₁(y−y′) n(y′)dy′ = βμ;  LDA: βμ_ex = βf_ex(φ) + Z(φ) − 1 (Henderson);
+   SDA: Nordholm smoothed density with a uniform disk weight of radius D (a weighted-density functional; NOT fundamental-measure theory)
+   (a) review method: grand canonical, LDA, box 8h
+   N_c=4 c_h=2 GC-LDA         conv=yes it=   135  φ_contact=0.379  φ(h/4)=0.235  φ(h/2)=0.187  φ(h)=0.202  φ_min=0.187@0.53h  φ_core=0.2000  excess[0,1.5h]/(n_b h)=0.1284  half-box=0.1283
+   N_c=16 c_h=2 GC-LDA        conv=yes it=   575  φ_contact=0.595  φ(h/4)=0.206  φ(h/2)=0.149  φ(h)=0.204  φ_min=0.132@0.40h  φ_core=0.2000  excess[0,1.5h]/(n_b h)=0.1973  half-box=0.1993
+   N_c=64 c_h=2 GC-LDA        conv=yes it=  2369  φ_contact=0.766  φ(h/4)=0.084  φ(h/2)=0.128  φ(h)=0.165  φ_min=0.035@0.34h  φ_core=0.2000  excess[0,1.5h]/(n_b h)=0.2450  half-box=0.2400
+   N_c=4 c_h=4 GC-LDA         conv=yes it=   135  φ_contact=0.381  φ(h/4)=0.237  φ(h/2)=0.187  φ(h)=0.202  φ_min=0.187@0.53h  φ_core=0.2000  excess[0,1.5h]/(n_b h)=0.1284  half-box=0.1284
+   excess ratio c_h 4 / c_h 2 at N_c = 4 (absolute, n_b·D units): 2.000
+   (b) run geometry: canonical, box H = 10h, ∫n dy = n_b H
+   N_c=4 c_h=2 canonical-LDA  conv=yes it=   411  φ_contact=0.379  φ(h/4)=0.235  φ(h/2)=0.187  φ(h)=0.202  φ_min=0.187@0.53h  φ_core=0.1999  excess[0,1.5h]/(n_b h)=0.1283  half-box=0.1283
+   N_c=16 c_h=2 canonical-LDA conv=yes it=  1855  φ_contact=0.587  φ(h/4)=0.199  φ(h/2)=0.145  φ(h)=0.198  φ_min=0.129@0.40h  φ_core=0.1946  excess[0,1.5h]/(n_b h)=0.1932  half-box=0.1952
+   N_c=64 c_h=2 canonical-LDA conv=yes it=  7733  φ_contact=0.758  φ(h/4)=0.074  φ(h/2)=0.124  φ(h)=0.157  φ_min=0.034@0.33h  φ_core=0.1920  excess[0,1.5h]/(n_b h)=0.2374  half-box=0.2312
+   N_c=4 c_h=4 canonical-LDA  conv=yes it=   428  φ_contact=0.377  φ(h/4)=0.234  φ(h/2)=0.185  φ(h)=0.200  φ_min=0.185@0.53h  φ_core=0.1974  excess[0,1.5h]/(n_b h)=0.1269  half-box=0.1269
+   N_c=4 c_h=2 canonical-SDA  conv=yes it=   307  φ_contact=0.928  φ(h/4)=0.171  φ(h/2)=0.182  φ(h)=0.199  φ_min=0.163@0.24h  φ_core=0.1974  excess[0,1.5h]/(n_b h)=0.1887  half-box=0.1889
+   N_c=16 c_h=2 canonical-SDA conv=yes it=  1333  φ_contact=3.089  φ(h/4)=0.134  φ(h/2)=0.163  φ(h)=0.186  φ_min=0.123@0.33h  φ_core=0.1925  excess[0,1.5h]/(n_b h)=0.2467  half-box=0.2474
+   N_c=64 c_h=2 canonical-SDA conv=yes it= 12121  φ_contact=10.782  φ(h/4)=0.030  φ(h/2)=0.173  φ(h)=0.139  φ_min=0.000@0.04h  φ_core=0.1901  excess[0,1.5h]/(n_b h)=0.2860  half-box=0.2764
+   N_c=4 c_h=4 canonical-SDA  conv=yes it=   328  φ_contact=0.933  φ(h/4)=0.213  φ(h/2)=0.183  φ(h)=0.198  φ_min=0.182@0.48h  φ_core=0.1960  excess[0,1.5h]/(n_b h)=0.1612  half-box=0.1613
+   INCONCLUSIVE-THEORY check (design §9.3): |excess_SDA/excess_LDA − 1| over [D/2, D/2 + 1.5h], canonical H = 10h:
+     N_c=4 c_h=2: LDA 0.1283  SDA 0.1887  difference 47.1 %  > 20 % → INCONCLUSIVE-THEORY
+     N_c=16 c_h=2: LDA 0.1932  SDA 0.2467  difference 27.7 %  > 20 % → INCONCLUSIVE-THEORY
+     N_c=64 c_h=2: LDA 0.2374  SDA 0.2860  difference 20.5 %  (not a judged wall case)
+     N_c=4 c_h=4: LDA 0.1269  SDA 0.1612  difference 27.0 %  (not a judged wall case)
+   Functional check against the exact contact theorem (contact value of the centre density, as φ-equivalent n_c·πD²/4):
+   exact: n_contact/n_p = P/(n_p kT) (§3); the functionals report their first grid point (y = D/2 + dy/2, dy = 0.05 D)
+     N_c = 1 (plain hard wall, k_s = 0): exact 0.314  LDA 0.200  SDA 0.309
+     N_c = 4, c_h = 2 (canonical): exact (MF pressure) 1.027  LDA 0.379  SDA 0.928
+     N_c = 16, c_h = 2 (canonical): exact (MF pressure) 3.878  LDA 0.587  SDA 3.089
+     N_c = 64, c_h = 2 (canonical): exact (MF pressure) 15.281  LDA 0.758  SDA 10.782
+     N_c = 4, c_h = 4 (canonical): exact (MF pressure) 1.027  LDA 0.377  SDA 0.933
+   Reading: LDA cannot represent the hard-core contact layer (it gives φ_b at a plain hard wall); the SDA nearly
+   satisfies the contact theorem there. Most of the LDA–SDA difference in the excess comes from the contact layer.
+
+6. PLANNED CONFIGURATIONS AND VALIDITY WINDOWS
+   shear wave u_x = U₀ sin(2πy/L), U₀ = σ_v: Kn = kλ_p, ε_p = γ̇λ_p/σ_v = kλ_p, Re_k = U₀/(νk), τ = 1/(νk²) [D/σ_v]
+   design: per-seed relative ν error ≈ √(2/N)·σ_v/U₀ (ESTIMATE); heating ΔT/T = ¼(U₀/σ_v)²/C, C = 1 (A) or N_c (B, exchange)
+   N_c= 1 L=80D N=1630 Kn=ε=0.0765 Re_k=8.40 τ=107.0 collisions/τ=138 Ma=[0.456, 0.456] ΔT/T=25.0% per-seed ν error=3.50%
+   N_c= 1 L=160D N=6519 Kn=ε=0.0382 Re_k=16.81 τ=428.0 collisions/τ=551 Ma=[0.456, 0.456] ΔT/T=25.0% per-seed ν error=1.75%
+   N_c= 4 L=80D N=1630 Kn=ε=0.0765 Re_k=8.40 τ=107.0 collisions/τ=138 Ma=[0.289, 0.314] ΔT/T=6.3% per-seed ν error=3.50%
+   N_c=16 L=80D N=1630 Kn=ε=0.0765 Re_k=8.40 τ=107.0 collisions/τ=138 Ma=[0.157, 0.162] ΔT/T=1.6% per-seed ν error=3.50%
+   N_c=64 L=160D N=6519 Kn=ε=0.0382 Re_k=16.81 τ=428.0 collisions/τ=551 Ma=[0.080, 0.081] ΔT/T=0.4% per-seed ν error=1.75%
+   expected 95 % CI half-widths (design, Welch): PQ1 N_c 4/16 ±1.42%, N_c 64 ±1.95%; PQ6a ±1.73%; PQ6b ±1.42%; PQ6c ±1.76%; PQ7d ±1.42%
+   standing sound wave L = 160 D: ωτ_c = c_B k/(collision rate)
+     N_c=1: ωτ_c ∈ [0.067, 0.067]
+     N_c=4: ωτ_c ∈ [0.097, 0.105]
+     N_c=16: ωτ_c ∈ [0.188, 0.194]
+     N_c=64: ωτ_c ∈ [0.376, 0.379]
+   local equilibrium (ε_p ≤ 0.1): N_c ≲ ε a Re_δ/(Ma c_A)², a = ν/λ = 1.556
+     Re_δ = 170, Ma 0.3: N_c ≲ 61.1;  Re_δ = 1000: 359;  min Re_δ at Ma 0.3: N_c = 4 → 11.1, N_c = 16 → 44.5
+     kernel at the bridging target (N_c = 60, c_h = 4): h = 31.0 D
+   window verdicts per N_c (c_h = 2): bulk needs ε_p ≤ 0.1, L/h ≥ 10, 1/N_nb ≤ 0.1 (closure error within PQ2 margin),
+   rms F·D ≤ 0.8 kT and N_nb ≥ 12 (line L4); wall needs a fluid contact layer (canonical-LDA φ_contact < 0.70, hard-disk freezing 0.70–0.72)
+     N_c=  2: bulk OUTSIDE (1/N_nb = 0.156 > 0.1; N_nb = 6.4 < 12); wall not computed
+     N_c=  4: bulk inside; wall fluid (φ_contact 0.379)
+     N_c= 16: bulk inside; wall fluid (φ_contact 0.587)
+     N_c= 64: bulk inside; wall OUTSIDE (φ_contact 0.758 ≥ 0.70)
+     N_c=256: bulk OUTSIDE (L/h = 5.0 < 10 at L = 160 D); wall not computed
+
+6b. WALL REGIME AND THE W-MF FUNCTIONAL (design amendment A1)
+   Contact-layer core stress = P_B exactly (occupancy stress vanishes at the wall). In parcel units
+   βP_B D² = (P_B/(n_p kT))·n_p D², n_p D² = φ/(π/4). EXTERNAL comparison: hard-disk liquid–hexatic
+   transition pressure βPσ² ≈ 9.2 (Bernard & Krauth 2011). Above it the contact layer is expected to order.
+     N_c =  4: βP_B D² = 1.307  < 9.2: fluid contact layer expected  (factor 0.14)
+     N_c = 16: βP_B D² = 4.937  < 9.2: fluid contact layer expected  (factor 0.54)
+     N_c = 64: βP_B D² = 19.456  > 9.2: above melting — wall test ill-posed (excluded)  (factor 2.11)
+   W-MF functional check: P_MF[n](y₀) = Σ_{y_j<y₀<y_l} λ_j λ_l g(y_l − y_j) for a uniform density should equal
+   ½ k_s a n² (the bulk mean-field closure). Bins of D/4, plane in the middle of a 20h slab (molecular units):
+     N_c =  4: P_MF/(½ k_s a n²) = 1.00003
+     N_c = 16: P_MF/(½ k_s a n²) = 1.00000
+     N_c = 64: P_MF/(½ k_s a n²) = 1.00000
+
+runtime 136.3 s
