@@ -181,6 +181,8 @@ An excluded planned run is replaced by the next unused reserve seed of its group
 - Stage 0 runs at Courant 0.025.
 - If the Universe B stability pilots later trigger the timestep rule, all Stage 0 runs are repeated at Courant 0.0125 with the same seeds. The inputs are then re-frozen before the pre-registration.
 
+> **Notice added 2026-10-08.** This contingency is superseded by amendment A2 §1.8. Stage 0 is not repeated. Its data and its frozen mapping input K_T,A stand. Universe A's timestep dependence is checked, and the references matched to the N_c = 4 Courant numbers are measured, by the separate Stage 0b protocol (`CRITERIA_UB0_STAGE0B.md`). Stage 0b supplements Stage 0 and does not replace it.
+
 ## 10. Reproduction
 
 ```

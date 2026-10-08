@@ -1,5 +1,8 @@
 # UB-0 design amendment 1 (A1)
 
+> **Notice added 2026-10-08. The text below is unchanged from 7b8e548.** Its §4.3 energy-drift gate and timestep rule (rules 1 and 2) are superseded by [`UB0_DESIGN_AMENDMENT_2.md`](UB0_DESIGN_AMENDMENT_2.md) §1, which quotes them in full. Rule 3 (a halt is an implementation defect) is kept.
+
+
 **Date:** 2026-10-07.
 
 **What it amends:**

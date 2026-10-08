@@ -1,5 +1,17 @@
 # UB-0 pre-registration design review: the Universe B coarse-graining consistency test
 
+> **Notice added 2026-10-08. The text below is unchanged.** It is further amended by [`UB0_DESIGN_AMENDMENT_2.md`](UB0_DESIGN_AMENDMENT_2.md) (A2):
+> - the PQ7(b) drift gate restated as a rate, with per-group Courant numbers;
+> - the dt arm moved to N_c = 4;
+> - Couette deferred to UB-0W;
+> - the N_c = 64 postponement rule replaced by a feasibility rule;
+> - the release fraction ρ_rel corrected (§2.3 here; a derivation erratum);
+> - seed counts set by a pre-registered power plan on Universe A noise;
+> - the "> 10 % excluded" rule replaced by "> max(1, 10 %)".
+>
+> A2's §9 lists every superseded rule with its location here.
+
+
 > **Notice added 2026-10-07. The text below is unchanged from commit d068755.**
 > This design is amended by [`UB0_DESIGN_AMENDMENT_1.md`](UB0_DESIGN_AMENDMENT_1.md) (A1):
 > - errata for three numbers and for the word "fundamental-measure";
