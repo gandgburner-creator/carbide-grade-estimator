@@ -26,8 +26,10 @@ convergence studies, and at present they have not (see
 - UB-0 Phase 1 analytical predictions (no Universe B data): [`docs/UB0_ANALYTICAL_PREDICTIONS.md`](docs/UB0_ANALYTICAL_PREDICTIONS.md)
 - UB-0 design amendment 1 (errata, replacement wall rule, pilot and uncertainty rules; before any Universe B simulation): [`docs/UB0_DESIGN_AMENDMENT_1.md`](docs/UB0_DESIGN_AMENDMENT_1.md)
 - UB-0 Stage 0 protocol (Universe A inputs and references; written before any Stage 0 run): [`docs/CRITERIA_UB0_STAGE0.md`](docs/CRITERIA_UB0_STAGE0.md)
-- UB-0 implementation record (safeguards, findings, and three open decisions; before any Universe B pilot or judged run): [`docs/UB0_IMPLEMENTATION_RECORD.md`](docs/UB0_IMPLEMENTATION_RECORD.md)
-- UB-0 pre-registration — **DRAFT, not frozen** (open decisions D1–D3): [`docs/CRITERIA_UB0_COARSE_GRAINING.md`](docs/CRITERIA_UB0_COARSE_GRAINING.md)
+- UB-0 implementation record (safeguards, findings, the D1–D3 items and their A2 implementation; before any Universe B pilot or judged run): [`docs/UB0_IMPLEMENTATION_RECORD.md`](docs/UB0_IMPLEMENTATION_RECORD.md)
+- UB-0 design amendment 2 (D1 timestep strategy and rate gate, D2 release-fraction erratum, D3 power design, exclusion rule; before any Universe B pilot): [`docs/UB0_DESIGN_AMENDMENT_2.md`](docs/UB0_DESIGN_AMENDMENT_2.md)
+- UB-0 Stage 0b protocol (Universe A supplement: references, sound amplitude, timestep checks; written before any Stage 0b run): [`docs/CRITERIA_UB0_STAGE0B.md`](docs/CRITERIA_UB0_STAGE0B.md)
+- UB-0 pre-registration — **DRAFT, not frozen** (awaits Stage 0b, the final power and seed plans, and the blind pilots): [`docs/CRITERIA_UB0_COARSE_GRAINING.md`](docs/CRITERIA_UB0_COARSE_GRAINING.md)
 
 ## The rules the code keeps
 

@@ -1,5 +1,12 @@
 # UB-0 implementation record (before any Universe B pilot or judged run)
 
+> **Notice added 2026-10-08.** The three open items of this record have been decided:
+> - §4, the drift gate, is D1;
+> - §5, ρ_rel, is D2;
+> - §6, power, is D3.
+>
+> Amendment [`UB0_DESIGN_AMENDMENT_2.md`](UB0_DESIGN_AMENDMENT_2.md) records them, and §9 below records the implementation. §4–§6 are unchanged as the record of what was found.
+
 **Status.** Implementation and testing only. No Universe B pilot and no judged
 Universe B run has been made. No Universe B physics observable has been
 computed outside unit and plumbing tests on miniature boxes at design seeds
@@ -396,5 +403,142 @@ These follow the design's wording where it is explicit. Where it is not, the mor
 | B0 | a84411a (timing), f8cb934 (projection) |
 | Stage 0 | frozen at 9c5d530 (271 runs; 265 used) |
 | G3 predictions, frozen inputs, B0 projection | f8cb934 |
-| stability pilots | **not run**: see §4–§6 |
-| final pre-registration | `CRITERIA_UB0_COARSE_GRAINING.md` committed as a **DRAFT**: depends on §4–§6 |
+| stability pilots | **not run**: they wait for Stage 0b and the final seed plan (A2 §8) |
+| final pre-registration | `CRITERIA_UB0_COARSE_GRAINING.md` committed as a **DRAFT**: D1–D3 written in (A2); waits for Stage 0b, the final power and seed plans, and the pilots |
+| A2 (D1–D3 decided) | 5df3375 |
+| D2: ρ\* in the map; predictions regenerated | 5deceda (code), db6484a (outputs) |
+| D1, D3, exclusion rule, seed plan, Stage 0b code | 60e585c |
+| Stage 0b protocol | 32abff3 |
+| provisional power plan (Stage 0 only), docs | §9 below |
+
+---
+
+## 9. The A2 implementation (2026-10-08)
+
+Amendment A2 (`UB0_DESIGN_AMENDMENT_2.md`, 5df3375) records the decisions on §4–§6. This section records their implementation. **No Universe B pilot or judged run, and no Stage 0b run, has been made.**
+
+### 9.1 What was built
+
+| item | where | commit |
+|---|---|---|
+| ρ\* = (1 − e²)/(2(N_c − 1) + 1 − e²) in the map | `CoarseGrainMap.releaseFractionFor` | 5deceda |
+| predictions under ρ\*; ERRATUM (A2) class; post-D2 marker | `scripts/ub0-predictions.ts`, `results/ub0/predictions_*` | 5deceda, db6484a |
+| drift classes and the rate gate; comparability groups; evidence and proxies; `assignCourant`; `COURANT_ASSIGNMENT`; the pilot rule | `src/universeB/UB0Timestep.ts` | 60e585c |
+| PQ7(b) by class in judged exclusions and pilot gates | `UB0Selection.checkRun`, `UB0Blind.pilotGate` | 60e585c |
+| T4dt replaces T16dt; Couette removed; per-group Courant numbers; the A2 frozen structure; `ub0Plan` requires a FINAL power plan | `UB0Plans.ts`, `UB0Judged.ts`, `UB0Pipeline.ts` | 60e585c |
+| matched Universe A references per N_c in the judged inputs | `UB0Judged.JudgedInputs.A`, `UB0Pipeline.FrozenJudged` | 60e585c |
+| exclusion rule max(1, 10 %) | `UB0Selection.excessExclusions` | 60e585c |
+| power plan, cost model, false-PASS simulation | `src/universeB/UB0Power.ts`, `scripts/ub0-power.ts` | 60e585c |
+| seed blocks, disjointness check, seed plan | `UB0Plans.seedBlocks`, `assertDisjoint`; `results/ub0/seed_plan.json` after Stage 0b | 60e585c |
+| Stage 0b plan, contingency, aggregation, analysis script, runner plans and interlocks | `UB0Plans.stage0bPlan`, `stage0bContingency`, `UB0Stage0b.ts`, `scripts/ub0-stage0b-analysis.ts`, `scripts/ub0-run.ts` | 60e585c |
+| the A2 freeze (refuses pre-D2 predictions and open Stage 0b reviews) | `UB0Freeze.ts`, `scripts/ub0-freeze.ts` | 60e585c |
+| pilot evaluation under the A2 rule, the T64a1 feasibility rule, the cost review | `scripts/ub0-pilots-eval.ts` | 60e585c |
+| Stage 0b protocol | `docs/CRITERIA_UB0_STAGE0B.md` | 32abff3 |
+
+### 9.2 Tests
+
+46 files and 344 tests pass, including every Universe A test. These are new or changed:
+
+| file | covers |
+|---|---|
+| `universeB.predictions.test.ts`, `universeB.release.test.ts` | ρ\* for N_c 2–256 and e 0.8–0.95; the energy-partition equilibrium T_kin = T_int in the mean balance; release = loss on the real collider with the map's ρ; the superseded value's 1/(1 − ρ) |
+| `universeB.timestep.test.ts` (new) | the wave and rate gates; the rate statistic is window-independent for linear drift; the committed assignment equals the rule applied to `drift_check.json`; second-order extrapolation; review when no rung meets ¼; group-specific Courant numbers; the dt arm at N_c 4 and half Courant; halving; the pilot rule (proceed, halve, round 2, defects, dt-arm ratio) |
+| `universeB.power.test.ts` (new) | χ² quantiles against exact values; planning factors; within-cell pooling; minimal n meets each target; infeasibility stops; margins and targets as pre-registered; design floors; monotonicity in the noise and the reference; PQ5's suppressed Universe A term; determinism; false-PASS ≈ 2.5 % and below the 3.75 % bound; the cost model |
+| `universeB.plans.test.ts` (new) | the judged seed plan refuses a provisional power plan; determinism; contiguous 2n blocks; floors; seed–configuration ties; disjoint blocks; the Stage 0b plan (Universe A only, identical pooled specs, amplitude study, Courant checks, phase-2 seeds independent of the decision, the counts of record); the contingency block |
+| `universeB.stage0b.test.ts` (new) | the amplitude rule (each branch); the K check and the ν/c/S diagnostics; matched references per N_c and the contingency stop; the noise basis; the estimators on tiny real runs; the A2 freeze refusing pre-D2 predictions; per-N_c c_A in the sound band |
+| `universeB.resume.a2.test.ts` (new) | byte-identical checkpoint/resume at Courant 0.00625 and 0.003125 (Stage 0b, contingency) and for blind pilots at their assigned Courant; the runner job resumes from disk and stores only the blind record |
+| `universeB.selection.test.ts`, `universeB.judged.test.ts`, `universeB.blind.test.ts`, `universeB.pipeline.test.ts` | the A2 exclusion rule (1 exclusion does not void; 2 do); the rate gate in `checkRun`; PQ7(c)/(d) at N_c 4; per-N_c ν_A; the A2 pilot gate; the 29-group miniature pipeline |
+| `universeB.instrument.test.ts` (unchanged) | N_c = 1 ≡ the Universe A engine bit for bit; checkpoint/resume for all run kinds |
+
+**Passing tests establish only that the code does what the rules say.** They do not establish that UB-0 is scientifically valid, and that the rules are the right ones is not something a test can show.
+
+### 9.3 D2 status: done
+
+- The map uses ρ\*.
+- Both prediction outputs were regenerated at 5deceda, from a worktree pinned at that commit.
+- Against the previous outputs, only ρ-related keys changed.
+- Design check: 142 values; 130 agree, 6 rounding, 3 errata (A1), 3 errata (A2), 0 discrepancies.
+- **Stale values.** A search for the superseded 0.0317 / 0.03167 / 0.00633 / 1.0327 finds them only:
+  - in labelled erratum records;
+  - in the review-check table (the design's printed values, which are the reference of the check);
+  - in historical documents (the design, §5 of this record, A2's own table).
+- The frozen inputs (f8cb934) do not depend on ρ_rel. They stay the historical Stage 0 freeze until Stage 0b replaces them; the A2 code refuses them for any plan.
+
+### 9.4 D1 status: done, pending the pilots' confirmation
+
+- The assignment of A2 Table 1.3 is generated by the rule and locked by a test.
+- The N_c 4 near-equilibrium entries (0.00625) and the sound and T64a1 entries rest on extrapolation or proxies. The full-length pilots check them under the ½ rule before any judged run.
+
+### 9.5 D3 status: implemented; the final counts wait for Stage 0b
+
+**The provisional plan** (`results/ub0/power_plan_provisional.json`): Stage 0 alone, finer-Courant references stood in by their 0.025 values. It is refused as a seed allocation.
+
+| groups | count |
+|---|---|
+| T4a1, T16a1 | 238 each |
+| T4a05, T16a05 | 476 each |
+| T16e08, T16e095 | 168 each |
+| T4c4 | 55 |
+| T4dt | 48 |
+| T64a1 | 1325 (Stage 0's 12-seed L 160 reference) |
+| SL4, SL16 | 20, 19 |
+| L4, L16, L64 | 17, 41, 74 |
+| W4c2, W16c2 | 88 each |
+| SK, W4c4 | floors |
+
+**A projection of the final plan.** This is NOT data. It assumes Stage 0b reproduces Stage 0's per-seed SDs, with its planned df and reference sizes; the PQ3 intervals are still Stage 0's.
+
+| groups | count |
+|---|---|
+| T4a1, T16a1 | 232 each |
+| T4a05, T16a05 | 463 each |
+| T16e08, T16e095 | 155 each |
+| T4c4 | 51 |
+| T64a1 | 15 |
+| SL4, SL16 | 14 each |
+| W4c2, W16c2 | 40 each |
+| L4, L16, L64 at amplitude 0.02 | 14, 33, 58 |
+| L4, L16, L64 if 0.04 halves c's scatter | 6, 10, 17 |
+
+**False-PASS simulation** at the margin edge, with the provisional counts, 20 000 replicates:
+
+| | per side |
+|---|---|
+| first look | 2.49–2.80 % |
+| with the single extension | ≤ 3.29 %, against the 3.75 % union bound |
+
+PQ1.64's 2.80 % is the Welch approximation with a 12-seed reference dominating the variance. It is expected to approach 2.5 % with Stage 0b's 100-seed reference. The rule is unchanged; this is the measured accuracy of its approximation.
+
+### 9.6 Compute budget (B0 model, ESTIMATE)
+
+| block | core-hours |
+|---|---|
+| Stage 0b (Universe A) | ≈ 38 (phase 1 ≈ 24, phase 2 ≈ 14) |
+| stability pilots | ≈ 14, plus a round 2 for any halved group |
+| judged, planned seeds | ≈ 295 (amplitude 0.04 selected) to ≈ 353 (0.02) |
+| the single extension | arms and sound only ≈ 150–205; every bulk group doubled ≈ 260–320 (upper bound) |
+| **total** | **≈ 350–405 expected; ≤ ≈ 725 if every bulk primary were extended** |
+
+Compared with the review's figures (≈ 280 judged, ≈ 345 total), the judged runs are larger. The causes are the wall gates at ½ of tolerance (40 seeds rather than 16), SL (14 rather than 13) and L64 (17–58 rather than 40). On this 4-core machine the expected total is ≈ 4 days.
+
+### 9.7 What must happen next
+
+Stage 0b must run next. It is the precondition of everything after it:
+
+1. the predictions with its inputs;
+2. the frozen inputs;
+3. the final power plan and the seed plan;
+4. the pilots.
+
+The pilots cannot run before it: the runner refuses them without the A2 frozen inputs, the final power plan and the seed plan.
+
+### 9.8 Remaining scientific ambiguities (none requires a change of hypothesis)
+
+1. **The transfer of per-seed scatter from Universe A to Universe B** (A2 §3.3). It is well founded for ν (equipartition, confirmed 1/√N scaling). It is an assumption for c, S and the wall gates, which can err either way. A shortfall makes a primary INCONCLUSIVE; it never makes it PASS.
+2. **The cause of c's 4.8 % per-seed scatter in Universe A** is not understood. The amplitude study tests one hypothesis (signal-to-noise). If 0.04 does not help, the PQ3 counts stay larger (L64 ≈ 58).
+3. **PQ7(c) at N_c 4 between 0.0125 and 0.00625** is untested. The measured order at 0.025 → 0.0125 is 3.5–4.8. A drift floor at 0.00625 would make PQ7(c) fail and void UB-0 (F0). The pilot pair gives a single-seed check (review if below 2.5); it is not a guarantee.
+4. **K_T,A at 0.025 is the PQ2 reference for the N_c 4 static runs at 0.00625.** Stage 0b's K check bounds the difference to ± 3.3 % at 95 %. Any real difference inside that bound enters PQ2 unmodelled.
+5. **PQ3 at N_c 4.** The target is ½ of the judged interval's half-width (±0.08), which exceeds the ±0.05 tolerance outside the band. If the true Γ_self lies near a band edge, P-INC is not reachable at the planned counts, and PQ3.4 would be INCONCLUSIVE. This was accepted in A2 §3.5; the interval itself is unchanged.
+6. **The wall statistic R and PQ4, PQ8** have no Universe A analogue, so their precision is not planned.
+7. **The rate gate relaxes the design's absolute 10⁻⁴** for windows longer than 500 D/σ_v, by up to 8.4×. A2 §1.2 bounds the resulting bias at ≤ 7 % of each CI. It is a criterion amendment I made as the decision-maker, and it is named as such.
+

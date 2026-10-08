@@ -2,19 +2,12 @@
 
 > **STATUS: DRAFT — NOT FROZEN. No judged Universe B run may be made against this document.**
 >
-> Three decisions are open. Until all three are made and written in, this document is a draft:
+> The three open decisions D1–D3 are decided and recorded in amendment A2 (`UB0_DESIGN_AMENDMENT_2.md`), and implemented. What remains before the freeze (A2 §8):
 >
-> - **[D1] the energy-drift gate and the Courant number** (`UB0_IMPLEMENTATION_RECORD.md` §4), marked [D1] below;
-> - **[D2] the release fraction ρ_rel** (`UB0_IMPLEMENTATION_RECORD.md` §5), marked [D2] below;
-> - **[D3] the seed counts of the transverse-wave arms** (`UB0_IMPLEMENTATION_RECORD.md` §6), marked [D3] below.
->
-> Freezing it means:
->
-> 1. resolve [D1]–[D3];
-> 2. run the stability pilots under A1 §4.3;
-> 3. write in the pilot outcome and the B0 table;
-> 4. remove this banner;
-> 5. commit and tag (`ub0-prereg`).
+> 1. Stage 0b (Universe A; `CRITERIA_UB0_STAGE0B.md`), and its analysis;
+> 2. the predictions with the Stage 0b inputs; the frozen inputs (A2 structure); the FINAL power plan and the seed plan. The values marked **[Stage 0b]** below are filled in from these;
+> 3. the blind stability pilots under A2 §1.5, and their outcome written in here;
+> 4. remove this banner; commit and tag (`ub0-prereg`).
 >
 > The judged runner refuses to start unless `--approved-commit` equals that commit and the tree is clean.
 
@@ -23,9 +16,11 @@
 - the design review: `REVIEW_UB0_PREREGISTRATION_DESIGN.md` (d068755), "the design";
 - design amendment 1: `UB0_DESIGN_AMENDMENT_1.md` (7b8e548), "A1";
 - the Stage 0 protocol: `CRITERIA_UB0_STAGE0.md` (f0bd9bc);
+- design amendment 2: `UB0_DESIGN_AMENDMENT_2.md` (5df3375), "A2";
+- the Stage 0b protocol: `CRITERIA_UB0_STAGE0B.md`;
 - the implementation record: `UB0_IMPLEMENTATION_RECORD.md`.
 
-Where this document and the design differ, this document and A1 govern, and each difference is listed in §15.
+Where this document and the design differ, this document, A1 and A2 govern, and each difference is listed in §15.
 
 The Item 1, 2 and 3 classifications are untouched.
 
@@ -68,15 +63,17 @@ Molecular units m = d = kT = 1; φ = 0.2.
 | k_s | (N_c − 1) K_T,A/(n φ), evaluated at φ = 0.2 for every run | mean-field closure on Universe A |
 | h | c_h √N_c D; baseline c_h = 2, arm c_h = 4 | choice |
 | e | baseline 0.9; arms 0.8, 0.95 | choice |
-| ρ_rel | **[D2]**: design (1 − e²)/(2(N_c − 1)) **or** ρ* = (1 − e²)/(2(N_c − 1) + 1 − e²) | derived |
+| ρ_rel | (1 − e²)/(2(N_c − 1) + 1 − e²): the mean balance of A-16 as coded at T_kin = T_int (A2 §2; corrects the design's (1 − e²)/(2(N_c − 1))) | derived |
 
 **Frozen Stage 0 input.** K_T,A/(n kT) = 2.37564 ± 0.00249 (df 13.9), from `results/ub0/frozen_inputs.json`. It comes from Stage 0 (9c5d530), with the predictions at f8cb934. It is the only Universe A value that sets a Universe B parameter.
 
-| N_c | M | D | h/D (c_h 2) | k_s | ρ_rel (design / ρ*) | E_int |
+| N_c | M | D | h/D (c_h 2) | k_s | ρ_rel (e 0.9) | E_int |
 |---|---|---|---|---|---|---|
-| 4 | 4 | 2 | 4 | 35.635 | 0.03167 / 0.03069 | 3 |
-| 16 | 16 | 4 | 8 | 178.173 | 0.00633 / 0.00629 | 15 |
-| 64 | 64 | 8 | 16 | 748.328 | 0.00151 / 0.00151 | 63 |
+| 4 | 4 | 2 | 4 | 35.635 | 0.030695 | 3 |
+| 16 | 16 | 4 | 8 | 178.173 | 0.006293 | 15 |
+| 64 | 64 | 8 | 16 | 748.328 | 0.001506 | 63 |
+
+The e arms at N_c = 16: ρ_rel = 0.011858 (e 0.8) and 0.003239 (e 0.95). Source: `results/ub0/predictions_stage0.*`, regenerated at 5deceda after the D2 correction.
 
 ## 3. Configurations, run lengths and seeds
 
@@ -84,38 +81,47 @@ Molecular units m = d = kT = 1; φ = 0.2.
 
 - Every run is prepared as in A-23: 100 D/σ_v, one rescale (periodic kinds), 20 D/σ_v.
 - The shear-wave measured window is 1.5 τ_D, with τ_D = L²/(4π² ν_D) and ν_D = 0.351/ρ.
-- Standing waves run for 14 periods L/c_lo, where c_lo is the lower edge of the G3 c_B band.
+- Standing waves run for 14 periods L/c_lo, where c_lo is the lower edge of the G3 c_B band computed with the N_c's matched c_A (A2 §1.4).
 - Sample intervals: 0.5 D/σ_v for waves, 1 D/σ_v otherwise.
+- **Courant numbers** are per comparability group (A2 §1.3, Table 1.3).
+- **Seed counts** are set by the power plan (A2 §3), with the design's counts as floors. The provisional values are from Stage 0 alone (`results/ub0/power_plan_provisional.json`); the final ones are **[Stage 0b]**.
 
-| group | kind | N_c | c_h | e | box (D) | U₀ / amplitude | measured window (D/σ_v) | seeds |
-|---|---|---|---|---|---|---|---|---|
-| SK{4,16,64}c2p{18,20,22}, SK4c4p{18,20,22} | static | 4, 16, 64; arm 4 | 2; 4 | 0.9 | L 80, φ 0.18 / 0.20 / 0.22 | — | 500 | 8 each |
-| SL4, SL16 | static (+ g(r), ψ₆, MSD) | 4, 16 | 2 | 0.9 | L 80 | — | 4200 | 4 each |
-| T4a1, T16a1 | shear wave | 4, 16 | 2 | 0.9 | L 80 | σ_v | 1.5 τ_D(80) = 176.4 | 48 each **[D3]** |
-| T4a05, T16a05 | shear wave | 4, 16 | 2 | 0.9 | L 80 | σ_v/2 | 176.4 | 96 each **[D3]** |
-| T64a1 | shear wave | 64 | 2 | 0.9 | L 160 | σ_v | 1.5 τ_D(160) = 705.7 | 6 |
-| T16e08, T16e095 | shear wave | 16 | 2 | 0.8; 0.95 | L 80 | σ_v | 176.4 | 48 each |
-| T4c4 | shear wave | 4 | 4 | 0.9 | L 80 | σ_v | 176.4 | 24 |
-| T16dt | shear wave, half Courant | 16 | 2 | 0.9 | L 80 | σ_v | 176.4 | 48 |
-| L4, L16, L64 | standing longitudinal wave | 4, 16, 64 | 2 | 0.9 | L 160 | 0.02 c_mid (0.066 / 0.125 / 0.248 σ_v) | 14 × L/c_lo = 704.4 / 362.6 / 181.6 | 4 each |
-| W4c2, W16c2, W4c4 | static wall box (Maxwell, Aw 1) | 4, 16; arm 4 | 2; 4 | 0.9 | width 40, H = 10h | — | 2000 (after 640) | 4 each |
-| C4, C16 (secondary) | Couette, walls ±σ_v/2 | 4, 16 | 2 | 0.9 | width 40, H 40 | — | 3000 (after 3H²/ν_D) | 4 each |
+| group | kind | N_c | c_h | e | box (D) | U₀ / amplitude | measured window (D/σ_v) | Courant | seeds: design floor / provisional |
+|---|---|---|---|---|---|---|---|---|---|
+| SK4c2p{18,20,22}, SK4c4p{18,20,22} | static | 4 | 2; 4 | 0.9 | L 80, φ 0.18 / 0.20 / 0.22 | — | 500 | 0.00625 | 8 / 8 |
+| SK{16,64}c2p{18,20,22} | static | 16, 64 | 2 | 0.9 | L 80 | — | 500 | 0.025 | 8 / 8 |
+| SL4 | static (+ g(r), ψ₆, MSD) | 4 | 2 | 0.9 | L 80 | — | 4200 | 0.00625 | 4 / 20 |
+| SL16 | static (+ g(r), ψ₆, MSD) | 16 | 2 | 0.9 | L 80 | — | 4200 | 0.025 | 4 / 19 |
+| T4a1, T16a1 | shear wave | 4, 16 | 2 | 0.9 | L 80 | σ_v | 1.5 τ_D(80) = 176.4 | 0.0125; 0.025 | 48 / 238 each |
+| T4a05, T16a05 | shear wave | 4, 16 | 2 | 0.9 | L 80 | σ_v/2 | 176.4 | 0.0125; 0.025 | 96 / 476 each |
+| T64a1 | shear wave | 64 | 2 | 0.9 | L 160 | σ_v | 1.5 τ_D(160) = 705.7 | 0.025 | 6 / **[Stage 0b]** (≈ 15 projected with 100 reference seeds; 1325 on Stage 0's 12) |
+| T16e08, T16e095 | shear wave | 16 | 2 | 0.8; 0.95 | L 80 | σ_v | 176.4 | 0.025 | 48 / 168 each |
+| T4c4 | shear wave | 4 | 4 | 0.9 | L 80 | σ_v | 176.4 | 0.0125 | 24 / 55 |
+| **T4dt** (dt arm) | shear wave, half the N4-shear Courant number | 4 | 2 | 0.9 | L 80 | σ_v | 176.4 | 0.00625 | 48 / 48 |
+| L4 | standing longitudinal wave | 4 | 2 | 0.9 | L 160 | a × c_mid, a = 0.02 or 0.04 **[Stage 0b §4]** | 14 × L/c_lo | 0.00625 | 4 / 17 |
+| L16, L64 | standing longitudinal wave | 16, 64 | 2 | 0.9 | L 160 | a × c_mid | 14 × L/c_lo | 0.025 | 4 / 41, 74 |
+| W4c2 | static wall box (Maxwell, Aw 1) | 4 | 2 | 0.9 | width 40, H = 10h | — | 2000 (after 640) | 0.00625 | 4 / 88 |
+| W16c2, W4c4 | static wall box | 16; arm 4 | 2; 4 | 0.9 | width 40, H = 10h | — | 2000 (after 640) | 0.0125 | 4 / 88; 4 / 4 |
 
-**Seed blocks.**
+**Removed from UB-0 by A2.**
 
-- Judged: **20001–21196**, 598 planned + 598 reserve; each group takes a contiguous block of 2n, planned seeds first. The design's 8201–8999 cannot hold 1196 seeds; this is a numbering change only.
-- Stability pilots: 9501–9531.
+- Couette (C4, C16) is deferred to UB-0W (A2 §1.6).
+- The dt arm T16dt is replaced by T4dt (A2 §1.4).
+
+**Seed blocks (A2 §6).**
+
+- Judged: from **20001**, a contiguous block of 2n per group in the order of `ub0Groups` (planned, then reserve), generated by `scripts/ub0-power.ts` from the FINAL power plan into `results/ub0/seed_plan.json` **[Stage 0b]**.
+- Stage 0b (Universe A): 11001–12382; its contingency block 12401–12792.
+- Stability pilots: 9501 + the group's index (round 2 reuses them).
 - B0: 9901+.
 - Tests and the integrator check: 9001–9999.
 
 None of the non-judged seeds is ever judged.
 
-**Timestep. [D1]** The baseline is Courant 0.025, the dt arm (T16dt) 0.0125. The A1 §4.3 rule applies:
+**Timestep (A2 §1).**
 
-- a pilot over its drift gate at 0.025 ⇒ 0.0125 throughout, with Stage 0 repeated at 0.0125 and re-frozen;
-- the dt arm then runs at 0.00625.
-
-The resolution of [D1] is written here.
+- Each comparability group runs at the largest Courant number in {0.025, 0.0125, 0.00625} at which every member's drift is ≤ ¼ of its gate (integrator check, 2900d89).
+- The pilots then apply the ½-gate rule (§10).
 
 ## 4. Primaries, margins and decision rules
 
@@ -133,15 +139,15 @@ The resolution of [D1] is written here.
 
 | id | statistic | reference | margin / outcome | configurations |
 |---|---|---|---|---|
-| **PQ1** | ν_B/ν_A (thermal-time fit of the shear-wave decay, A-22) | ν_A at L 80 d (N_c 4, 16) and L 160 d (N_c 64), Stage 0 | [0.90, 1.10] | T4a1, T16a1, T64a1 |
+| **PQ1** | ν_B/ν_A (thermal-time fit of the shear-wave decay, A-22) | ν_A at L 80 d (N_c 4, 16) and L 160 d (N_c 64), Stage 0 + Stage 0b, at the N_c's shear-group Courant number (A2 §1.4) | [0.90, 1.10] | T4a1, T16a1, T64a1 |
 | **PQ2** | K_B/K_T,A, K_B = (φ/Δφ)(P̂(0.22) − P̂(0.18)), with P̂ = (P_kin + P_coll)/T_meas + P_occ | K_T,A, Stage 0 | [0.90, 1.10] | SK*c2p18/p22 |
-| **PQ3** | Γ_self = ρc_B²/K_B(k), K_B(k) by the same central difference of (P_kin + P_coll)/T + W̃(k_L h)·P_occ | judged interval [1 + Δ_A,lo/N_c² − 0.05, 1 + Δ_A,hi/N_c + 0.05] = [1.0074, 1.3338] / [0.9536, 1.1209] / [0.9502, 1.0677] (Γ_A = 2.0265 ± 0.0506) | **P-INC**: CI inside; **T-FAIL-high/low**: CI entirely above/below; INCONCLUSIVE otherwise | L{4,16,64} with SK*c2 |
+| **PQ3** | Γ_self = ρc_B²/K_B(k), K_B(k) by the same central difference of (P_kin + P_coll)/T + W̃(k_L h)·P_occ | judged interval [1 + Δ_A,lo/N_c² − 0.05, 1 + Δ_A,hi/N_c + 0.05] per N_c from that N_c's matched c_A: **[Stage 0b]** (with Stage 0 alone: [1.0074, 1.3338] / [0.9536, 1.1209] / [0.9502, 1.0677], Γ_A = 2.0265 ± 0.0506) | **P-INC**: CI inside; **T-FAIL-high/low**: CI entirely above/below; INCONCLUSIVE otherwise | L{4,16,64} with SK*c2 |
 | **PQ4** | T_kin/T_int and a₂ (time and parcel averages, per seed) | 1 and 0 | [0.97, 1.03] and \|a₂\| ≤ 0.03; FAIL if either FAILs, PASS if both PASS | SK*c2p20 + SL* |
-| **PQ5** | S_B/S_RPA at the two lowest shells of L 80 D; 1/S_RPA = 1/S_A + (N_c − 1)(K_T,A/(nkT)) W̃(kh) | S_A(k), Stage 0 | [0.90, 1.10] each shell; FAIL if either FAILs | SL4, SL16 |
+| **PQ5** | S_B/S_RPA at the two lowest shells of L 80 D; 1/S_RPA = 1/S_A + (N_c − 1)(K_T,A/(nkT)) W̃(kh) | S_A(k), Stage 0 + Stage 0b, at SL4's / SL16's Courant number | [0.90, 1.10] each shell; FAIL if either FAILs | SL4, SL16 |
 | **PQ6a** | ν(U₀ = σ_v)/ν(σ_v/2) | — | [0.95, 1.05] | T{4,16}a1 vs a05 |
 | **PQ6b** | ν(e 0.8)/ν(e 0.95) | — | [0.95, 1.05] | T16e08 vs T16e095 |
 | **PQ6c** | ν(c_h 4)/ν(c_h 2) and K(c_h 4)/K(c_h 2) | — | ν [0.93, 1.07]; K [0.90, 1.10] | T4c4 vs T4a1; SK4c4 vs SK4c2 |
-| **PQ7** | numerical gate: (a) momentum residual/(N M σ_v) ≤ 10⁻⁹; (b) energy drift over the measured window ≤ 1 % of the imposed wave energy (waves), ≤ 10⁻⁴ of the total energy (static, wall, Couette) **[D1]**; (c) mean \|drift\|(dt)/mean \|drift\|(dt/2) ≥ 2.5 (T16a1 vs T16dt); (d) ν(dt/2)/ν(dt) ∈ [0.97, 1.03]; (e) unexplained late contacts = 0 | — | violation of (a), (b) or (e) excludes a run (§9); (c) FAIL, (d) FAIL or (e) in an included run ⇒ F0; (d) INCONCLUSIVE is a numerical caveat | all |
+| **PQ7** | numerical gate: (a) momentum residual/(N M σ_v) ≤ 10⁻⁹; (b) energy drift over the measured window ≤ 1 % of the imposed wave energy (shear waves); \|ΔE/E\| ≤ 2 × 10⁻⁷ per D/σ_v of measured window (static, sound, wall; A2 §1.2); (c) mean \|drift\|(dt)/mean \|drift\|(dt/2) ≥ 2.5 (T4a1 vs T4dt; A2 §1.4); (d) ν(dt/2)/ν(dt) ∈ [0.97, 1.03]; (e) unexplained late contacts = 0 | — | violation of (a), (b) or (e) excludes a run (§9); (c) FAIL, (d) FAIL or (e) in an included run ⇒ F0; (d) INCONCLUSIVE is a numerical caveat | all |
 | **PQ8** | occupancy share of the projected shear stress, s_occ | — | PASS iff CI < 0.20; FAIL iff CI ≥ 0.20 | T4a1, T16a1, T64a1 |
 
 **Arms reported with the primaries.** These feed F2 and F4:
@@ -151,7 +157,7 @@ The resolution of [D1] is written here.
 
 **Predictions for comparison (not margins).**
 
-- PQ4 under the implemented release law **[D2]**: T_kin/T_int = 1.0327 / 1.0064 / 1.0015 (design ρ_rel), or 1 (ρ*). Source: `results/ub0/predictions_stage0.txt` §1b.
+- PQ4 under the map's ρ_rel (A2 §2): T_kin/T_int = 1 at every N_c and e, in the mean. Source: `results/ub0/predictions_stage0.txt` §1b (5deceda).
 - Mean-field Z_B/Z_A: 0.8171 / 0.7714 / 0.7600.
 - c_B/c_A bands: [0.7247, 0.7875] / [0.7039, 0.7247] / [0.7026, 0.7081].
 - W̃(k_L h) at L 160 D: 0.99890 / 0.99560 / 0.98251. Source: `results/ub0/predictions_stage0.txt`.
@@ -195,7 +201,7 @@ A failure of the current pressure closure is therefore not a failure of all poss
 
 | label | trigger |
 |---|---|
-| **F0** | PQ7 (c) or (d) FAIL; (e) in an included run; > 10 % of a bulk configuration's examined runs excluded |
+| **F0** | PQ7 (c) or (d) FAIL; (e) in an included run; more than max(1, 10 %) of a bulk configuration's examined runs excluded (A2 §4) |
 | **F3** | PQ8 FAIL; or PQ6b FAIL; or PQ1 FAIL with s_occ ≥ 0.20 (N_c ≤ 16 when F6) |
 | **F1** | PQ4 FAIL at any N_c; or PQ1 FAIL while PQ8 PASS, PQ6b not FAIL and PQ6c PASS |
 | **F2** | PQ2 FAIL at N_c 4 in both c_h arms; or PQ2 FAIL at 16 (or at 64 unless F6); or PQ5 FAIL with PQ2 PASS; or PQ3 T-FAIL-low |
@@ -220,7 +226,7 @@ A failure of the current pressure closure is therefore not a failure of all poss
 
 | verdict | condition |
 |---|---|
-| **VOID** | any gate FAIL, or > 10 % excluded, at W4c2 or W16c2 |
+| **VOID** | any gate FAIL, or more than max(1, 10 %) excluded, at W4c2 or W16c2 |
 | **F5-impl** | the R CI inside the margin at both N_c 4 and 16 (c_h 2) |
 | **F5-phys** | the R CI entirely outside at either |
 | **INCONCLUSIVE** | otherwise |
@@ -234,7 +240,7 @@ The c_h = 4 arm and all report-only items of A1 §2.4 are reported. N_c = 64 is 
 - a halt or safety failure;
 - a non-finite state;
 - PQ7(a) in any phase;
-- PQ7(b) over the measured window;
+- PQ7(b) over the measured window: the A2 gate of its drift class (§4, PQ7);
 - lost collision events.
 
 Unexplained late contacts are **not** an exclusion; they void (F0).
@@ -242,10 +248,10 @@ Unexplained late contacts are **not** an exclusion; they void (F0).
 **Reserves.**
 
 - An excluded run is replaced by the next reserve seed of its group, in seed order.
-- > 10 % of a configuration's examined runs excluded ⇒ F0 for that configuration:
+- More than **max(1, 10 %)** of a configuration's examined runs excluded ⇒ F0 for that configuration (A2 §4; `UB0Selection.excessExclusions`):
   - bulk configurations ⇒ F0 for the bulk verdict;
-  - W4c2 or W16c2 ⇒ wall VOID;
-  - Couette ⇒ reported.
+  - W4c2 or W16c2 ⇒ wall VOID.
+- A single excluded run, replaced from its reserve, never voids a group by itself.
 
 **Run halves (design §11.5.1).** A static group is NON-STATIONARY if the 95 % CI of the seed-averaged (first − second half) difference excludes zero by more than:
 
@@ -275,24 +281,41 @@ The primaries a NON-STATIONARY group feeds are INCONCLUSIVE.
 
 **Multiplicity.** Each primary is its own gate (design §11.7). No further correction is applied.
 
-## 10. Timestep and conservation criteria
+**Power and false-PASS control (A2 §3).**
 
-- PQ7 as in §4.
-- The pilot timestep rule of A1 §4.3, implemented in `UB0Blind.timestepDecision`, with the base fixed at 0.025.
-- Max ω·dt on sample steps is reported, against the design's 0.02 (§11.6). It is not a gate.
-- Late-contact fractions, the achieved Courant number and ledgers are reported per run.
-- **[D1]** The resolution of the drift item goes here. Evidence: `results/ub0/implementation/drift_check.json`.
+- Seed counts come from the pre-registered power plan on Universe A noise.
+  - The planning SD is the 80 % upper confidence bound.
+  - Targets are expected CI half-widths of ⅓ (PQ1, PQ2) or ½ (PQ3, PQ5, PQ6a–c, wall gates) of the unchanged margins.
+  - The design's counts are floors.
+- **False PASS.** A primary judged at the first look has a false-PASS probability ≤ 2.5 % per side for any n. An extended primary has ≤ 3.75 % per side (union bound). Both are checked by simulation in the power plan file.
+
+## 10. Timestep and conservation criteria (A2 §1)
+
+- **PQ7** as in §4. The drift gate is by class:
+  - shear waves: ≤ 1 % of the wave energy;
+  - static, sound and wall runs: ≤ 2 × 10⁻⁷ |ΔE/E| per D/σ_v.
+- **Courant numbers** per comparability group (A2 Table 1.3): N4-static 0.00625; N4-shear 0.0125, with the dt arm T4dt at 0.00625; W4c2 0.00625; W4c4 and W16c2 0.0125; every N_c 16 and 64 group 0.025.
+- **The pilot rule** (`UB0Timestep.pilotDecision`; A2 §1.5):
+  - a pilot above ½ of its gate halves its comparability group once;
+  - above ½ again, a halt, a defect, or a dt-arm pilot drift ratio below 2.5 ⇒ review.
+- **Pilot outcome:** **[pilots]**.
+- **Reported, not gates:** max ω·dt on sample steps (against the design's 0.02, §11.6); late-contact fractions, the achieved Courant number and the ledgers, per run.
 
 ## 11. Computational protocol
 
-- **Code.** The commit of this document. The judged runner is `scripts/ub0-run.ts --plan ub0 --approved-commit <this commit>`; it refuses a dirty tree or another HEAD.
-- **Checkpoints.** Per-run checkpoints are byte-identical on resume (tested for all run kinds at N_c 1 and 4). Results are atomic files; checkpoints, which hold the microstate, are deleted on completion.
+- **Code.** The commit of this document. The judged runner is `scripts/ub0-run.ts --plan ub0 --approved-commit <this commit>`.
+  - It refuses a dirty tree or another HEAD.
+  - It regenerates the plan from the frozen inputs, the FINAL power plan and the pilot timestep decision.
+- **Checkpoints.** Per-run checkpoints are byte-identical on resume (tested for all run kinds at N_c 1 and 4). Results are atomic files. Checkpoints, which hold the microstate, are deleted on completion.
 - **Code changes during the judged runs.** Allowed only for crash or resume fixes proven byte-identical (design G6). Anything else is a deviation that voids the affected configuration.
 - **Timing is not data.** Wall-clock appears only in `timing` and `timings.log`.
 - **Cost.** B0 (`results/ub0/b0/b0.json`): 0.139 µs + 36.7 ns · c_h²N_c per parcel-step; G = 3.9 / 20 / 91 (c_h 2).
-  - Planned judged seeds: ≈ 86 core-hours at Courant 0.025.
-  - Design rule (§12.4): if B0 puts the T64a1 runs above 4 core-hours per seed, they are **postponed, not shrunk**, and the bulk verdict covers N_c ≤ 16 ("64 not run (cost)", distinct from F6).
-  - T64a1 ≈ 3.2 core-hours per seed at 0.025: not triggered. At 0.0125 (≈ 6.4) it would be. **[D1]**
+  - The projection per group, at its Courant number and its powered count, is in the power plan file. Planned: **[Stage 0b]**.
+- **N_c = 64 (A2 §1.7).** T64a1 is run at its powered count. It is postponed — never shrunk; "64 not run (infeasible)", distinct from F6 — only if:
+  - its pilot halts or shows a defect that review does not resolve; or
+  - its pilot-measured cost per seed exceeds 2 × the B0 projection (≈ 3.2 core-hours at 0.025).
+  - The design's 4-core-hour threshold (§12.4) is superseded.
+- A pilot-measured judged cost above 1.5 × the committed projection ⇒ review. No seed count is shrunk to fit a budget.
 
 ## 12. Philosophy checks (design §14)
 
@@ -326,18 +349,26 @@ The crossing ledger L1–L4 is reported by the analysis, each line as held / cro
 - The kernel shape is inherited and untested.
 - Wall transport is untested (UB-0W).
 - No thermal occupancy law (UB-1).
-- Small ν arms for N_c = 64 (6 seeds, at L 160 only).
+- N_c = 64 is tested at one box size (L 160) only. Its seed count is set by the power plan; it is ≈ 15 (projected) if the Stage 0b reference reaches its planned precision.
+- The transfer of per-seed scatter from Universe A to Universe B is an assumption (A2 §3.3). For c, S and the wall gates it can err in either direction. A precision shortfall makes a primary INCONCLUSIVE; it never makes it PASS.
 
 ## 15. Differences from the design and A1 (all decided before any judged run)
 
 | item | design / A1 | here | why |
 |---|---|---|---|
-| judged seed block | 8201–8999 | 20001–21196 | 1196 seeds needed |
+| judged seed block | 8201–8999 | from 20001, 2n per group, generated from the final power plan | the design block cannot hold the seeds; A2 §6 |
 | lost collision events | not listed | an exclusion | instrument integrity, as in Stage 0 |
 | (e) unexplained late contacts | PQ7 violation | F0, not an exclusion; the phase-boundary artifact removed from the instrument | implementation record §3.5 |
 | extension scope | "the configuration" | every configuration entering the primary; only that primary uses the doubled data | no second look for other primaries |
 | wall statistic | — | not extended | not a bulk primary |
 | plane walls under forces | — | contact-instant evaluation (model p0.5) | implementation record §3.1 |
-| ρ_rel | design formula | **[D2]** | implementation record §5 |
-| drift gate / Courant | as designed | **[D1]** | implementation record §4 |
-| seed counts of the ν arms | design §11.2 | **[D3]** | implementation record §6 (Stage 0 scatter ≈ 3× the analytic estimate) |
+| ρ_rel | (1 − e²)/(2(N_c − 1)) | (1 − e²)/(2(N_c − 1) + 1 − e²) | A2 §2 (derivation erratum; implementation record §5) |
+| drift gate | ≤ 10⁻⁴ of the total energy (static, wall, Couette); sound ≤ 1 % of wave energy | ≤ 2 × 10⁻⁷ per D/σ_v (static, sound, wall); shear unchanged | A2 §1.2 (implementation record §4) |
+| Courant number | 0.025 throughout, with A1's halving rule | per comparability group, ¼-gate selection; ½-gate pilot rule | A2 §1.3, §1.5 |
+| dt arm | T16dt (N_c 16) | T4dt (N_c 4) | A2 §1.4 |
+| Couette | C4, C16 (secondary) | deferred to UB-0W | A2 §1.6 |
+| N_c 64 postponement | > 4 core-h per seed (B0) | feasibility rule | A2 §1.7 |
+| seed counts | design §11.2 | the power plan on Universe A noise; design counts as floors | A2 §3 (implementation record §6) |
+| exclusions ⇒ F0 | > 10 % | > max(1, 10 %) | A2 §4 |
+| Universe A references | Stage 0 at Courant 0.025 | Stage 0 + Stage 0b, matched to each group's Courant number; K_T,A unchanged | A2 §1.4, Stage 0b protocol |
+| sound amplitude | 0.02 c_mid | 0.02 or 0.04, by the Stage 0b rule | Stage 0b protocol §4 |

@@ -1,0 +1,1390 @@
+{
+ "commit": "32abff34c2d4f934ebdca64837671c1d507abbf8",
+ "generated": "2026-10-08T14:21:54.997Z",
+ "note": "PROVISIONAL (Stage 0 only). Not a seed allocation: every count is unresolved until Stage 0b; UB0Plans.ub0Plan refuses this file.",
+ "b0": {
+  "commit": "a95dd40c8ecaecbfc0c1807124c1f5d211520762",
+  "note": "cost per seed: B0 µs per parcel-step × parcels × steps at the assigned Courant number (ESTIMATE)"
+ },
+ "courantAssignment": {
+  "N4-static": 0.00625,
+  "N4-shear": 0.0125,
+  "W4c2": 0.00625,
+  "W4c4": 0.0125,
+  "W16c2": 0.0125,
+  "N16-static": 0.025,
+  "N16-shear": 0.025,
+  "N64-static": 0.025,
+  "N64-shear": 0.025
+ },
+ "status": "provisional",
+ "basis": {
+  "noise": "Stage 0 (f0bd9bc5bcf65b155bf895d62e2f4ed500553941), Courant 0.025 cells only",
+  "references": "Stage 0 values; the finer-Courant matched references (Stage 0b) stood in by their Courant 0.025 values",
+  "judgedGamma": "predictions_stage0 (5deceda0fa73fddb843d7edbd51c0068c432f81c; post-D2), Stage 0 c_A at every N_c"
+ },
+ "noise": {
+  "nuL80a1": {
+   "sd": 0.10606072120513882,
+   "df": 93,
+   "relative": true,
+   "source": "ν per seed, L 80 d, U₀ = c_th",
+   "cells": [
+    {
+     "label": "Courant 0.025: s0:T80a1 + s0b:T80a1",
+     "n": 94,
+     "mean": 1.5151122084898172,
+     "sd": 0.16069389353914068
+    }
+   ],
+   "planningFactor": 1.0690374560464673,
+   "sdPlan": 0.1133828835835952,
+   "sd95": [
+    0.09276307299867105,
+    0.12384748401165434
+   ]
+  },
+  "nuL80a05": {
+   "sd": 0.2045684203165206,
+   "df": 95,
+   "relative": true,
+   "source": "ν per seed, L 80 d, U₀ = c_th/2",
+   "cells": [
+    {
+     "label": "Courant 0.025: s0:T80a05",
+     "n": 96,
+     "mean": 1.5041432938869523,
+     "sd": 0.3077002175601418
+    }
+   ],
+   "planningFactor": 1.0682237364804543,
+   "sdPlan": 0.2185248423164177,
+   "sd95": [
+    0.17915687191432725,
+    0.2384530731315053
+   ]
+  },
+  "nuL160a1": {
+   "sd": 0.04981918202778685,
+   "df": 11,
+   "relative": true,
+   "source": "ν per seed, L 160 d, U₀ = c_th",
+   "cells": [
+    {
+     "label": "Courant 0.025: s0:T160a1 + s0b:T160a1",
+     "n": 12,
+     "mean": 1.598501882964898,
+     "sd": 0.07963605627918828
+    }
+   ],
+   "planningFactor": 1.2534865110971343,
+   "sdPlan": 0.0624476726657236,
+   "sd95": [
+    0.035292417067120295,
+    0.08484268038266685
+   ]
+  },
+  "c": {
+   "sd": 0.04834412154764726,
+   "df": 14,
+   "relative": true,
+   "source": "c per seed, L 160 d, amplitude 0.02 of c",
+   "cells": [
+    {
+     "label": "Courant 0.025: s0:L160 + s0b:L160",
+     "n": 15,
+     "mean": 2.194137969278335,
+     "sd": 0.10607367267909976
+    }
+   ],
+   "planningFactor": 1.2153167069886692,
+   "sdPlan": 0.058753418601546634,
+   "sd95": [
+    0.03539364146285764,
+    0.07637836158900355
+   ]
+  },
+  "S1": {
+   "sd": 0.07187498997649677,
+   "df": 7,
+   "relative": true,
+   "source": "S per seed, shell 1, L 80 d",
+   "cells": [
+    {
+     "label": "Courant 0.025: s0:SL + s0b:SL",
+     "n": 8,
+     "mean": 0.4201756250534554,
+     "sd": 0.030200118839085365
+    }
+   ],
+   "planningFactor": 1.3509277409799412,
+   "sdPlan": 0.0970979178419047,
+   "sd95": [
+    0.047529936639120245,
+    0.14757090824203314
+   ]
+  },
+  "S2": {
+   "sd": 0.037265876936005624,
+   "df": 7,
+   "relative": true,
+   "source": "S per seed, shell 2, L 80 d",
+   "cells": [
+    {
+     "label": "Courant 0.025: s0:SL + s0b:SL",
+     "n": 8,
+     "mean": 0.42722111109758276,
+     "sd": 0.015920769350626106
+    }
+   ],
+   "planningFactor": 1.3509277409799412,
+   "sdPlan": 0.05034350694479457,
+   "sd95": [
+    0.024643408926370625,
+    0.07651283579560128
+   ]
+  },
+  "P18": {
+   "sd": 0.00024143719224313672,
+   "df": 7,
+   "relative": false,
+   "source": "P/T per seed, φ = 0.18, L 80 d",
+   "cells": [
+    {
+     "label": "Courant 0.025: s0:SK18",
+     "n": 8,
+     "mean": 0.3422668432533549,
+     "sd": 0.00024143719224313672
+    }
+   ],
+   "planningFactor": 1.3509277409799412,
+   "sdPlan": 0.00032616420070556045,
+   "sd95": [
+    0.000159659075478075,
+    0.0004957093664204589
+   ]
+  },
+  "P22": {
+   "sd": 0.0002659804281168208,
+   "df": 7,
+   "relative": false,
+   "source": "P/T per seed, φ = 0.22, L 80 d",
+   "cells": [
+    {
+     "label": "Courant 0.025: s0:SK22",
+     "n": 8,
+     "mean": 0.46325734358224063,
+     "sd": 0.0002659804281168208
+    }
+   ],
+   "planningFactor": 1.3509277409799412,
+   "sdPlan": 0.0003593203389007343,
+   "sd95": [
+    0.00017588917785967735,
+    0.0005461005749654947
+   ]
+  },
+  "gw1": {
+   "sd": 0.006080973751163311,
+   "df": 3,
+   "relative": false,
+   "source": "G-W1 per seed, Universe A wall box 40 × 40 d",
+   "cells": [
+    {
+     "label": "Courant 0.025: s0:W40 + s0b:W40",
+     "n": 4,
+     "mean": 1.0030709682902335,
+     "sd": 0.006080973751163311
+    }
+   ],
+   "planningFactor": 1.7190021636421715,
+   "sdPlan": 0.010453207035300983,
+   "sd95": [
+    0.0034492861351607643,
+    0.02473022597751123
+   ]
+  },
+  "gw2": {
+   "sd": 0.04110595417371824,
+   "df": 3,
+   "relative": false,
+   "source": "G-W2 per seed, Universe A wall box 40 × 40 d",
+   "cells": [
+    {
+     "label": "Courant 0.025: s0:W40 + s0b:W40",
+     "n": 4,
+     "mean": 0.9983423327690915,
+     "sd": 0.04110595417371824
+    }
+   ],
+   "planningFactor": 1.7190021636421715,
+   "sdPlan": 0.0706612241631976,
+   "sd95": [
+    0.02331636405712751,
+    0.16717051862669227
+   ]
+  },
+  "gw3": {
+   "sd": 0.0017957529860946702,
+   "df": 3,
+   "relative": false,
+   "source": "G-W3 per seed, Universe A wall box 40 × 40 d",
+   "cells": [
+    {
+     "label": "Courant 0.025: s0:W40 + s0b:W40",
+     "n": 4,
+     "mean": 0.9987323996786315,
+     "sd": 0.0017957529860946702
+    }
+   ],
+   "planningFactor": 1.7190021636421715,
+   "sdPlan": 0.0030869032684636283,
+   "sd95": [
+    0.0010185977000681742,
+    0.007303004249511209
+   ]
+  }
+ },
+ "primaries": [
+  {
+   "key": "pq2.4",
+   "statistic": "K_B/K_T,A",
+   "groups": [
+    "SK4c2p18",
+    "SK4c2p22"
+   ],
+   "noise": [
+    "P18",
+    "P22"
+   ],
+   "sPlan": [
+    0.00032616420070556045,
+    0.0003593203389007343
+   ],
+   "F": 0.0000011018524154089872,
+   "margin": "[0.90, 1.10]",
+   "targetFraction": 0.3333333333333333,
+   "targetHalfWidth": 0.031770059934774976,
+   "required": {
+    "SK4c2p18": 8,
+    "SK4c2p22": 8
+   },
+   "halfWidthPlan": 0.0036283157758637426,
+   "halfWidthPoint": 0.0030414741157234154,
+   "pPassIfExact": 1,
+   "pPassIfThirdMargin": 1,
+   "pFailIfTwiceMargin": 1
+  },
+  {
+   "key": "pq2.16",
+   "statistic": "K_B/K_T,A",
+   "groups": [
+    "SK16c2p18",
+    "SK16c2p22"
+   ],
+   "noise": [
+    "P18",
+    "P22"
+   ],
+   "sPlan": [
+    0.00032616420070556045,
+    0.0003593203389007343
+   ],
+   "F": 0.0000011018524154089872,
+   "margin": "[0.90, 1.10]",
+   "targetFraction": 0.3333333333333333,
+   "targetHalfWidth": 0.031770059934774976,
+   "required": {
+    "SK16c2p18": 8,
+    "SK16c2p22": 8
+   },
+   "halfWidthPlan": 0.0036283157758637426,
+   "halfWidthPoint": 0.0030414741157234154,
+   "pPassIfExact": 1,
+   "pPassIfThirdMargin": 1,
+   "pFailIfTwiceMargin": 1
+  },
+  {
+   "key": "pq2.64",
+   "statistic": "K_B/K_T,A",
+   "groups": [
+    "SK64c2p18",
+    "SK64c2p22"
+   ],
+   "noise": [
+    "P18",
+    "P22"
+   ],
+   "sPlan": [
+    0.00032616420070556045,
+    0.0003593203389007343
+   ],
+   "F": 0.0000011018524154089872,
+   "margin": "[0.90, 1.10]",
+   "targetFraction": 0.3333333333333333,
+   "targetHalfWidth": 0.031770059934774976,
+   "required": {
+    "SK64c2p18": 8,
+    "SK64c2p22": 8
+   },
+   "halfWidthPlan": 0.0036283157758637426,
+   "halfWidthPoint": 0.0030414741157234154,
+   "pPassIfExact": 1,
+   "pPassIfThirdMargin": 1,
+   "pFailIfTwiceMargin": 1
+  },
+  {
+   "key": "pq1.4",
+   "statistic": "ν_B/ν_A",
+   "groups": [
+    "T4a1"
+   ],
+   "noise": [
+    "nuL80a1"
+   ],
+   "sPlan": [
+    0.1133828835835952
+   ],
+   "F": 0.00011966889981440618,
+   "margin": "[0.90, 1.10]",
+   "targetFraction": 0.3333333333333333,
+   "targetHalfWidth": 0.031770059934774976,
+   "required": {
+    "T4a1": 238
+   },
+   "halfWidthPlan": 0.026003723871703875,
+   "halfWidthPoint": 0.025504237514661385,
+   "pPassIfExact": 0.9999999265196707,
+   "pPassIfThirdMargin": 0.9972042890312073,
+   "pFailIfTwiceMargin": 0.9999981624414683
+  },
+  {
+   "key": "pq1.16",
+   "statistic": "ν_B/ν_A",
+   "groups": [
+    "T16a1"
+   ],
+   "noise": [
+    "nuL80a1"
+   ],
+   "sPlan": [
+    0.1133828835835952
+   ],
+   "F": 0.00011966889981440618,
+   "margin": "[0.90, 1.10]",
+   "targetFraction": 0.3333333333333333,
+   "targetHalfWidth": 0.031770059934774976,
+   "required": {
+    "T16a1": 238
+   },
+   "halfWidthPlan": 0.026003723871703875,
+   "halfWidthPoint": 0.025504237514661385,
+   "pPassIfExact": 0.9999999265196707,
+   "pPassIfThirdMargin": 0.9972042890312073,
+   "pFailIfTwiceMargin": 0.9999981624414683
+  },
+  {
+   "key": "pq1.64",
+   "statistic": "ν_B/ν_A",
+   "groups": [
+    "T64a1"
+   ],
+   "noise": [
+    "nuL160a1"
+   ],
+   "sPlan": [
+    0.0624476726657236
+   ],
+   "F": 0.0002068292414931467,
+   "margin": "[0.90, 1.10]",
+   "targetFraction": 0.3333333333333333,
+   "targetHalfWidth": 0.031770059934774976,
+   "required": {
+    "T64a1": 1325
+   },
+   "halfWidthPlan": 0.0317699871266707,
+   "halfWidthPoint": 0.031727427016148224,
+   "pPassIfExact": 0.9999940628786772,
+   "pPassIfThirdMargin": 0.9831284902378017,
+   "pFailIfTwiceMargin": 0.999931632266341
+  },
+  {
+   "key": "pq6a.4",
+   "statistic": "ν(σ_v)/ν(σ_v/2)",
+   "groups": [
+    "T4a1",
+    "T4a05"
+   ],
+   "noise": [
+    "nuL80a1",
+    "nuL80a05"
+   ],
+   "sPlan": [
+    0.1133828835835952,
+    0.2185248423164177
+   ],
+   "F": 0,
+   "margin": "[0.95, 1.05]",
+   "targetFraction": 0.5,
+   "targetHalfWidth": 0.024395082084716024,
+   "required": {
+    "T4a1": 238,
+    "T4a05": 476
+   },
+   "halfWidthPlan": 0.024390636340849644,
+   "halfWidthPoint": 0.022826808023409674,
+   "pPassIfExact": 0.9600619653550259,
+   "pPassIfThirdMargin": 0.7365628697953193,
+   "pFailIfTwiceMargin": 0.9625673121785518
+  },
+  {
+   "key": "pq6a.16",
+   "statistic": "ν(σ_v)/ν(σ_v/2)",
+   "groups": [
+    "T16a1",
+    "T16a05"
+   ],
+   "noise": [
+    "nuL80a1",
+    "nuL80a05"
+   ],
+   "sPlan": [
+    0.1133828835835952,
+    0.2185248423164177
+   ],
+   "F": 0,
+   "margin": "[0.95, 1.05]",
+   "targetFraction": 0.5,
+   "targetHalfWidth": 0.024395082084716024,
+   "required": {
+    "T16a1": 238,
+    "T16a05": 476
+   },
+   "halfWidthPlan": 0.024390636340849644,
+   "halfWidthPoint": 0.022826808023409674,
+   "pPassIfExact": 0.9600619653550259,
+   "pPassIfThirdMargin": 0.7365628697953193,
+   "pFailIfTwiceMargin": 0.9625673121785518
+  },
+  {
+   "key": "pq6b",
+   "statistic": "ν(e 0.8)/ν(e 0.95)",
+   "groups": [
+    "T16e08",
+    "T16e095"
+   ],
+   "noise": [
+    "nuL80a1"
+   ],
+   "sPlan": [
+    0.1133828835835952,
+    0.1133828835835952
+   ],
+   "F": 0,
+   "margin": "[0.95, 1.05]",
+   "targetFraction": 0.5,
+   "targetHalfWidth": 0.024395082084716024,
+   "required": {
+    "T16e08": 168,
+    "T16e095": 168
+   },
+   "halfWidthPlan": 0.024335065460607604,
+   "halfWidthPoint": 0.02276352930663811,
+   "pPassIfExact": 0.9613067610449655,
+   "pPassIfThirdMargin": 0.7389121267405756,
+   "pFailIfTwiceMargin": 0.9635367933762222
+  },
+  {
+   "key": "pq6c.nu",
+   "statistic": "ν(c_h 4)/ν(c_h 2)",
+   "groups": [
+    "T4c4",
+    "T4a1"
+   ],
+   "noise": [
+    "nuL80a1"
+   ],
+   "sPlan": [
+    0.1133828835835952,
+    0.1133828835835952
+   ],
+   "F": 0,
+   "margin": "[0.93, 1.07]",
+   "targetFraction": 0.5,
+   "targetHalfWidth": 0.03382932423690743,
+   "required": {
+    "T4c4": 55,
+    "T4a1": 238
+   },
+   "halfWidthPlan": 0.0337526339060764,
+   "halfWidthPoint": 0.03157291984034028,
+   "pPassIfExact": 0.9661254927474052,
+   "pPassIfThirdMargin": 0.7384787744399858,
+   "pFailIfTwiceMargin": 0.9595893422761174
+  },
+  {
+   "key": "pq6c.K",
+   "statistic": "K(c_h 4)/K(c_h 2)",
+   "groups": [
+    "SK4c4p18",
+    "SK4c4p22",
+    "SK4c2p18",
+    "SK4c2p22"
+   ],
+   "noise": [
+    "P18",
+    "P22"
+   ],
+   "sPlan": [
+    0.00032616420070556045,
+    0.0003593203389007343
+   ],
+   "F": 0,
+   "margin": "[0.90, 1.10]",
+   "targetFraction": 0.5,
+   "targetHalfWidth": 0.04765508990216247,
+   "required": {
+    "SK4c4p18": 8,
+    "SK4c2p18": 8
+   },
+   "halfWidthPlan": 0.004107949660998207,
+   "halfWidthPoint": 0.003040835965081572,
+   "pPassIfExact": 1,
+   "pPassIfThirdMargin": 1,
+   "pFailIfTwiceMargin": 1
+  },
+  {
+   "key": "pq7d",
+   "statistic": "ν(dt/2)/ν(dt)",
+   "groups": [
+    "T4dt",
+    "T4a1"
+   ],
+   "noise": [
+    "nuL80a1"
+   ],
+   "sPlan": [
+    0.1133828835835952,
+    0.1133828835835952
+   ],
+   "F": 0,
+   "margin": "[0.97, 1.03]",
+   "targetFraction": null,
+   "targetHalfWidth": null,
+   "required": {
+    "T4dt": 48
+   },
+   "halfWidthPlan": 0.03580511259295149,
+   "halfWidthPoint": 0.03349285134065035,
+   "pFailIfTwiceMargin": 0.3462420832070161,
+   "note": "not powered (design §11.2): a FAIL voids (F0), an INCONCLUSIVE is a numerical caveat; design count kept"
+  },
+  {
+   "key": "pq5.4",
+   "statistic": "S_B/S_RPA, shells 1 and 2",
+   "groups": [
+    "SL4"
+   ],
+   "noise": [
+    "S1",
+    "S2"
+   ],
+   "sPlan": [
+    0.0970979178419047,
+    0.05034350694479457
+   ],
+   "F": 0.000040737611155113726,
+   "margin": "[0.90, 1.10] each shell",
+   "targetFraction": 0.5,
+   "targetHalfWidth": 0.04765508990216247,
+   "required": {
+    "SL4": 20,
+    "shell1": 20,
+    "shell2": 7
+   },
+   "halfWidthPlan": 0.04693515625875798,
+   "halfWidthPoint": 0.035701899873287,
+   "pPassIfExact": 0.978810107513611,
+   "pPassIfThirdMargin": 0.7544606445963553,
+   "pFailIfTwiceMargin": 0.961711131611687,
+   "note": "the binding shell is reported; F is the S_A term scaled by (S_RPA/S_A)², shell 1"
+  },
+  {
+   "key": "pq5.16",
+   "statistic": "S_B/S_RPA, shells 1 and 2",
+   "groups": [
+    "SL16"
+   ],
+   "noise": [
+    "S1",
+    "S2"
+   ],
+   "sPlan": [
+    0.0970979178419047,
+    0.05034350694479457
+   ],
+   "F": 0.000002616141668441945,
+   "margin": "[0.90, 1.10] each shell",
+   "targetFraction": 0.5,
+   "targetHalfWidth": 0.04765508990216247,
+   "required": {
+    "SL16": 19,
+    "shell1": 19,
+    "shell2": 7
+   },
+   "halfWidthPlan": 0.046887981138008086,
+   "halfWidthPoint": 0.034762211660412774,
+   "pPassIfExact": 0.9805008538371385,
+   "pPassIfThirdMargin": 0.7579903136726184,
+   "pFailIfTwiceMargin": 0.9637910563116626,
+   "note": "the binding shell is reported; F is the S_A term scaled by (S_RPA/S_A)², shell 1"
+  },
+  {
+   "key": "pq3.4",
+   "statistic": "Γ_self = ρc_B²/K_B(k)",
+   "groups": [
+    "L4",
+    "SK4c2p18",
+    "SK4c2p22"
+   ],
+   "noise": [
+    "c",
+    "P18",
+    "P22"
+   ],
+   "sPlan": [
+    0.058753418601546634
+   ],
+   "F": 0.0000020108870062778977,
+   "margin": "judged interval [1.0074, 1.3338]",
+   "targetFraction": 0.5,
+   "targetHalfWidth": 0.08159902544659636,
+   "required": {
+    "L4": 17
+   },
+   "halfWidthPlan": 0.08064884922829285,
+   "halfWidthPoint": 0.06634977102999054,
+   "note": "absolute half-width in Γ; target ½ of the judged interval half-width"
+  },
+  {
+   "key": "pq3.16",
+   "statistic": "Γ_self = ρc_B²/K_B(k)",
+   "groups": [
+    "L16",
+    "SK16c2p18",
+    "SK16c2p22"
+   ],
+   "noise": [
+    "c",
+    "P18",
+    "P22"
+   ],
+   "sPlan": [
+    0.058753418601546634
+   ],
+   "F": 0.0000020108870062778977,
+   "margin": "judged interval [0.9536, 1.1209]",
+   "targetFraction": 0.5,
+   "targetHalfWidth": 0.04183901373619786,
+   "required": {
+    "L16": 41
+   },
+   "halfWidthPlan": 0.04168413116422339,
+   "halfWidthPoint": 0.03428192534001409,
+   "note": "absolute half-width in Γ; target ½ of the judged interval half-width"
+  },
+  {
+   "key": "pq3.64",
+   "statistic": "Γ_self = ρc_B²/K_B(k)",
+   "groups": [
+    "L64",
+    "SK64c2p18",
+    "SK64c2p22"
+   ],
+   "noise": [
+    "c",
+    "P18",
+    "P22"
+   ],
+   "sPlan": [
+    0.058753418601546634
+   ],
+   "F": 0.0000020108870062778977,
+   "margin": "judged interval [0.9502, 1.0677]",
+   "targetFraction": 0.5,
+   "targetHalfWidth": 0.029377832019958805,
+   "required": {
+    "L64": 74
+   },
+   "halfWidthPlan": 0.029214229032724484,
+   "halfWidthPoint": 0.02401545052204412,
+   "note": "absolute half-width in Γ; target ½ of the judged interval half-width"
+  },
+  {
+   "key": "wall.W4c2",
+   "statistic": "G-W1, G-W2, G-W3 (fraction of tolerance)",
+   "groups": [
+    "W4c2"
+   ],
+   "noise": [
+    "gw1",
+    "gw2",
+    "gw3"
+   ],
+   "sPlan": [
+    0.010453207035300983,
+    0.0706612241631976,
+    0.0030869032684636283
+   ],
+   "F": 0,
+   "margin": "tolerances ±1 %, ±3 %, ±2 %",
+   "targetFraction": 0.5,
+   "targetHalfWidth": 0.5,
+   "required": {
+    "W4c2": 88,
+    "gw1": 20,
+    "gw2": 88,
+    "gw3": 4
+   },
+   "halfWidthPlan": 0.4990560948314944,
+   "halfWidthPoint": 0.2903173162819702,
+   "note": "half-widths as a fraction of each gate tolerance (binding gate reported); R (W-MF) has no Universe A analogue and takes the same seeds"
+  },
+  {
+   "key": "wall.W16c2",
+   "statistic": "G-W1, G-W2, G-W3 (fraction of tolerance)",
+   "groups": [
+    "W16c2"
+   ],
+   "noise": [
+    "gw1",
+    "gw2",
+    "gw3"
+   ],
+   "sPlan": [
+    0.010453207035300983,
+    0.0706612241631976,
+    0.0030869032684636283
+   ],
+   "F": 0,
+   "margin": "tolerances ±1 %, ±3 %, ±2 %",
+   "targetFraction": 0.5,
+   "targetHalfWidth": 0.5,
+   "required": {
+    "W16c2": 88,
+    "gw1": 20,
+    "gw2": 88,
+    "gw3": 4
+   },
+   "halfWidthPlan": 0.4990560948314944,
+   "halfWidthPoint": 0.2903173162819702,
+   "note": "half-widths as a fraction of each gate tolerance (binding gate reported); R (W-MF) has no Universe A analogue and takes the same seeds"
+  }
+ ],
+ "groups": {
+  "SK4c2p18": {
+   "n": 8,
+   "design": 8,
+   "setBy": [
+    "design count (floor)"
+   ]
+  },
+  "SK4c2p20": {
+   "n": 8,
+   "design": 8,
+   "setBy": [
+    "design count (floor)"
+   ]
+  },
+  "SK4c2p22": {
+   "n": 8,
+   "design": 8,
+   "setBy": [
+    "design count (floor)"
+   ]
+  },
+  "SK16c2p18": {
+   "n": 8,
+   "design": 8,
+   "setBy": [
+    "design count (floor)"
+   ]
+  },
+  "SK16c2p20": {
+   "n": 8,
+   "design": 8,
+   "setBy": [
+    "design count (floor)"
+   ]
+  },
+  "SK16c2p22": {
+   "n": 8,
+   "design": 8,
+   "setBy": [
+    "design count (floor)"
+   ]
+  },
+  "SK64c2p18": {
+   "n": 8,
+   "design": 8,
+   "setBy": [
+    "design count (floor)"
+   ]
+  },
+  "SK64c2p20": {
+   "n": 8,
+   "design": 8,
+   "setBy": [
+    "design count (floor)"
+   ]
+  },
+  "SK64c2p22": {
+   "n": 8,
+   "design": 8,
+   "setBy": [
+    "design count (floor)"
+   ]
+  },
+  "SK4c4p18": {
+   "n": 8,
+   "design": 8,
+   "setBy": [
+    "design count (floor)"
+   ]
+  },
+  "SK4c4p20": {
+   "n": 8,
+   "design": 8,
+   "setBy": [
+    "design count (floor)"
+   ]
+  },
+  "SK4c4p22": {
+   "n": 8,
+   "design": 8,
+   "setBy": [
+    "design count (floor)"
+   ]
+  },
+  "SL4": {
+   "n": 20,
+   "design": 4,
+   "setBy": [
+    "pq5.4"
+   ]
+  },
+  "SL16": {
+   "n": 19,
+   "design": 4,
+   "setBy": [
+    "pq5.16"
+   ]
+  },
+  "T4a1": {
+   "n": 238,
+   "design": 48,
+   "setBy": [
+    "pq6a.4"
+   ]
+  },
+  "T4a05": {
+   "n": 476,
+   "design": 96,
+   "setBy": [
+    "pq6a.4"
+   ]
+  },
+  "T16a1": {
+   "n": 238,
+   "design": 48,
+   "setBy": [
+    "pq6a.16"
+   ]
+  },
+  "T16a05": {
+   "n": 476,
+   "design": 96,
+   "setBy": [
+    "pq6a.16"
+   ]
+  },
+  "T64a1": {
+   "n": 1325,
+   "design": 6,
+   "setBy": [
+    "pq1.64"
+   ]
+  },
+  "T16e08": {
+   "n": 168,
+   "design": 48,
+   "setBy": [
+    "pq6b"
+   ]
+  },
+  "T16e095": {
+   "n": 168,
+   "design": 48,
+   "setBy": [
+    "pq6b"
+   ]
+  },
+  "T4c4": {
+   "n": 55,
+   "design": 24,
+   "setBy": [
+    "pq6c (ν)"
+   ]
+  },
+  "T4dt": {
+   "n": 48,
+   "design": 48,
+   "setBy": [
+    "design count (floor)"
+   ]
+  },
+  "L4": {
+   "n": 17,
+   "design": 4,
+   "setBy": [
+    "pq3.4"
+   ]
+  },
+  "L16": {
+   "n": 41,
+   "design": 4,
+   "setBy": [
+    "pq3.16"
+   ]
+  },
+  "L64": {
+   "n": 74,
+   "design": 4,
+   "setBy": [
+    "pq3.64"
+   ]
+  },
+  "W4c2": {
+   "n": 88,
+   "design": 4,
+   "setBy": [
+    "wall gates (W4c2)"
+   ]
+  },
+  "W16c2": {
+   "n": 88,
+   "design": 4,
+   "setBy": [
+    "wall gates (W16c2)"
+   ]
+  },
+  "W4c4": {
+   "n": 4,
+   "design": 4,
+   "setBy": [
+    "design count (floor)"
+   ]
+  }
+ },
+ "notPowered": [
+  {
+   "key": "pq4",
+   "reason": "T_kin/T_int and a₂ have no Universe A analogue (no reservoir at N_c = 1); seeds are those of SK*c2p20 and SL*"
+  },
+  {
+   "key": "pq8",
+   "reason": "the occupancy stress share is zero in Universe A; seeds are those of T4a1, T16a1, T64a1"
+  },
+  {
+   "key": "wall R",
+   "reason": "the occupancy-stress deficit does not exist in Universe A; seeds are those the wall gates set"
+  },
+  {
+   "key": "pq7d",
+   "reason": "not powered by design (§11.2); its FAIL voids, its INCONCLUSIVE is a caveat; design count 48"
+  },
+  {
+   "key": "pq1.arm, pq2.arm",
+   "reason": "reported arms; seeds are those PQ6c sets"
+  },
+  {
+   "key": "W4c4",
+   "reason": "the c_h 4 wall arm is reported, not judged; design count"
+  }
+ ],
+ "cost": {
+  "groups": [
+   {
+    "group": "SK4c2p18",
+    "comparability": "N4-static",
+    "courant": 0.00625,
+    "n": 8,
+    "coreHoursPerSeed": 0.15561736783057017,
+    "coreHours": 1.2449389426445614
+   },
+   {
+    "group": "SK4c2p20",
+    "comparability": "N4-static",
+    "courant": 0.00625,
+    "n": 8,
+    "coreHoursPerSeed": 0.17290818647841133,
+    "coreHours": 1.3832654918272906
+   },
+   {
+    "group": "SK4c2p22",
+    "comparability": "N4-static",
+    "courant": 0.00625,
+    "n": 8,
+    "coreHoursPerSeed": 0.19068705917515727,
+    "coreHours": 1.5254964734012582
+   },
+   {
+    "group": "SK16c2p18",
+    "comparability": "N16-static",
+    "courant": 0.025,
+    "n": 8,
+    "coreHoursPerSeed": 0.12238855507241506,
+    "coreHours": 0.9791084405793204
+   },
+   {
+    "group": "SK16c2p20",
+    "comparability": "N16-static",
+    "courant": 0.025,
+    "n": 8,
+    "coreHoursPerSeed": 0.1359872834137945,
+    "coreHours": 1.087898267310356
+   },
+   {
+    "group": "SK16c2p22",
+    "comparability": "N16-static",
+    "courant": 0.025,
+    "n": 8,
+    "coreHoursPerSeed": 0.14961854620683826,
+    "coreHours": 1.196948369654706
+   },
+   {
+    "group": "SK64c2p18",
+    "comparability": "N64-static",
+    "courant": 0.025,
+    "n": 8,
+    "coreHoursPerSeed": 0.4210317852602437,
+    "coreHours": 3.3682542820819497
+   },
+   {
+    "group": "SK64c2p20",
+    "comparability": "N64-static",
+    "courant": 0.025,
+    "n": 8,
+    "coreHoursPerSeed": 0.46781309473360405,
+    "coreHours": 3.7425047578688324
+   },
+   {
+    "group": "SK64c2p22",
+    "comparability": "N64-static",
+    "courant": 0.025,
+    "n": 8,
+    "coreHoursPerSeed": 0.5156628681856292,
+    "coreHours": 4.125302945485034
+   },
+   {
+    "group": "SK4c4p18",
+    "comparability": "N4-static",
+    "courant": 0.00625,
+    "n": 8,
+    "coreHoursPerSeed": 0.5077073694788046,
+    "coreHours": 4.061658955830437
+   },
+   {
+    "group": "SK4c4p20",
+    "comparability": "N4-static",
+    "courant": 0.00625,
+    "n": 8,
+    "coreHoursPerSeed": 0.564119299420894,
+    "coreHours": 4.512954395367152
+   },
+   {
+    "group": "SK4c4p22",
+    "comparability": "N4-static",
+    "courant": 0.00625,
+    "n": 8,
+    "coreHoursPerSeed": 0.6198213061437047,
+    "coreHours": 4.958570449149637
+   },
+   {
+    "group": "SL4",
+    "comparability": "N4-static",
+    "courant": 0.00625,
+    "n": 20,
+    "coreHoursPerSeed": 1.2047796219140914,
+    "coreHours": 24.095592438281827
+   },
+   {
+    "group": "SL16",
+    "comparability": "N16-static",
+    "courant": 0.025,
+    "n": 19,
+    "coreHoursPerSeed": 0.9475242973348261,
+    "coreHours": 18.002961649361698
+   },
+   {
+    "group": "T4a1",
+    "comparability": "N4-shear",
+    "courant": 0.0125,
+    "n": 238,
+    "coreHoursPerSeed": 0.05026251810715726,
+    "coreHours": 11.962479309503427
+   },
+   {
+    "group": "T4a05",
+    "comparability": "N4-shear",
+    "courant": 0.0125,
+    "n": 476,
+    "coreHoursPerSeed": 0.04579787646931772,
+    "coreHours": 21.799789199395235
+   },
+   {
+    "group": "T16a1",
+    "comparability": "N16-shear",
+    "courant": 0.025,
+    "n": 238,
+    "coreHoursPerSeed": 0.07906003103887015,
+    "coreHours": 18.816287387251094
+   },
+   {
+    "group": "T16a05",
+    "comparability": "N16-shear",
+    "courant": 0.025,
+    "n": 476,
+    "coreHoursPerSeed": 0.07203740822255,
+    "coreHours": 34.2898063139338
+   },
+   {
+    "group": "T64a1",
+    "comparability": "N64-shear",
+    "courant": 0.025,
+    "n": 1325,
+    "coreHoursPerSeed": 3.219405929573501,
+    "coreHours": 4265.712856684889
+   },
+   {
+    "group": "T16e08",
+    "comparability": "N16-shear",
+    "courant": 0.025,
+    "n": 168,
+    "coreHoursPerSeed": 0.07906003103887015,
+    "coreHours": 13.282085214530184
+   },
+   {
+    "group": "T16e095",
+    "comparability": "N16-shear",
+    "courant": 0.025,
+    "n": 168,
+    "coreHoursPerSeed": 0.07906003103887015,
+    "coreHours": 13.282085214530184
+   },
+   {
+    "group": "T4c4",
+    "comparability": "N4-shear",
+    "courant": 0.0125,
+    "n": 55,
+    "coreHoursPerSeed": 0.16398330859412338,
+    "coreHours": 9.019081972676785
+   },
+   {
+    "group": "T4dt",
+    "comparability": "N4-shear",
+    "courant": 0.00625,
+    "n": 48,
+    "coreHoursPerSeed": 0.10052503621431452,
+    "coreHours": 4.825201738287097
+   },
+   {
+    "group": "L4",
+    "comparability": "N4-static",
+    "courant": 0.00625,
+    "n": 17,
+    "coreHoursPerSeed": 1.0047601561296589,
+    "coreHours": 17.0809226542042
+   },
+   {
+    "group": "L16",
+    "comparability": "N16-static",
+    "courant": 0.025,
+    "n": 41,
+    "coreHoursPerSeed": 0.4377131477149955,
+    "coreHours": 17.946239056314816
+   },
+   {
+    "group": "L64",
+    "comparability": "N64-static",
+    "courant": 0.025,
+    "n": 74,
+    "coreHoursPerSeed": 1.0189266545693176,
+    "coreHours": 75.4005724381295
+   },
+   {
+    "group": "W4c2",
+    "comparability": "W4c2",
+    "courant": 0.00625,
+    "n": 88,
+    "coreHoursPerSeed": 0.18406355334798621,
+    "coreHours": 16.197592694622788
+   },
+   {
+    "group": "W16c2",
+    "comparability": "W16c2",
+    "courant": 0.0125,
+    "n": 88,
+    "coreHoursPerSeed": 0.5790426261490604,
+    "coreHours": 50.955751101117315
+   },
+   {
+    "group": "W4c4",
+    "comparability": "W4c4",
+    "courant": 0.0125,
+    "n": 4,
+    "coreHoursPerSeed": 0.6005140929319194,
+    "coreHours": 2.4020563717276775
+   }
+  ],
+  "judgedPlannedCoreHours": 4647.2582632099575,
+  "extensionUpperBoundCoreHours": 4577.70286304249,
+  "extensionArmsOnlyCoreHours": 232.87934876046924,
+  "stage0bCoreHours": 37.601292764762306,
+  "stage0b": [
+   {
+    "group": "T80a1",
+    "phase": 1,
+    "n": 106,
+    "coreHours": 0.6493229262479536
+   },
+   {
+    "group": "T160a1",
+    "phase": 1,
+    "n": 88,
+    "coreHours": 6.311231122354455
+   },
+   {
+    "group": "SL",
+    "phase": 1,
+    "n": 24,
+    "coreHours": 1.7619739712099993
+   },
+   {
+    "group": "W40",
+    "phase": 1,
+    "n": 28,
+    "coreHours": 0.3140555457943749
+   },
+   {
+    "group": "L160",
+    "phase": 1,
+    "n": 17,
+    "coreHours": 1.4582275590515064
+   },
+   {
+    "group": "L160a04",
+    "phase": 1,
+    "n": 32,
+    "coreHours": 2.7703954259419605
+   },
+   {
+    "group": "T80a1c0125",
+    "phase": 1,
+    "n": 200,
+    "coreHours": 2.4502751933885043
+   },
+   {
+    "group": "T80a1c00625",
+    "phase": 1,
+    "n": 100,
+    "coreHours": 2.4502751933885043
+   },
+   {
+    "group": "SK18c0125",
+    "phase": 1,
+    "n": 8,
+    "coreHours": 0.15172553640974998
+   },
+   {
+    "group": "SK22c0125",
+    "phase": 1,
+    "n": 8,
+    "coreHours": 0.18575576272328606
+   },
+   {
+    "group": "SK18c00625",
+    "phase": 1,
+    "n": 8,
+    "coreHours": 0.30345107281949996
+   },
+   {
+    "group": "SK22c00625",
+    "phase": 1,
+    "n": 8,
+    "coreHours": 0.3715115254465721
+   },
+   {
+    "group": "SLc00625",
+    "phase": 1,
+    "n": 16,
+    "coreHours": 4.6985972565599985
+   },
+   {
+    "group": "L160c0125",
+    "phase": 2,
+    "n": 16,
+    "coreHours": 2.7448989346851884
+   },
+   {
+    "group": "L160c00625",
+    "phase": 2,
+    "n": 32,
+    "coreHours": 10.979595738740754
+   }
+  ],
+  "pilotsCoreHours": 13.889879041789497,
+  "T64a1": {
+   "coreHoursPerSeed": 3.219405929573501,
+   "feasibilityLimitPerSeed": 6.438811859147002,
+   "note": "A2 §1.7: postponed (never shrunk) only if its pilot exceeds 2 × this projection per seed, or cannot complete"
+  }
+ },
+ "falsePassMonteCarlo": {
+  "reps": 20000,
+  "trueRatio": "at the upper margin edge",
+  "results": {
+   "pq1.4": {
+    "firstLook": 0.02565,
+    "withExtension": 0.0277,
+    "extended": 0.47745
+   },
+   "pq1.64": {
+    "firstLook": 0.02805,
+    "withExtension": 0.02805,
+    "extended": 0.4686
+   },
+   "pq6a.4": {
+    "firstLook": 0.02555,
+    "withExtension": 0.03265,
+    "extended": 0.4727
+   },
+   "pq6b": {
+    "firstLook": 0.0249,
+    "withExtension": 0.03245,
+    "extended": 0.4742
+   },
+   "pq6c.nu": {
+    "firstLook": 0.02515,
+    "withExtension": 0.03215,
+    "extended": 0.4751
+   },
+   "pq5.16 (shell 1)": {
+    "firstLook": 0.0262,
+    "withExtension": 0.0329,
+    "extended": 0.47885
+   }
+  },
+  "bound": "first look ≤ 2.5 % per side; with the single extension ≤ 3.75 % per side (union bound)"
+ }
+}
