@@ -3,3 +3,4 @@ dist/
 results/scratch/
 *.log
 results/checkpoints/
+results/ub0/*/state/
