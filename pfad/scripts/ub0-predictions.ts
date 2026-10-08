@@ -24,8 +24,10 @@ import {
   meanFieldPressure,
   minReDelta,
   ratioHalfWidth,
+  referenceForNc,
   releaseEquilibrium,
   rhoBalanced,
+  rhoDesignSuperseded,
   reviewReference,
   shearWaveConditions,
   soundBand,
@@ -65,13 +67,19 @@ const put = (k: string, v: number) => {
   return v;
 };
 
+/** Marks every output as post-D2; ub0-freeze refuses prediction files without it (no mixing of pre- and post-D2 outputs). */
+const MAP_VERSION = { releaseFraction: 'rho* = (1-e^2)/(2(N_c-1)+1-e^2)', amendment: 'A2 (D2)' };
 say(`UB-0 analytical predictions — ${label}`);
+say(`map: release fraction ${MAP_VERSION.releaseFraction} (${MAP_VERSION.amendment}); outputs before A2 used the superseded design formula`);
 say(`commit ${commit}; φ = ${UB0_PHI}; molecular units m = d = kT = 1 unless stated; parcel units D, σ_v where stated`);
 say('No Universe B simulation data is used. Status legend: exact | mechanics | mean-field | estimate | design | input.');
 say();
 say('UNIVERSE A REFERENCE (status: input)');
 for (const k of ['Z', 'KTred', 'cA', 'lambda', 'nu', 'collisionRate'] as const) {
   say(`  ${k.padEnd(14)} ${f(ref[k].value, 5).padStart(9)}   ${ref[k].source}`);
+}
+for (const [Nc, c] of Object.entries(ref.cAByNc ?? {})) {
+  if (c) say(`  cA at N_c = ${Nc.padEnd(4)} ${f(c.value, 5).padStart(9)}   ${c.source}  (matched Courant number; used for the N_c = ${Nc} sound band, A2 §1.4)`);
 }
 const GammaA = (ref.cA.value * ref.cA.value) / ref.KTred.value;
 put('GammaA', GammaA);
@@ -85,7 +93,8 @@ say('1. THE MAP (per N_c; e = 0.9, c_h = 2)');
 say('   exact:      M = N_c m;  D = √N_c d;  n_p = n/N_c;  φ_p = φ;  ρ = n m;  σ_v = √(kT/M);  E_int = (N_c − 1) kT');
 say('   exact (hard-core parcel gas = scaled copy of A): P_kin,B/P_A = 1/N_c;  λ_p/D = λ_A/d;');
 say('               collision rate per parcel = (rate_A)·σ_v/D, i.e. rate_A/N_c per (d/c_th);  ν, μ invariant for the hard-core gas alone');
-say('   derived:    ρ_rel = (1 − e²)/(2(N_c − 1))  [equilibrium of A-16 at T_kin = T_int, means only]');
+say('   derived:    ρ_rel = (1 − e²)/(2(N_c − 1) + 1 − e²)  [mean balance of A-16 as coded at T_kin = T_int, means only;');
+say('               amendment A2 (D2) erratum: the design\'s (1 − e²)/(2(N_c − 1)) is superseded, see §1b]');
 say('   mean-field: k_s = (N_c − 1) K_T,A/(n φ);  h = c_h √N_c D (choice)');
 say('   N_c   M     D      n_p       σ_v     E_int   ρ_rel     k_s      h(D)  h(d)   N_nb   P_kin/P_A  rate/(d/c)  λ_p(d)  S_p(0)');
 for (const Nc of [1, ...NC]) {
@@ -115,15 +124,20 @@ say();
 
 // ─────────── 1b. mean balance of the implemented release law (PQ4) ───────────
 say('1b. EQUIPARTITION UNDER THE IMPLEMENTED RELEASE LAW (A-16 as coded: release = ρ·(E_i + E_j + this loss))');
-say('   T_kin/T_int = 2(N_c − 1)ρ/((1 − e²)(1 − ρ)); the design ρ_rel gives 1/(1 − ρ_rel). PQ4 margin [0.97, 1.03].');
-say('   ρ* = (1 − e²)/(2(N_c − 1) + 1 − e²) balances at T_kin = T_int. Means only (fluctuation correlations neglected).');
+say('   T_kin/T_int = 2(N_c − 1)ρ/((1 − e²)(1 − ρ)). PQ4 margin [0.97, 1.03]. Means only (fluctuation correlations neglected).');
+say('   The map\'s ρ_rel = ρ* = (1 − e²)/(2(N_c − 1) + 1 − e²) balances at T_kin = T_int exactly (amendment A2, D2).');
+say('   ERRATUM RECORD (A2, not a prediction): the superseded design formula (1 − e²)/(2(N_c − 1)) would give 1/(1 − ρ).');
 for (const [Nc, e] of [[4, 0.9], [16, 0.9], [64, 0.9], [16, 0.8], [16, 0.95]] as const) {
-  const rho = (1 - e * e) / (2 * (Nc - 1));
+  const rho = mapQuantities(Nc, 2, e, ref).releaseFraction;
   const r = releaseEquilibrium(Nc, e, rho);
-  const star = rhoBalanced(Nc, e);
+  const old = rhoDesignSuperseded(Nc, e);
+  const rOld = releaseEquilibrium(Nc, e, old);
+  put(`map.rhoRel.${Nc}.${e}`, rho);
   put(`pq4.pred.${Nc}.${e}`, r);
-  put(`map.rhoStar.${Nc}.${e}`, star);
-  say(`     N_c = ${String(Nc).padStart(2)}, e = ${e}: ρ_rel = ${f(rho, 5)} → T_kin/T_int = ${f(r, 4)} ${r > 1.03 || r < 0.97 ? '(OUTSIDE the PQ4 margin)' : '(inside the PQ4 margin)'};  ρ* = ${f(star, 5)} → ${f(releaseEquilibrium(Nc, e, star), 4)}`);
+  put(`erratumA2.rhoDesign.${Nc}.${e}`, old);
+  put(`erratumA2.TkinOverTintDesign.${Nc}.${e}`, rOld);
+  if (Math.abs(rho - rhoBalanced(Nc, e)) > 1e-15) throw new Error('map release fraction is not ρ*');
+  say(`     N_c = ${String(Nc).padStart(2)}, e = ${e}: ρ_rel = ρ* = ${f(rho, 5)} → T_kin/T_int = ${f(r, 4)};   [erratum: design ${f(old, 5)} would give ${f(rOld, 4)}${rOld > 1.03 || rOld < 0.97 ? ', OUTSIDE the PQ4 margin' : ''}]`);
 }
 say();
 
@@ -136,7 +150,7 @@ say('   c_B/c_A = √(Γ_self/Γ_A)  if K_B = K_T,A;   collisionless kinetic all
 say('   N_c   Z_B/Z_A  occ.share  P_B/(n_p kT)   Γ_self band          c_B/c_A band        allowance');
 for (const Nc of NC) {
   const p = meanFieldPressure(Nc, ref);
-  const b = soundBand(Nc, ref);
+  const b = soundBand(Nc, referenceForNc(ref, Nc));
   say(
     `   ${String(Nc).padStart(3)} ${f(p.ZratioBA, 4).padStart(8)} ${f(p.occupancyShare, 3).padStart(9)} ${f(p.total, 3).padStart(12)}   [${f(b.Gamma[0])}, ${f(b.Gamma[1])}]   [${f(b.cRatio[0])}, ${f(b.cRatio[1])}]   ${f(b.collisionlessAllowance, 4)}`,
   );
@@ -151,7 +165,7 @@ for (const Nc of NC) {
 }
 say('   PQ3 judged band with Universe A uncertainty propagated (amendment A1 §5): Δ_A at its 95 % limits, then ± 0.05');
 for (const Nc of NC) {
-  const u = soundBandWithUncertainty(Nc, ref);
+  const u = soundBandWithUncertainty(Nc, referenceForNc(ref, Nc));
   put(`pq3.lo.${Nc}`, u.judged[0]);
   put(`pq3.hi.${Nc}`, u.judged[1]);
   say(`     N_c = ${String(Nc).padStart(2)}: Γ_A = ${f(u.GammaA)} ± ${f(u.seGammaA)} (df ${Number.isFinite(u.dfGammaA) ? f(u.dfGammaA, 1) : '∞'}); band [${f(u.band[0])}, ${f(u.band[1])}]; judged interval [${f(u.judged[0])}, ${f(u.judged[1])}]`);
@@ -426,15 +440,18 @@ const checks: Check[] = [
 
 interface CheckResult extends Check {
   recomputed: number;
-  verdict: 'agree' | 'rounding' | 'ERRATUM (A1)' | 'DISCREPANCY';
+  verdict: 'agree' | 'rounding' | 'ERRATUM (A1)' | 'ERRATUM (A2)' | 'DISCREPANCY';
   relDiff: number;
 }
+/** values whose defining formula amendment A2 corrected (D2: the release fraction); always listed, whatever their size */
+const ERRATA_A2 = new Set(['map.rhoRel.4', 'map.rhoRel.16', 'map.rhoRel.64']);
 const results: CheckResult[] = [];
 if (checkAgainstReview) {
   say('7. CHECK AGAINST THE DESIGN REVIEW (docs/REVIEW_UB0_PREREGISTRATION_DESIGN.md, d068755)');
   say('   agree       = rounds to the printed value');
   say('   rounding    = does not round to it but differs by ≤ 1 % (input rounding, e.g. 1.29 vs 1.287 collisions)');
   say('   ERRATUM (A1) = a discrepancy acknowledged in docs/UB0_DESIGN_AMENDMENT_1.md §1.1 (the computed value is authoritative)');
+  say('   ERRATUM (A2) = a value whose formula docs/UB0_DESIGN_AMENDMENT_2.md (D2) corrected; listed whatever its size');
   say('   DISCREPANCY = anything else');
   for (const c of checks) {
     const v = flat[c.key];
@@ -442,8 +459,9 @@ if (checkAgainstReview) {
     const rounded = Math.round(v * scale) / scale;
     const relDiff = c.review !== 0 ? (v - c.review) / Math.abs(c.review) : v;
     const errata = new Set(['cp.GammaC.64.2', 'cp.uD.4.2', 'le.minRe.16']);
-    const verdict: CheckResult['verdict'] =
-      Math.abs(rounded - c.review) < 1e-9
+    const verdict: CheckResult['verdict'] = ERRATA_A2.has(c.key)
+      ? 'ERRATUM (A2)'
+      : Math.abs(rounded - c.review) < 1e-9
         ? 'agree'
         : Math.abs(relDiff) <= 0.01
           ? 'rounding'
@@ -458,8 +476,9 @@ if (checkAgainstReview) {
   const nAgree = results.filter((x) => x.verdict === 'agree').length;
   const nRound = results.filter((x) => x.verdict === 'rounding').length;
   const nErr = results.filter((x) => x.verdict === 'ERRATUM (A1)').length;
+  const nErr2 = results.filter((x) => x.verdict === 'ERRATUM (A2)').length;
   const nDisc = results.filter((x) => x.verdict === 'DISCREPANCY').length;
-  say(`   ${results.length} values checked: ${nAgree} agree, ${nRound} rounding-level, ${nErr} acknowledged errata (A1), ${nDisc} DISCREPANCY`);
+  say(`   ${results.length} values checked: ${nAgree} agree, ${nRound} rounding-level, ${nErr} acknowledged errata (A1), ${nErr2} errata (A2), ${nDisc} DISCREPANCY`);
   say();
 }
 say(`runtime ${((Date.now() - t0) / 1000).toFixed(1)} s`);
@@ -475,7 +494,7 @@ const profiles = Object.fromEntries(
 );
 writeFileSync(
   `${base}.json`,
-  JSON.stringify({ label, commit, generated: new Date().toISOString(), reference: ref, values: flat, reviewCheck: results, wallProfiles: profiles, hendersonCheck: { Z: henderson.Z(UB0_PHI), KTred: henderson.KTred(UB0_PHI) } }, null, 1),
+  JSON.stringify({ label, commit, generated: new Date().toISOString(), map: MAP_VERSION, reference: ref, values: flat, reviewCheck: results, wallProfiles: profiles, hendersonCheck: { Z: henderson.Z(UB0_PHI), KTred: henderson.KTred(UB0_PHI) } }, null, 1),
 );
 console.log(lines.join('\n'));
 console.log(`\nwrote ${base}.txt and ${base}.json`);

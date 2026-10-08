@@ -1,12 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { henderson, parcelMap, UB0_PHI } from '../src/universeB/CoarseGrainMap';
+import { henderson, parcelMap, releaseFractionFor, UB0_PHI } from '../src/universeB/CoarseGrainMap';
 import {
   diskProjected,
   hendersonZPrime,
   lucyHat,
   lucyProjected,
   meanFieldPressure,
+  releaseEquilibrium,
   reviewReference,
+  rhoBalanced,
+  rhoDesignSuperseded,
   soundBand,
   wallProfile,
 } from '../src/universeB/Predictions';
@@ -32,9 +35,36 @@ describe('UB-0 coarse-graining map', () => {
       expect(m.diameter * m.sigmaV).toBeCloseTo(1, 14);
       expect(m.h / m.diameter).toBeCloseTo(2 * Math.sqrt(Nc), 12);
       expect(m.ks).toBeCloseTo(((Nc - 1) * ref.KTred.value) / UB0_PHI, 12);
-      // release balance: ρ_rel·2(N_c − 1) kT = (1 − e²) kT
-      expect(m.releaseFraction * 2 * (Nc - 1)).toBeCloseTo(1 - 0.81, 14);
+      // release balance of A-16 as coded (A2, D2): the release takes ρ of (2(N_c − 1) kT + loss),
+      // the loss is (1 − e²) kT, so (1 − ρ)(1 − e²) = ρ·2(N_c − 1), i.e. ρ = (1 − e²)/(2(N_c − 1) + 1 − e²)
+      expect((1 - m.releaseFraction) * (1 - 0.81)).toBeCloseTo(m.releaseFraction * 2 * (Nc - 1), 14);
+      expect(m.releaseFraction).toBeCloseTo(0.19 / (2 * (Nc - 1) + 0.19), 15);
     }
+  });
+});
+
+describe('UB-0 release fraction ρ_rel (amendment A2, D2)', () => {
+  it('is ρ* for every e and N_c, and gives T_kin = T_int in the mean balance of the coded law', () => {
+    for (const Nc of [2, 4, 16, 64, 256]) {
+      for (const e of [0.8, 0.9, 0.95]) {
+        const m = parcelMap({ Nc, ch: 2, e }, { KTred: ref.KTred.value });
+        expect(m.releaseFraction).toBe(releaseFractionFor(Nc, e));
+        expect(m.releaseFraction).toBe(rhoBalanced(Nc, e));
+        expect(releaseEquilibrium(Nc, e, m.releaseFraction)).toBeCloseTo(1, 13);
+        // the superseded design formula is larger by the factor (2(N_c − 1) + 1 − e²)/(2(N_c − 1))
+        // and balances at 1/(1 − ρ), which is what made PQ4 fail by construction at N_c = 4
+        const old = rhoDesignSuperseded(Nc, e);
+        expect(old / m.releaseFraction).toBeCloseTo((2 * (Nc - 1) + 1 - e * e) / (2 * (Nc - 1)), 13);
+        expect(releaseEquilibrium(Nc, e, old)).toBeCloseTo(1 / (1 - old), 13);
+      }
+    }
+    // the values of record (A2 §2): N_c = 4, 16, 64 at e = 0.9 and the e arms at N_c = 16
+    const r = (Nc: number, e: number) => parcelMap({ Nc, ch: 2, e }, { KTred: ref.KTred.value }).releaseFraction;
+    expect(r(4, 0.9)).toBeCloseTo(0.0306947, 7);
+    expect(r(16, 0.9)).toBeCloseTo(0.0062935, 7);
+    expect(r(64, 0.9)).toBeCloseTo(0.0015057, 7);
+    expect(r(16, 0.8)).toBeCloseTo(0.0118577, 7);
+    expect(r(16, 0.95)).toBeCloseTo(0.0032395, 7);
   });
 });
 

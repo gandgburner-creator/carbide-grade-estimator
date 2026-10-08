@@ -1,6 +1,6 @@
 import { lucyW } from '../occupancy/OccupancyModel';
 import { tTwoSidedCritical } from '../measurements/Statistics';
-import { henderson, parcelMap, UB0_PHI } from './CoarseGrainMap';
+import { henderson, parcelMap, releaseFractionFor, UB0_PHI } from './CoarseGrainMap';
 
 /**
  * UB-0 analytical predictions (design review docs/REVIEW_UB0_PREREGISTRATION_DESIGN.md,
@@ -53,6 +53,17 @@ export interface UniverseAReference {
   nu: RefValue;
   /** collisions per particle per (d/c_th) */
   collisionRate: RefValue;
+  /**
+   * c_A measured at the Courant number matched to each N_c's standing-wave runs (A2 §1.4;
+   * Stage 0b). When present, the sound band and the PQ3 judged interval at that N_c use it.
+   */
+  cAByNc?: Partial<Record<number, RefValue>>;
+}
+
+/** The reference with c_A replaced by the value matched to N_c, if one is given (A2 §1.4). */
+export function referenceForNc(ref: UniverseAReference, Nc: number): UniverseAReference {
+  const c = ref.cAByNc?.[Nc];
+  return c ? { ...ref, cA: c } : ref;
 }
 
 const PHI = UB0_PHI;
@@ -547,13 +558,20 @@ export function mapQuantities(Nc: number, ch: number, e: number, ref: UniverseAR
  * (⟨½μv_n²⟩ = kT_kin) and reservoirs at (N_c − 1)kT_int, stationarity
  * (1 − ρ)(1 − e²)kT_kin = ρ·2(N_c − 1)kT_int gives
  *   T_kin/T_int = 2(N_c − 1)ρ / ((1 − e²)(1 − ρ)).
- * The design's ρ_rel = (1 − e²)/(2(N_c − 1)) then gives 1/(1 − ρ_rel), not 1;
- * T_kin = T_int needs ρ* = (1 − e²)/(2(N_c − 1) + 1 − e²). Means only.
+ * The design's ρ_rel = (1 − e²)/(2(N_c − 1)) gives 1/(1 − ρ_rel), not 1;
+ * T_kin = T_int needs ρ* = (1 − e²)/(2(N_c − 1) + 1 − e²), which the map uses since
+ * amendment A2 (D2). Means only.
  */
 export function releaseEquilibrium(Nc: number, e: number, rho: number): number {
   return (2 * (Nc - 1) * rho) / ((1 - e * e) * (1 - rho));
 }
 
+/** ρ*, the map's release fraction (CoarseGrainMap.releaseFractionFor). */
 export function rhoBalanced(Nc: number, e: number): number {
-  return (1 - e * e) / (2 * (Nc - 1) + 1 - e * e);
+  return releaseFractionFor(Nc, e);
+}
+
+/** The design's superseded ρ_rel = (1 − e²)/(2(N_c − 1)) (A2 erratum record only; never used by a run). */
+export function rhoDesignSuperseded(Nc: number, e: number): number {
+  return (1 - e * e) / (2 * (Nc - 1));
 }

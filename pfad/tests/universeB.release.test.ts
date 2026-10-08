@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { ParticleStore } from '../src/core/ParticleStore';
 import { Rng } from '../src/core/Random';
 import { Simulation } from '../src/core/Simulation';
-import { releaseEquilibrium, rhoBalanced } from '../src/universeB/Predictions';
+import { parcelMap } from '../src/universeB/CoarseGrainMap';
+import { releaseEquilibrium, rhoBalanced, rhoDesignSuperseded } from '../src/universeB/Predictions';
 
 /**
  * Design G1 test (2): the release-law mean balance on SYNTHETIC collisions
@@ -51,8 +52,10 @@ function synthetic(Nc: number, e: number, rho: number, K: number) {
 describe('A-16 release law: mean balance on synthetic collisions (design G1 test 2)', () => {
   const K = 20000;
   for (const [Nc, e] of [[4, 0.9], [16, 0.9], [16, 0.8]] as const) {
-    it(`N_c = ${Nc}, e = ${e}: loss, release identity, and the equilibrium it implies`, () => {
-      const rho = (1 - e * e) / (2 * (Nc - 1));
+    it(`N_c = ${Nc}, e = ${e}: loss, release identity, and the equilibrium of the map's ρ_rel (A2, D2)`, () => {
+      // the release fraction every UB-0 run uses, from the map itself
+      const rho = parcelMap({ Nc, ch: 2, e }, { KTred: 2.37 }).releaseFraction;
+      expect(rho).toBe(rhoBalanced(Nc, e));
       const r = synthetic(Nc, e, rho, K);
       expect(r.n).toBe(K);
       // flux-weighted contacts: ⟨loss⟩ = (1 − e²) kT
@@ -61,12 +64,16 @@ describe('A-16 release law: mean balance on synthetic collisions (design G1 test
       expect(Math.abs(r.release - rho * (2 * (Nc - 1) * K + r.loss)) / r.release).toBeLessThan(1e-12);
       // energy (kinetic + internal) is conserved exactly
       expect(Math.abs(r.sim.relativeEnergyResidual())).toBeLessThan(1e-12);
-      // hence the design ρ_rel balances at T_kin/T_int = 1/(1 − ρ_rel), not 1
-      expect(releaseEquilibrium(Nc, e, rho)).toBeCloseTo(1 / (1 - rho), 12);
-      // and ρ* balances exactly: release = loss at T_kin = T_int (to the sampling error of ⟨loss⟩)
-      const star = synthetic(Nc, e, rhoBalanced(Nc, e), K);
-      expect(Math.abs(star.release / star.loss - 1)).toBeLessThan(0.02);
-      expect(releaseEquilibrium(Nc, e, rhoBalanced(Nc, e))).toBeCloseTo(1, 12);
+      // the map's ρ_rel balances exactly: release = loss at T_kin = T_int (to the sampling error of ⟨loss⟩)
+      expect(Math.abs(r.release / r.loss - 1)).toBeLessThan(0.02);
+      expect(releaseEquilibrium(Nc, e, rho)).toBeCloseTo(1, 12);
+      // the superseded design formula releases more than the loss at T_kin = T_int:
+      // its balance is at T_kin/T_int = 1/(1 − ρ), outside the PQ4 margin at N_c = 4
+      const old = rhoDesignSuperseded(Nc, e);
+      const ro = synthetic(Nc, e, old, K);
+      expect(ro.release / ro.loss).toBeGreaterThan(1);
+      expect(Math.abs(ro.release - old * (2 * (Nc - 1) * K + ro.loss)) / ro.release).toBeLessThan(1e-12);
+      expect(releaseEquilibrium(Nc, e, old)).toBeCloseTo(1 / (1 - old), 12);
     });
   }
 });

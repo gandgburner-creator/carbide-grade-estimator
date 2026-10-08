@@ -9,8 +9,12 @@
  * Status of each rule (design review §1.2, §2):
  *   exact     M = N_c m; D = √N_c d (keeps φ_p = φ); n_p = n/N_c;
  *             E_int = (N_c − 1) kT per parcel (internal translational dof)
- *   derived   ρ_rel = (1 − e²)/(2(N_c − 1)) — equilibrium of the A-16 release law
- *             at T_kin = T_int, given e (means only; tested by PQ4)
+ *   derived   ρ_rel = (1 − e²)/(2(N_c − 1) + 1 − e²) — the mean balance of the A-16
+ *             release law AS CODED (the release takes ρ of the reservoirs after this
+ *             collision's own loss is deposited) at T_kin = T_int, given e (means only;
+ *             tested by PQ4). Amendment A2 (D2) corrected the design's
+ *             (1 − e²)/(2(N_c − 1)), which assumed release from the pre-collision
+ *             reservoir and balances at T_kin/T_int = 1/(1 − ρ_rel) instead.
  *   closure   k_s = (N_c − 1) K_T,A /(n φ) — MEAN-FIELD closure on Universe A's
  *             isothermal modulus (K_T,A from Universe A, never from Universe B)
  *   choice    c_h (kernel rule h = c_h √N_c D), e, Lucy kernel — pre-registered
@@ -67,6 +71,16 @@ export interface ParcelMap {
   parcelArea: number;
 }
 
+/**
+ * ρ* = (1 − e²)/(2(N_c − 1) + 1 − e²): with flux-weighted contacts the mean loss per
+ * collision is (1 − e²)kT_kin, deposited into the pair's reservoirs before the release
+ * takes ρ of (E_i + E_j + loss). Stationarity (1 − ρ)(1 − e²)kT_kin = ρ·2(N_c − 1)kT_int
+ * at T_kin = T_int gives ρ*. Means only (amendment A2, D2).
+ */
+export function releaseFractionFor(Nc: number, e: number): number {
+  return (1 - e * e) / (2 * (Nc - 1) + 1 - e * e);
+}
+
 export function parcelMap(choice: ParcelChoice, inputs: MapInputs): ParcelMap {
   const { Nc, ch, e } = choice;
   const phi = inputs.phi ?? UB0_PHI;
@@ -91,7 +105,7 @@ export function parcelMap(choice: ParcelChoice, inputs: MapInputs): ParcelMap {
     massDensity: n,
     sigmaV: Math.sqrt(kT / Nc),
     internalEnergy: (Nc - 1) * kT,
-    releaseFraction: Nc > 1 ? (1 - e * e) / (2 * (Nc - 1)) : 0,
+    releaseFraction: Nc > 1 ? releaseFractionFor(Nc, e) : 0,
     ks: ((Nc - 1) * inputs.KTred * kT) / phi,
     h: Nc > 1 ? ch * Math.sqrt(Nc) * D : 0,
     parcelArea: (Math.PI * D * D) / 4,
