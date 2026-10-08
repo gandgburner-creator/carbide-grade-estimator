@@ -1,5 +1,13 @@
 # UB-0 Phase 1: analytical predictions recomputed
 
+> **Notice added 2026-10-08 (amendment A2, D2).** The map's release fraction ρ_rel is corrected to ρ\* = (1 − e²)/(2(N_c − 1) + 1 − e²), the exact mean balance of A-16 as coded (see [`UB0_DESIGN_AMENDMENT_2.md`](UB0_DESIGN_AMENDMENT_2.md) §2). This is a derivation erratum. Both outputs (`results/ub0/predictions_review-inputs.*`, `results/ub0/predictions_stage0.*`) were regenerated at 5deceda:
+> - the map's ρ_rel values are 0.03069, 0.00629 and 0.00151;
+> - §1b now gives T_kin/T_int = 1 under the map, and keeps the superseded design values only as an erratum record;
+> - the design check classifies `map.rhoRel.*` as ERRATUM (A2): 142 values, 0 discrepancies;
+> - every output carries a `map` marker (post-D2).
+>
+> No other value changed. The text below still quotes the earlier ρ_rel where it did so; the outputs govern.
+
 > **Notice added 2026-10-07. The text below is unchanged from a7a1889.** The two open decisions at the end of this document are settled in [`UB0_DESIGN_AMENDMENT_1.md`](UB0_DESIGN_AMENDMENT_1.md):
 > - the three values are recorded as errata, and the computed values are authoritative;
 > - the wall rule is replaced.

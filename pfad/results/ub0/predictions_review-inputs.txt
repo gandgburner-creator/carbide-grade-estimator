@@ -1,5 +1,6 @@
 UB-0 analytical predictions — review-inputs
-commit 2900d895e15e6340defc1e39af7ada70c17f4b3f; φ = 0.2; molecular units m = d = kT = 1 unless stated; parcel units D, σ_v where stated
+map: release fraction rho* = (1-e^2)/(2(N_c-1)+1-e^2) (A2 (D2)); outputs before A2 used the superseded design formula
+commit 5deceda0fa73fddb843d7edbd51c0068c432f81c; φ = 0.2; molecular units m = d = kT = 1 unless stated; parcel units D, σ_v where stated
 No Universe B simulation data is used. Status legend: exact | mechanics | mean-field | estimate | design | input.
 
 UNIVERSE A REFERENCE (status: input)
@@ -15,23 +16,25 @@ UNIVERSE A REFERENCE (status: input)
    exact:      M = N_c m;  D = √N_c d;  n_p = n/N_c;  φ_p = φ;  ρ = n m;  σ_v = √(kT/M);  E_int = (N_c − 1) kT
    exact (hard-core parcel gas = scaled copy of A): P_kin,B/P_A = 1/N_c;  λ_p/D = λ_A/d;
                collision rate per parcel = (rate_A)·σ_v/D, i.e. rate_A/N_c per (d/c_th);  ν, μ invariant for the hard-core gas alone
-   derived:    ρ_rel = (1 − e²)/(2(N_c − 1))  [equilibrium of A-16 at T_kin = T_int, means only]
+   derived:    ρ_rel = (1 − e²)/(2(N_c − 1) + 1 − e²)  [mean balance of A-16 as coded at T_kin = T_int, means only;
+               amendment A2 (D2) erratum: the design's (1 − e²)/(2(N_c − 1)) is superseded, see §1b]
    mean-field: k_s = (N_c − 1) K_T,A/(n φ);  h = c_h √N_c D (choice)
    N_c   M     D      n_p       σ_v     E_int   ρ_rel     k_s      h(D)  h(d)   N_nb   P_kin/P_A  rate/(d/c)  λ_p(d)  S_p(0)
      1    1  1.000   0.25465  1.0000      0  0.00000     0.00   0.0   0.0    0.0    1.0000     1.2871   0.960  0.4217
-     4    4  2.000   0.06366  0.5000      3  0.03167    35.57   4.0   8.0   12.8    0.2500     0.3218   1.920  0.1054
-    16   16  4.000   0.01592  0.2500     15  0.00633   177.83   8.0  32.0   51.2    0.0625     0.0804   3.840  0.0264
+     4    4  2.000   0.06366  0.5000      3  0.03069    35.57   4.0   8.0   12.8    0.2500     0.3218   1.920  0.1054
+    16   16  4.000   0.01592  0.2500     15  0.00629   177.83   8.0  32.0   51.2    0.0625     0.0804   3.840  0.0264
     64   64  8.000   0.00398  0.1250     63  0.00151   746.89  16.0 128.0  204.8    0.0156     0.0201   7.680  0.0066
    k_s/(N_c − 1) = K_T,A/(nφ) = 11.855 kT
 
 1b. EQUIPARTITION UNDER THE IMPLEMENTED RELEASE LAW (A-16 as coded: release = ρ·(E_i + E_j + this loss))
-   T_kin/T_int = 2(N_c − 1)ρ/((1 − e²)(1 − ρ)); the design ρ_rel gives 1/(1 − ρ_rel). PQ4 margin [0.97, 1.03].
-   ρ* = (1 − e²)/(2(N_c − 1) + 1 − e²) balances at T_kin = T_int. Means only (fluctuation correlations neglected).
-     N_c =  4, e = 0.9: ρ_rel = 0.03167 → T_kin/T_int = 1.0327 (OUTSIDE the PQ4 margin);  ρ* = 0.03069 → 1.0000
-     N_c = 16, e = 0.9: ρ_rel = 0.00633 → T_kin/T_int = 1.0064 (inside the PQ4 margin);  ρ* = 0.00629 → 1.0000
-     N_c = 64, e = 0.9: ρ_rel = 0.00151 → T_kin/T_int = 1.0015 (inside the PQ4 margin);  ρ* = 0.00151 → 1.0000
-     N_c = 16, e = 0.8: ρ_rel = 0.01200 → T_kin/T_int = 1.0121 (inside the PQ4 margin);  ρ* = 0.01186 → 1.0000
-     N_c = 16, e = 0.95: ρ_rel = 0.00325 → T_kin/T_int = 1.0033 (inside the PQ4 margin);  ρ* = 0.00324 → 1.0000
+   T_kin/T_int = 2(N_c − 1)ρ/((1 − e²)(1 − ρ)). PQ4 margin [0.97, 1.03]. Means only (fluctuation correlations neglected).
+   The map's ρ_rel = ρ* = (1 − e²)/(2(N_c − 1) + 1 − e²) balances at T_kin = T_int exactly (amendment A2, D2).
+   ERRATUM RECORD (A2, not a prediction): the superseded design formula (1 − e²)/(2(N_c − 1)) would give 1/(1 − ρ).
+     N_c =  4, e = 0.9: ρ_rel = ρ* = 0.03069 → T_kin/T_int = 1.0000;   [erratum: design 0.03167 would give 1.0327, OUTSIDE the PQ4 margin]
+     N_c = 16, e = 0.9: ρ_rel = ρ* = 0.00629 → T_kin/T_int = 1.0000;   [erratum: design 0.00633 would give 1.0064]
+     N_c = 64, e = 0.9: ρ_rel = ρ* = 0.00151 → T_kin/T_int = 1.0000;   [erratum: design 0.00151 would give 1.0015]
+     N_c = 16, e = 0.8: ρ_rel = ρ* = 0.01186 → T_kin/T_int = 1.0000;   [erratum: design 0.01200 would give 1.0121]
+     N_c = 16, e = 0.95: ρ_rel = ρ* = 0.00324 → T_kin/T_int = 1.0000;   [erratum: design 0.00325 would give 1.0033]
 
 2. PRESSURE CLOSURE AND SOUND (mean-field unless stated)
    P_occ/(n_p kT) = ½(N_c − 1) K_T,A/(nkT);   P_B/(n_p kT) = Z + P_occ/(n_p kT);   Z_B/Z_A = 1/N_c + (1 − 1/N_c)·K_T,A/(2 n kT Z)
@@ -144,8 +147,12 @@ UNIVERSE A REFERENCE (status: input)
    agree       = rounds to the printed value
    rounding    = does not round to it but differs by ≤ 1 % (input rounding, e.g. 1.29 vs 1.287 collisions)
    ERRATUM (A1) = a discrepancy acknowledged in docs/UB0_DESIGN_AMENDMENT_1.md §1.1 (the computed value is authoritative)
+   ERRATUM (A2) = a value whose formula docs/UB0_DESIGN_AMENDMENT_2.md (D2) corrected; listed whatever its size
    DISCREPANCY = anything else
    rounding      map.rate.16              review 0.081  recomputed 0.08044  (-0.69 %)  §2.1
+   ERRATUM (A2)  map.rhoRel.4             review 0.0317  recomputed 0.03069  (-3.17 %)  §2.1
+   ERRATUM (A2)  map.rhoRel.16            review 0.00633  recomputed 0.00629  (-0.58 %)  §2.1
+   ERRATUM (A2)  map.rhoRel.64            review 0.00151  recomputed 0.00151  (-0.29 %)  §2.1
    rounding      mf.GammaHi.4             review 1.247  recomputed 1.24649  (-0.04 %)  §2.1
    rounding      mf.What160.64            review 0.9824  recomputed 0.98251  (0.01 %)  §8.1
    ERRATUM (A1)  cp.GammaC.64.2           review 3.7  recomputed 3.64695  (-1.43 %)  §2.4
@@ -154,6 +161,6 @@ UNIVERSE A REFERENCE (status: input)
    rounding      wave.coll.4.80           review 152  recomputed 151.37396  (-0.41 %)  §5
    rounding      wave.coll.64.160         review 607  recomputed 605.49585  (-0.25 %)  §5
    ERRATUM (A1)  le.minRe.16              review 48  recomputed 47.22655  (-1.61 %)  §13
-   142 values checked: 133 agree, 6 rounding-level, 3 acknowledged errata (A1), 0 DISCREPANCY
+   142 values checked: 130 agree, 6 rounding-level, 3 acknowledged errata (A1), 3 errata (A2), 0 DISCREPANCY
 
-runtime 136.2 s
+runtime 139.2 s

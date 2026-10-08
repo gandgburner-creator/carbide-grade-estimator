@@ -353,3 +353,12 @@ is unchanged. Criteria for the reruns were fixed beforehand in
   changed.** Criteria defects found in the validation (under-powered 4-seed
   positive control and single-column wall-shear checks) are reported in
   `REPORT_BOUNDARY_LAYER_SEPARATION.md` §18, not repaired.
+
+### UB-0 map erratum: the release fraction ρ_rel (amendment A2, D2; no engine-rule change)
+
+- **Was:** ρ_rel = (1 − e²)/(2(N_c − 1)) (design d068755 §2.3), described as "the equilibrium of A-16 at T_kin = T_int".
+- **Now:** ρ_rel = (1 − e²)/(2(N_c − 1) + 1 − e²) (`CoarseGrainMap.releaseFractionFor`).
+- **Why:** A-16 as coded deposits the collision's own inelastic loss in the reservoirs before the release takes ρ of them. The mean balance at T_kin = T_int is therefore (1 − ρ)(1 − e²) = 2(N_c − 1)ρ. The old value balanced at T_kin/T_int = 1/(1 − ρ) = 1.033 at N_c = 4, outside PQ4's margin by construction.
+- **Classification:** a derived constant corrected to its own definition. A-16, the collision engine and the map's defining rule are unchanged. N_c = 1 (Universe A) is unaffected. No Universe B run of any kind had been made with either value.
+- **Evidence:** `tests/universeB.release.test.ts` (the real collider on 20 000 synthetic collisions per case: release = loss at T_kin = T_int with the map's ρ) and `tests/universeB.predictions.test.ts`.
+
