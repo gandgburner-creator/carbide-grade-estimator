@@ -1,0 +1,60 @@
+{
+ "label": "Stage 0 + Stage 0b Universe A measurements",
+ "phi": 0.2,
+ "Z": {
+  "value": 1.570862168334226,
+  "se": 0.00038694709170636224,
+  "df": 7,
+  "source": "Stage 0 Universe A measurement (results/ub0/stage0): static boxes φ = 0.20"
+ },
+ "KTred": {
+  "value": 2.375642918671131,
+  "se": 0.0024936923714026305,
+  "df": 13.870799467569885,
+  "source": "Stage 0 Universe A measurement (results/ub0/stage0): central difference φ = 0.18/0.22 — THE MAPPING INPUT"
+ },
+ "cA": {
+  "value": 2.2098176594865664,
+  "se": 0.01474357006452423,
+  "df": 31,
+  "source": "Stage 0 + Stage 0b Universe A measurements (results/ub0/stage0, results/ub0/stage0b): standing wave L = 160 d, amplitude 0.04, Courant 0.025"
+ },
+ "lambda": {
+  "value": 0.9736300933571619,
+  "se": 0.00010251237006277544,
+  "df": 31,
+  "source": "Stage 0 + Stage 0b Universe A measurements (results/ub0/stage0, results/ub0/stage0b): long static boxes, Courant 0.025"
+ },
+ "nu": {
+  "value": 1.5469939823677625,
+  "se": 0.011364878763965944,
+  "df": 199,
+  "source": "Stage 0 + Stage 0b Universe A measurements (results/ub0/stage0, results/ub0/stage0b): shear wave L = 80 d, U₀ = c_th, Courant 0.025"
+ },
+ "collisionRate": {
+  "value": 1.2873186685218743,
+  "se": 0.00012541398478833226,
+  "df": 31,
+  "source": "Stage 0 + Stage 0b Universe A measurements (results/ub0/stage0, results/ub0/stage0b): long static boxes, Courant 0.025"
+ },
+ "cAByNc": {
+  "4": {
+   "value": 2.1901013640449865,
+   "se": 0.019967513610317907,
+   "df": 31,
+   "source": "Stage 0 + Stage 0b Universe A measurements (results/ub0/stage0, results/ub0/stage0b): standing wave L = 160 d, amplitude 0.04, Courant 0.00625 (matched to L4)"
+  },
+  "16": {
+   "value": 2.2098176594865664,
+   "se": 0.01474357006452423,
+   "df": 31,
+   "source": "Stage 0 + Stage 0b Universe A measurements (results/ub0/stage0, results/ub0/stage0b): standing wave L = 160 d, amplitude 0.04, Courant 0.025 (matched to L16)"
+  },
+  "64": {
+   "value": 2.2098176594865664,
+   "se": 0.01474357006452423,
+   "df": 31,
+   "source": "Stage 0 + Stage 0b Universe A measurements (results/ub0/stage0, results/ub0/stage0b): standing wave L = 160 d, amplitude 0.04, Courant 0.025 (matched to L64)"
+  }
+ }
+}
