@@ -1,7 +1,8 @@
 import type { UB0Result } from './UB0Run';
+import { driftStatistic, gateLimit, type PilotGateA2 } from './UB0Timestep';
 
 /**
- * The only record a blind Universe B run (a stability pilot, A1 §4.3) may store.
+ * The only record a blind Universe B run (a stability pilot, A1 §4.3; A2 §1.5) may store.
  *
  * A1 §4.3 allows wall-clock timing, ledgers, energy drift, halts and safety
  * flags; "no physics observable is computed, printed or stored". With
@@ -68,29 +69,24 @@ export function blindRecord(r: UB0Result): BlindRecord {
   return { blind: true, spec: r.spec, halted: r.info.halted === 1, lostEvents: r.lostEvents, phases, seconds };
 }
 
-// ───────────────────────── stability-pilot gates (A1 §4.3) ─────────────────────────
+// ───────────────────────── stability-pilot gates (A2 §1.5) ─────────────────────────
 
-/** PQ7(b) limits applied to the measured window (A1 §4.3) */
-export const DRIFT_LIMIT_WAVE = 0.01;
-export const DRIFT_LIMIT_STATIC = 1e-4;
-
-export interface PilotGate {
-  id: string;
-  courant: number;
-  halted: boolean;
-  /** the drift statistic and its limit */
-  drift: number;
-  driftLimit: number;
-  driftPass: boolean;
-  /** recorded, not part of the timestep rule: PQ7(a), PQ7(e), lost events, failure flags */
-  defects: string[];
-}
-
-export function pilotGate(r: BlindRecord): PilotGate {
+/**
+ * The PQ7(b) statistic of a pilot against its A2 gate (UB0Timestep): shear waves
+ * |ΔE| / wave energy against 1 %; static boxes, standing sound waves and wall boxes
+ * |ΔE/E| per D/σ_v against 2 × 10⁻⁷. The pilot rule acts on the fraction of the gate
+ * (½ ⇒ halve the comparability group once); the defects are listed for review.
+ * The A1 §4.3 rule this replaces (absolute 10⁻⁴ of the total energy; one Courant number
+ * for everything) is quoted in A2 §1.1 and is no longer implemented.
+ */
+export function pilotGate(r: BlindRecord, group = r.spec.id): PilotGateA2 {
   const m = r.phases.measure;
-  const wave = r.spec.kind === 'shear' || r.spec.kind === 'sound';
-  const driftLimit = wave ? DRIFT_LIMIT_WAVE : DRIFT_LIMIT_STATIC;
-  const drift = m ? Math.abs(wave ? (m.energyOverWave ?? Number.NaN) : m.relativeEnergyResidual) : Number.NaN;
+  const limit = gateLimit(r.spec.kind);
+  const drift = m
+    ? r.spec.kind === 'shear'
+      ? Math.abs(m.energyOverWave ?? Number.NaN)
+      : driftStatistic(r.spec.kind, r.spec.measure, { energyResidual: Number.NaN, relativeEnergyResidual: m.relativeEnergyResidual }, Number.NaN)
+    : Number.NaN;
   const defects: string[] = [];
   if (!m) defects.push('no measure phase');
   for (const [name, p] of Object.entries(r.phases)) {
@@ -99,34 +95,5 @@ export function pilotGate(r: BlindRecord): PilotGate {
     if (p.flags.some((f) => f.severity === 'failure')) defects.push(`${name}: safety failure flag`);
   }
   if (r.lostEvents > 0) defects.push(`${r.lostEvents} lost collision events`);
-  return { id: r.spec.id, courant: r.spec.courant, halted: r.halted, drift, driftLimit, driftPass: drift <= driftLimit, defects };
-}
-
-export type TimestepDecision =
-  | { kind: 'retain'; courant: number }
-  | { kind: 'halve'; courant: number; trigger: string[] }
-  | { kind: 'review'; reason: string; ids: string[] };
-
-/**
- * The pre-declared timestep rule (A1 §4.3), committed before any pilot result:
- *   1. a pilot at the baseline Courant number over its drift gate ⇒ Courant base/2
- *      throughout UB-0 (Universe A inputs repeated with the same seeds and re-frozen;
- *      the dt arm moves to base/4);
- *   2. a pilot over its gate at base/2 (a second round, or the dt arm itself) ⇒
- *      nothing changes automatically; reported for review;
- *   3. a halt, or any PQ7(a)/(e) defect ⇒ an implementation defect; reported, never
- *      absorbed into a criterion.
- * Rule 3 is checked first: a defective implementation decides nothing about dt.
- * `base` is always the original baseline 0.025, also when a second pilot round runs
- * at 0.0125, so that rule 2 (not a further halving) applies to it.
- */
-export function timestepDecision(gates: PilotGate[], base: number): TimestepDecision {
-  const defective = gates.filter((g) => g.halted || g.defects.length > 0);
-  if (defective.length) return { kind: 'review', reason: 'implementation defect (halt or PQ7 a/e)', ids: defective.map((g) => g.id) };
-  const over = gates.filter((g) => !g.driftPass);
-  const atBase = over.filter((g) => g.courant >= base);
-  const below = over.filter((g) => g.courant < base);
-  if (below.length) return { kind: 'review', reason: `drift gate exceeded at Courant < ${base}`, ids: below.map((g) => g.id) };
-  if (atBase.length) return { kind: 'halve', courant: base / 2, trigger: atBase.map((g) => g.id) };
-  return { kind: 'retain', courant: base };
+  return { id: r.spec.id, group, courant: r.spec.courant, halted: r.halted, drift, limit, fraction: drift / limit, defects };
 }

@@ -4,8 +4,12 @@
  * pre-registration commit (scripts/ub0-run.ts --plan ub0 --approved-commit …).
  *
  *   npx tsx scripts/ub0-analysis.ts [--dir results/ub0/ub0] [--frozen results/ub0/frozen_inputs.json]
- *        [--courant 0.025] [--extension <dir>/extension_request.json]
- *        [--b0 results/ub0/b0/b0.json] [--pred results/ub0/predictions_stage0.json]
+ *        [--power results/ub0/power_plan.json] [--timestep-decision results/ub0/pilots/timestep_decision.json]
+ *        [--extension <dir>/extension_request.json]
+ *        [--b0 results/ub0/b0/b0.json] [--pred results/ub0/predictions_stage0b.json]
+ *
+ * The plan is regenerated from the frozen inputs, the FINAL power plan and the pilot
+ * timestep decision (amendment A2): seeds, counts and per-group Courant numbers.
  *
  * Mechanical, in this order (src/universeB/UB0Pipeline.ts):
  *  1. per-run automatic exclusions (§11.6) → reserve seeds in seed order; if a
@@ -36,12 +40,14 @@ const argv = process.argv.slice(2);
 const arg = (n: string, d: string) => (argv.includes(n) ? argv[argv.indexOf(n) + 1] : d);
 const dir = arg('--dir', 'results/ub0/ub0');
 const frozen = JSON.parse(readFileSync(arg('--frozen', 'results/ub0/frozen_inputs.json'), 'utf8')) as FrozenJudged;
-const courant = Number(arg('--courant', '0.025'));
+const power = JSON.parse(readFileSync(arg('--power', 'results/ub0/power_plan.json'), 'utf8')) as { status: 'final' | 'provisional'; groups: Record<string, { n: number }> };
+const decision = arg('--timestep-decision', 'results/ub0/pilots/timestep_decision.json');
+const halved = existsSync(decision) ? ((JSON.parse(readFileSync(decision, 'utf8')) as { halved?: string[] }).halved ?? []) : [];
 const extFile = arg('--extension', '');
 const b0File = arg('--b0', 'results/ub0/b0/b0.json');
-const predFile = arg('--pred', 'results/ub0/predictions_stage0.json');
+const predFile = arg('--pred', 'results/ub0/predictions_stage0b.json');
 
-const plan = ub0Plan(frozen, { reserve: true, courant });
+const plan = ub0Plan(frozen, { status: power.status, n: Object.fromEntries(Object.entries(power.groups).map(([g, v]) => [g, v.n])) }, { reserve: true, halved });
 const cache = new Map<string, UB0Result | null>();
 const load = (id: string) => {
   if (!cache.has(id)) {
@@ -99,11 +105,11 @@ function primaryLines(d: D, key: string): string {
 
 const first = res.first;
 say('UB-0 judged analysis (pre-registered; src/universeB/UB0Pipeline.ts)');
-say(`plan: ${plan.length} seeds incl. reserves; Courant ${courant}; frozen inputs from Stage 0 commit ${(frozen as unknown as { stage0Commit?: string }).stage0Commit ?? '?'}`);
+say(`plan: ${plan.length} seeds incl. reserves; Courant per comparability group (A2), halved: ${halved.length ? halved.join(', ') : 'none'}; frozen inputs ${JSON.stringify((frozen as unknown as { provenance?: unknown }).provenance ?? {})}`);
 say();
 say('── exclusions (§11.6) ──');
 for (const [g, s] of Object.entries(res.selections)) {
-  if (s.excluded.length || s.shortfall) say(`  ${g}: used ${s.used.length}/${s.target}; excluded ${s.excluded.map((e) => `${e.id} (${e.reasons.join('; ')})`).join(', ')}${s.shortfall ? `; SHORTFALL ${s.shortfall}` : ''}${s.over10pct ? '; > 10 % EXCLUDED' : ''}`);
+  if (s.excluded.length || s.shortfall) say(`  ${g}: used ${s.used.length}/${s.target}; excluded ${s.excluded.map((e) => `${e.id} (${e.reasons.join('; ')})`).join(', ')}${s.shortfall ? `; SHORTFALL ${s.shortfall}` : ''}${s.excessExclusions ? '; EXCLUSIONS > max(1, 10 %): F0' : ''}`);
 }
 say();
 say('── run halves (§11.5.1) ──');
@@ -143,11 +149,10 @@ say(`  OVERALL CATEGORY: ${fin.overall}`);
 say();
 say(`── wall verdict (separate; A1 §2.4): ${res.wall.verdict} ──`);
 for (const [g, c] of Object.entries(res.wall.configs)) {
-  say(`  ${g}: G-W1 ${ci(c.gates.gw1.interval.ci)} ${c.gates.gw1.outcome}; G-W2 ${ci(c.gates.gw2.interval.ci)} ${c.gates.gw2.outcome}; G-W3 ${ci(c.gates.gw3.interval.ci)} ${c.gates.gw3.outcome}; R ${f(c.R.interval.estimate)} ${ci(c.R.interval.ci)} → ${c.R.outcome}${c.over10pct ? '; > 10 % EXCLUDED (VOID)' : ''}${g === 'W4c4' ? ' (secondary arm)' : ''}`);
+  say(`  ${g}: G-W1 ${ci(c.gates.gw1.interval.ci)} ${c.gates.gw1.outcome}; G-W2 ${ci(c.gates.gw2.interval.ci)} ${c.gates.gw2.outcome}; G-W3 ${ci(c.gates.gw3.interval.ci)} ${c.gates.gw3.outcome}; R ${f(c.R.interval.estimate)} ${ci(c.R.interval.ci)} → ${c.R.outcome}${c.excessExclusions ? '; EXCLUSIONS > max(1, 10 %) (VOID)' : ''}${g === 'W4c4' ? ' (secondary arm)' : ''}`);
 }
 say();
-say('── Couette (secondary; UB-0W planning only) ──');
-for (const [g, es] of Object.entries(res.couette)) say(`  ${g}: μ per seed ${es.map((e) => f(e.mu)).join(', ')}; slip ${es.map((e) => `${f(e.slip[0], 3)}/${f(e.slip[1], 3)}`).join(', ')}`);
+say('── Couette: not part of UB-0 (deferred to UB-0W, amendment A2 §1.6) ──');
 say();
 say('── timestep diagnostics (§11.6, report only) ──');
 const omega = Object.entries(res.diagnostics).filter(([, v]) => Number.isFinite(v.maxOmegaDt));

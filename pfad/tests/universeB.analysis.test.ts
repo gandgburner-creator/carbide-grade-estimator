@@ -151,7 +151,7 @@ function allPass(): BulkOutcomes {
     pq7Violations: 0,
     pq7c: 'PASS',
     pq7d: 'PASS',
-    exclusionsOver10pct: false,
+    excessExclusions: false,
     orderingFlag: false,
   };
 }

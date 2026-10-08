@@ -1,11 +1,11 @@
 import { statCI, type Interval, type RunGate } from './UB0Analysis';
-import { DRIFT_LIMIT_STATIC, DRIFT_LIMIT_WAVE } from './UB0Blind';
+import { driftStatistic, gateLimit } from './UB0Timestep';
 import type { PlannedRun } from './UB0Plans';
 import type { UB0Result } from './UB0Run';
 import { ens } from './UB0Stage0';
 
 /**
- * Run selection for the judged UB-0 analysis (design §11.5–§11.7; amendment A1).
+ * Run selection for the judged UB-0 analysis (design §11.5–§11.7; amendments A1, A2).
  * Pure functions, fixed before any Universe B judged run; tested on synthetic
  * records (tests/universeB.selection.test.ts).
  */
@@ -14,7 +14,7 @@ import { ens } from './UB0Stage0';
 
 export interface RunCheck {
   id: string;
-  /** automatic exclusion: halt, non-finite state, PQ7(a), PQ7(b), lost collision events */
+  /** automatic exclusion: halt, non-finite state, PQ7(a), PQ7(b) (the A2 gate of its kind), lost collision events */
   excludeReasons: string[];
   /** for PQ7 over the INCLUDED runs: (e) unexplained late contacts is not an exclusion; it voids (F0) */
   gate: RunGate;
@@ -50,11 +50,11 @@ export function checkRun(r: UB0Result): RunCheck {
   if (!finite) why.push('non-finite state');
   if (!(mom <= 1e-9)) why.push(`PQ7(a) momentum residual ${mom.toExponential(2)} N M σ_v`);
   const m = r.phaseLedgers.measure as PhaseLedger | undefined;
-  const wave = r.spec.kind === 'shear' || r.spec.kind === 'sound';
-  const driftLimit = wave ? DRIFT_LIMIT_WAVE : DRIFT_LIMIT_STATIC;
-  const drift = m ? Math.abs(wave ? m.energyResidual / r.info.imposedKineticEnergy : m.relativeEnergyResidual) : Number.NaN;
+  // A2 §1.2: shear waves |ΔE|/wave energy ≤ 1 %; static, sound and wall boxes |ΔE/E| ≤ 2e-7 per D/σ_v
+  const driftLimit = gateLimit(r.spec.kind);
+  const drift = m ? driftStatistic(r.spec.kind, r.spec.measure, m, r.info.imposedKineticEnergy) : Number.NaN;
   if (!m) why.push('no measure phase');
-  else if (!(drift <= driftLimit)) why.push(`PQ7(b) energy drift ${drift.toExponential(2)} > ${driftLimit}`);
+  else if (!(drift <= driftLimit)) why.push(`PQ7(b) energy drift ${drift.toExponential(2)} > ${driftLimit}${r.spec.kind === 'shear' ? ' of the wave energy' : ' per D/σ_v'}`);
   if (r.lostEvents > 0) why.push(`${r.lostEvents} lost collision events`);
   const om = r.samples.map((s) => s.omegaDt).filter((x) => x !== undefined);
   return {
@@ -79,8 +79,20 @@ export interface GroupSelection {
   toRun: string[];
   /** target not reachable: the reserve is exhausted */
   shortfall: number;
-  /** more than 10 % of the runs examined were excluded ⇒ F0 for this configuration */
-  over10pct: boolean;
+  /**
+   * more than max(1, 10 %) of the runs examined were excluded ⇒ F0 for this configuration
+   * (A2 §4): a single exclusion, replaced from the reserve, never voids a group by itself
+   */
+  excessExclusions: boolean;
+}
+
+/**
+ * The A2 exclusion rule (§4): F0 only when the excluded runs exceed max(1, 10 % of the
+ * runs examined). It replaces the design's "> 10 % excluded", under which one exclusion
+ * in a group of 4–8 runs (20 %, 11 %) voided the whole bulk verdict.
+ */
+export function excessExclusions(excluded: number, examined: number): boolean {
+  return examined > 0 && excluded > Math.max(1, 0.1 * examined);
 }
 
 /**
@@ -114,7 +126,7 @@ export function selectGroup(runs: PlannedRun[], checks: Map<string, RunCheck>, e
     excluded,
     toRun,
     shortfall: Math.max(0, target - used.length - toRun.length),
-    over10pct: examined > 0 && excluded.length > 0.1 * examined,
+    excessExclusions: excessExclusions(excluded.length, examined),
   };
 }
 
@@ -142,7 +154,7 @@ export const PRIMARY_GROUPS: Record<string, string[]> = {
   'pq6a.16': ['T16a1', 'T16a05'],
   pq6b: ['T16e08', 'T16e095'],
   pq6c: ['T4c4', 'T4a1', 'SK4c4p18', 'SK4c4p22', 'SK4c2p18', 'SK4c2p22'],
-  pq7d: ['T16dt', 'T16a1'],
+  pq7d: ['T4dt', 'T4a1'],
   'pq8.4': ['T4a1'],
   'pq8.16': ['T16a1'],
   'pq8.64': ['T64a1'],

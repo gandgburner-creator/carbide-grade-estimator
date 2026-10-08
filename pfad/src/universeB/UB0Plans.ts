@@ -1,5 +1,6 @@
 import { henderson, UB0_PHI } from './CoarseGrainMap';
 import type { UB0Spec } from './UB0Run';
+import { comparabilityOf, courantOf, DT_ARM } from './UB0Timestep';
 
 /**
  * Run plans for UB-0, generated deterministically.
@@ -26,7 +27,7 @@ export interface PlannedRun extends UB0Spec {
   periodHint?: number;
 }
 
-interface GroupDef {
+export interface GroupDef {
   group: string;
   n: number;
   base: Omit<UB0Spec, 'id' | 'seed'>;
@@ -34,7 +35,7 @@ interface GroupDef {
 }
 
 /** Contiguous seed blocks of 2 × planned per group (planned first, then reserve), from `start`. */
-function allocate(defs: GroupDef[], start: number, prefix: string, withReserve: boolean): PlannedRun[] {
+export function allocate(defs: GroupDef[], start: number, prefix: string, withReserve: boolean): PlannedRun[] {
   const out: PlannedRun[] = [];
   let seed = start;
   for (const d of defs) {
@@ -126,25 +127,142 @@ export function specCost(s: UB0Spec): number {
   return parcels * steps * occ;
 }
 
+// ───────────────────────── Stage 0b (Universe A only; docs/CRITERIA_UB0_STAGE0B.md) ─────────────────────────
+
+/**
+ * Stage 0b supplements Stage 0 (amendment A2 §5; its own protocol). Universe A only.
+ * Phase 1 (fixed now): more reference seeds at Courant 0.025 with specs IDENTICAL to
+ * Stage 0's groups (so they pool), the sound-amplitude study (0.02 and 0.04 of c), and
+ * the timestep checks at 0.0125 and 0.00625. Phase 2 (after the amplitude decision):
+ * the standing wave at the selected amplitude at 0.0125 and 0.00625. Seed blocks are
+ * allocated over both phases at once, so no seed depends on the decision.
+ */
+export const STAGE0B_SEED_START = 11001;
+export type SoundAmplitude = 0.02 | 0.04;
+export const SOUND_AMPLITUDES: readonly SoundAmplitude[] = [0.02, 0.04];
+
+export function stage0bGroups(amplitude: SoundAmplitude = 0.02): (GroupDef & { phase: 1 | 2 })[] {
+  const at = (c: number) => Object.fromEntries(stage0Groups(c).map((g) => [g.group, g]));
+  const s025 = at(0.025);
+  const s0125 = at(0.0125);
+  const s00625 = at(0.00625);
+  const sound = (g: GroupDef, a: number): GroupDef['base'] => ({ ...g.base, amplitude: a * 2.17 });
+  return [
+    // phase 1 at the Stage 0 Courant number: more seeds for the references, pooled with Stage 0
+    { phase: 1, group: 'T80a1', n: 106, base: s025.T80a1.base },
+    { phase: 1, group: 'T160a1', n: 88, base: s025.T160a1.base },
+    { phase: 1, group: 'SL', n: 24, base: s025.SL.base },
+    { phase: 1, group: 'W40', n: 28, base: s025.W40.base },
+    { phase: 1, group: 'L160', n: 17, base: s025.L160.base, periodHint: s025.L160.periodHint },
+    // the amplitude study (protocol §4): 0.04 of c against 0.02 of c, both at 0.025
+    { phase: 1, group: 'L160a04', n: 32, base: sound(s025.L160, 0.04), periodHint: s025.L160.periodHint },
+    // the timestep checks and the matched references (protocol §5)
+    { phase: 1, group: 'T80a1c0125', n: 200, base: s0125.T80a1.base },
+    { phase: 1, group: 'T80a1c00625', n: 100, base: s00625.T80a1.base },
+    { phase: 1, group: 'SK18c0125', n: 8, base: s0125.SK18.base },
+    { phase: 1, group: 'SK22c0125', n: 8, base: s0125.SK22.base },
+    { phase: 1, group: 'SK18c00625', n: 8, base: s00625.SK18.base },
+    { phase: 1, group: 'SK22c00625', n: 8, base: s00625.SK22.base },
+    { phase: 1, group: 'SLc00625', n: 16, base: s00625.SL.base },
+    // phase 2: the standing wave at the amplitude selected by protocol §4
+    { phase: 2, group: 'L160c0125', n: 16, base: sound(s0125.L160, amplitude), periodHint: s0125.L160.periodHint },
+    { phase: 2, group: 'L160c00625', n: 32, base: sound(s00625.L160, amplitude), periodHint: s00625.L160.periodHint },
+  ];
+}
+
+export function stage0bPlan(opts: { phase: 1 | 2; amplitude?: SoundAmplitude; reserve?: boolean }): PlannedRun[] {
+  if (opts.phase === 2 && opts.amplitude === undefined) throw new Error('Stage 0b phase 2 needs the amplitude decision (protocol §4)');
+  const defs = stage0bGroups(opts.amplitude ?? 0.02);
+  const all = allocate(defs, STAGE0B_SEED_START, 's0b', opts.reserve ?? false);
+  const phase = new Map(defs.map((d) => [d.group, d.phase]));
+  return all.filter((r) => phase.get(r.group) === opts.phase);
+}
+
+/**
+ * The Stage 0b contingency (protocol §8): matched Universe A references at a Courant
+ * number a pilot halving moved a comparability group to. Seeds from 12401 over the full
+ * list, so no seed depends on which groups are needed; reserves of existing groups are
+ * activated where they suffice.
+ */
+export const STAGE0B_CONTINGENCY_SEED_START = 12401;
+export function stage0bContingency(halved: readonly string[], amplitude: SoundAmplitude): { plan: PlannedRun[]; activateReserves: string[] } {
+  const at = (c: number) => Object.fromEntries(stage0Groups(c).map((g) => [g.group, g]));
+  const s3 = at(0.003125);
+  const s0125 = at(0.0125);
+  const defs: (GroupDef & { for: string[] })[] = [
+    { for: ['N4-static'], group: 'SLc003125', n: 16, base: s3.SL.base },
+    { for: ['N4-static'], group: 'L160c003125', n: 32, base: { ...s3.L160.base, amplitude: amplitude * 2.17 }, periodHint: s3.L160.periodHint },
+    { for: ['N4-static'], group: 'SK18c003125', n: 8, base: s3.SK18.base },
+    { for: ['N4-static'], group: 'SK22c003125', n: 8, base: s3.SK22.base },
+    { for: ['N16-static'], group: 'SLc0125', n: 32, base: s0125.SL.base },
+    { for: ['N64-shear'], group: 'T160a1c0125', n: 100, base: s0125.T160a1.base },
+  ];
+  const all = allocate(defs, STAGE0B_CONTINGENCY_SEED_START, 's0b', true);
+  const need = new Set(defs.filter((d) => d.for.some((g) => halved.includes(g))).map((d) => d.group));
+  const activateReserves = [
+    ...(halved.includes('N4-shear') ? ['T80a1c00625'] : []),
+    ...(halved.includes('N16-static') || halved.includes('N64-static') ? ['L160c0125'] : []),
+  ];
+  return { plan: all.filter((r) => need.has(r.group)), activateReserves };
+}
+
 // ───────────────────────── Universe B (UB-0) ─────────────────────────
 
-/** Frozen inputs for the Universe B plan: the mapping input and the G3 sound-band edges. */
+type NcKey = 4 | 16 | 64;
+
+/**
+ * Frozen inputs for the Universe B plan (amendment A2 structure; scripts/ub0-freeze.ts,
+ * regenerated after Stage 0b). Universe A data and analytical predictions only.
+ */
 export interface FrozenInputs {
-  /** K_T,A/(n kT) from Stage 0 — the only Universe A quantity that sets a Universe B parameter */
+  version: 'A2';
+  /** K_T,A/(n kT) from Stage 0 — the only Universe A quantity that sets a Universe B parameter (unchanged by Stage 0b) */
   KTred: number;
-  /** G3 c_B/c_A band per N_c and the Stage 0 c_A (molecular), for the standing-wave length and amplitude */
-  cA: number;
-  cRatio: Record<number, [number, number]>;
+  /** G3 c_B/c_A band per N_c, computed with that N_c's matched c_A */
+  cRatio: Record<NcKey, [number, number]>;
+  /** c_A at each N_c's matched Courant number (Stage 0 + 0b), for the standing-wave length and amplitude */
+  cA: Record<NcKey, number>;
+  /** standing-wave amplitude as a fraction of the sound speed (Stage 0b §4: 0.02 or 0.04) */
+  soundAmplitude: SoundAmplitude;
+}
+
+/** The planned seed counts the power plan sets (results/ub0/power_plan.json). */
+export interface SeedCounts {
+  status: 'final' | 'provisional';
+  n: Record<string, number>;
+}
+
+export function assertFrozenA2(f: FrozenInputs): void {
+  if (f.version !== 'A2') throw new Error('frozen inputs are not in the A2 structure: regenerate them after Stage 0b (scripts/ub0-freeze.ts)');
 }
 
 export const UB0_SEED_START = 20001;
 export const PILOT_SEED_START = 9501;
 
-/** Universe B judged configurations (design §4.3, §11.2; amendment A1 §2.4, §4.2). */
-export function ub0Groups(f: FrozenInputs, courant = COURANT_BASE): GroupDef[] {
-  const B = (Nc: number, ch = 2, e = 0.9, cour = courant) => ({ Nc, ch, e, KTred: f.KTred, courant: cour, observables: true });
-  const stat = (Nc: number, ch: number, phi: number, measure: number, extras: boolean) => ({
-    ...B(Nc, ch),
+/**
+ * Seed counts of the design (§11.2), the floor under the A2 power plan: no group runs
+ * fewer seeds than the design gave it. Couette (C4, C16) is deferred to UB-0W (A2 §1.6).
+ */
+export const DESIGN_COUNTS: Record<string, number> = {
+  SK4c2p18: 8, SK4c2p20: 8, SK4c2p22: 8, SK16c2p18: 8, SK16c2p20: 8, SK16c2p22: 8,
+  SK64c2p18: 8, SK64c2p20: 8, SK64c2p22: 8, SK4c4p18: 8, SK4c4p20: 8, SK4c4p22: 8,
+  SL4: 4, SL16: 4,
+  T4a1: 48, T4a05: 96, T16a1: 48, T16a05: 96, T64a1: 6, T16e08: 48, T16e095: 48, T4c4: 24, T4dt: 48,
+  L4: 4, L16: 4, L64: 4,
+  W4c2: 4, W16c2: 4, W4c4: 4,
+};
+
+/**
+ * Universe B judged configurations (design §4.3, §11.2; A1 §2.4, §4.2; A2), in the
+ * canonical order of the seed allocation. Each group's Courant number is its
+ * comparability group's (UB0Timestep.courantOf), halved once for any group the pilot
+ * rule halved; `n` is the design count until `counts` replaces it.
+ */
+export function ub0Groups(f: FrozenInputs, counts?: SeedCounts, halved: readonly string[] = []): GroupDef[] {
+  assertFrozenA2(f);
+  const B = (group: string, Nc: number, ch = 2, e = 0.9) => ({ Nc, ch, e, KTred: f.KTred, courant: courantOf(group, halved), observables: true });
+  const stat = (group: string, Nc: number, ch: number, phi: number, measure: number, extras: boolean) => ({
+    ...B(group, Nc, ch),
     kind: 'static' as const,
     phi,
     L: 80,
@@ -154,8 +272,8 @@ export function ub0Groups(f: FrozenInputs, courant = COURANT_BASE): GroupDef[] {
     sample: 1,
     extras,
   });
-  const shear = (b: ReturnType<typeof B>, L: number, amplitude: number) => ({
-    ...b,
+  const shear = (group: string, Nc: number, L: number, amplitude: number, ch = 2, e = 0.9) => ({
+    ...B(group, Nc, ch, e),
     kind: 'shear' as const,
     phi: UB0_PHI,
     L,
@@ -165,72 +283,109 @@ export function ub0Groups(f: FrozenInputs, courant = COURANT_BASE): GroupDef[] {
     measure: 1.5 * tauD(L),
     sample: 0.5,
   });
-  const sound = (Nc: number): GroupDef => {
+  const sound = (Nc: NcKey): Omit<GroupDef, 'n'> => {
     const [lo, hi] = f.cRatio[Nc];
-    const cLo_p = f.cA * lo * Math.sqrt(Nc); // σ_v units
-    const cMid_p = f.cA * 0.5 * (lo + hi) * Math.sqrt(Nc);
+    const cLo_p = f.cA[Nc] * lo * Math.sqrt(Nc); // σ_v units
+    const cMid_p = f.cA[Nc] * 0.5 * (lo + hi) * Math.sqrt(Nc);
     const P = 160 / cLo_p;
+    const group = `L${Nc}`;
     return {
-      group: `L${Nc}`,
-      n: 4,
+      group,
       periodHint: P,
-      base: { ...B(Nc), kind: 'sound', phi: UB0_PHI, L: 160, amplitude: 0.02 * cMid_p, prep: 100, settle: 20, measure: 14 * P, sample: 0.5 },
+      base: { ...B(group, Nc), kind: 'sound', phi: UB0_PHI, L: 160, amplitude: f.soundAmplitude * cMid_p, prep: 100, settle: 20, measure: 14 * P, sample: 0.5 },
     };
   };
-  const wall = (Nc: number, ch: number): GroupDef => ({
-    group: `W${Nc}c${ch}`,
-    n: 4,
-    base: { ...B(Nc, ch), kind: 'wall', phi: UB0_PHI, width: 40, height: 10 * ch * Math.sqrt(Nc), prep: 640, settle: 0, measure: 2000, sample: 1 },
-  });
-  const couette = (Nc: number): GroupDef => ({
-    group: `C${Nc}`,
-    n: 4,
-    base: { ...B(Nc), kind: 'couette', phi: UB0_PHI, width: 40, height: 40, wallSpeed: 1, prep: (3 * 40 * 40) / NU_D, settle: 0, measure: 3000, sample: 1 },
-  });
-  const sk: GroupDef[] = [];
+  const wall = (Nc: number, ch: number): Omit<GroupDef, 'n'> => {
+    const group = `W${Nc}c${ch}`;
+    return { group, base: { ...B(group, Nc, ch), kind: 'wall', phi: UB0_PHI, width: 40, height: 10 * ch * Math.sqrt(Nc), prep: 640, settle: 0, measure: 2000, sample: 1 } };
+  };
+  const defs: Omit<GroupDef, 'n'>[] = [];
   for (const [Nc, ch] of [[4, 2], [16, 2], [64, 2], [4, 4]]) {
-    for (const phi of [0.18, 0.2, 0.22]) sk.push({ group: `SK${Nc}c${ch}p${Math.round(phi * 100)}`, n: 8, base: stat(Nc, ch, phi, 500, false) });
+    for (const phi of [0.18, 0.2, 0.22]) {
+      const group = `SK${Nc}c${ch}p${Math.round(phi * 100)}`;
+      defs.push({ group, base: stat(group, Nc, ch, phi, 500, false) });
+    }
   }
-  return [
-    ...sk,
-    { group: 'SL4', n: 4, base: stat(4, 2, UB0_PHI, 4200, true) },
-    { group: 'SL16', n: 4, base: stat(16, 2, UB0_PHI, 4200, true) },
-    { group: 'T4a1', n: 48, base: shear(B(4), 80, 1) },
-    { group: 'T4a05', n: 96, base: shear(B(4), 80, 0.5) },
-    { group: 'T16a1', n: 48, base: shear(B(16), 80, 1) },
-    { group: 'T16a05', n: 96, base: shear(B(16), 80, 0.5) },
-    { group: 'T64a1', n: 6, base: shear(B(64), 160, 1) },
-    { group: 'T16e08', n: 48, base: shear(B(16, 2, 0.8), 80, 1) },
-    { group: 'T16e095', n: 48, base: shear(B(16, 2, 0.95), 80, 1) },
-    { group: 'T4c4', n: 24, base: shear(B(4, 4), 80, 1) },
-    { group: 'T16dt', n: 48, base: shear(B(16, 2, 0.9, courant / 2), 80, 1) },
+  defs.push(
+    { group: 'SL4', base: stat('SL4', 4, 2, UB0_PHI, 4200, true) },
+    { group: 'SL16', base: stat('SL16', 16, 2, UB0_PHI, 4200, true) },
+    { group: 'T4a1', base: shear('T4a1', 4, 80, 1) },
+    { group: 'T4a05', base: shear('T4a05', 4, 80, 0.5) },
+    { group: 'T16a1', base: shear('T16a1', 16, 80, 1) },
+    { group: 'T16a05', base: shear('T16a05', 16, 80, 0.5) },
+    { group: 'T64a1', base: shear('T64a1', 64, 160, 1) },
+    { group: 'T16e08', base: shear('T16e08', 16, 80, 1, 2, 0.8) },
+    { group: 'T16e095', base: shear('T16e095', 16, 80, 1, 2, 0.95) },
+    { group: 'T4c4', base: shear('T4c4', 4, 80, 1, 4) },
+    // the dt arm (PQ7c, PQ7d) at N_c = 4, half the N4-shear Courant number (A2 §1.4)
+    { group: DT_ARM.group, base: shear(DT_ARM.group, 4, 80, 1) },
     sound(4),
     sound(16),
     sound(64),
     wall(4, 2),
     wall(16, 2),
     wall(4, 4),
-    couette(4),
-    couette(16),
-  ];
-}
-
-export function ub0Plan(f: FrozenInputs, opts: { reserve?: boolean; courant?: number } = {}): PlannedRun[] {
-  return allocate(ub0Groups(f, opts.courant), UB0_SEED_START, 'ub0', opts.reserve ?? false);
+  );
+  return defs.map((d) => {
+    const n = counts ? counts.n[d.group] : DESIGN_COUNTS[d.group];
+    if (!Number.isInteger(n) || n < DESIGN_COUNTS[d.group]) throw new Error(`group ${d.group}: seed count ${n} is not an integer ≥ the design count ${DESIGN_COUNTS[d.group]}`);
+    comparabilityOf(d.group); // every group must belong to a comparability group
+    return { ...d, n };
+  });
 }
 
 /**
- * Stability pilots (A1 §4.3): ONE design-seed run of each Universe B judged
- * configuration, full planned length, observables off (ledgers, drift, halts, timing only).
+ * The judged plan. Seed blocks are generated from the committed power plan (`counts`,
+ * status 'final'); a provisional plan is refused unless explicitly allowed (tests and
+ * cost projections only — never for a judged run).
  */
-export function pilotPlan(f: FrozenInputs, courant = COURANT_BASE): PlannedRun[] {
-  return ub0Groups(f, courant).map((d, i) => ({
-    ...d.base,
-    observables: false,
-    id: `pilot-${d.group}-${PILOT_SEED_START + i}`,
-    seed: PILOT_SEED_START + i,
-    group: d.group,
-    planned: true,
-    periodHint: d.periodHint,
-  }));
+export function ub0Plan(
+  f: FrozenInputs,
+  counts: SeedCounts,
+  opts: { reserve?: boolean; halved?: readonly string[]; allowProvisional?: boolean } = {},
+): PlannedRun[] {
+  if (counts.status !== 'final' && !opts.allowProvisional) throw new Error('the judged plan needs the FINAL power plan (after Stage 0b); refusing a provisional one');
+  return allocate(ub0Groups(f, counts, opts.halved ?? []), UB0_SEED_START, 'ub0', opts.reserve ?? false);
+}
+
+/** Seed blocks: one record per group, for results/ub0/seed_plan.json. */
+export function seedBlocks(defs: GroupDef[], start: number): { group: string; n: number; planned: [number, number]; reserve: [number, number] }[] {
+  let s = start;
+  return defs.map((d) => {
+    const b = { group: d.group, n: d.n, planned: [s, s + d.n - 1] as [number, number], reserve: [s + d.n, s + 2 * d.n - 1] as [number, number] };
+    s += 2 * d.n;
+    return b;
+  });
+}
+
+/** Every seed range used anywhere in UB-0 must be disjoint (A2 §6). Throws on an overlap. */
+export function assertDisjoint(ranges: { name: string; range: [number, number] }[]): void {
+  const sorted = [...ranges].sort((a, b) => a.range[0] - b.range[0]);
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i].range[0] <= sorted[i - 1].range[1]) throw new Error(`seed ranges overlap: ${sorted[i - 1].name} ${sorted[i - 1].range.join('–')} and ${sorted[i].name} ${sorted[i].range.join('–')}`);
+  }
+}
+
+/**
+ * Stability pilots (A2 §1.5): ONE design-seed run of each judged configuration at its
+ * assigned Courant number, full planned length, observables off (ledgers, drift, halts,
+ * timing only). Round 2 repeats, with the same seeds, only the groups the round-1 pilots
+ * halved. Seeds 9501 + the group's index; they are never judged.
+ */
+export function pilotPlan(f: FrozenInputs, opts: { round?: 1 | 2; halved?: readonly string[] } = {}): PlannedRun[] {
+  const round = opts.round ?? 1;
+  const halved = opts.halved ?? [];
+  if (round === 2 && !halved.length) throw new Error('pilot round 2 repeats only halved groups: none given');
+  return ub0Groups(f, undefined, round === 2 ? halved : [])
+    .map((d, i) => ({ d, seed: PILOT_SEED_START + i }))
+    .filter(({ d }) => round === 1 || halved.includes(comparabilityOf(d.group)))
+    .map(({ d, seed }) => ({
+      ...d.base,
+      observables: false,
+      id: `pilot${round === 2 ? '-r2' : ''}-${d.group}-${seed}`,
+      seed,
+      group: d.group,
+      planned: true,
+      periodHint: d.periodHint,
+    }));
 }

@@ -4,6 +4,7 @@ import type { PlannedRun } from '../src/universeB/UB0Plans';
 import { UB0Run, type UB0Spec } from '../src/universeB/UB0Run';
 import {
   checkRun,
+  excessExclusions,
   extensionCandidates,
   halves,
   nonStationary,
@@ -41,15 +42,29 @@ describe('reserve replacement and the extension (§11.6–§11.7)', () => {
     s = selectGroup(runs, checks);
     expect(s.used).toEqual(['T4a1-100', 'T4a1-102', 'T4a1-103', 'T4a1-104']);
     expect(s.toRun).toEqual([]);
-    expect(s.over10pct).toBe(true); // 1 of 5 examined
+    // A2 §4: one exclusion, replaced from the reserve, is not F0 (the design's > 10 % made 1 of 5 void)
+    expect(s.excessExclusions).toBe(false);
+    checks.set('T4a1-102', bad('T4a1-102'));
+    checks.set('T4a1-105', ok('T4a1-105'));
+    s = selectGroup(runs, checks);
+    expect(s.excluded).toHaveLength(2);
+    expect(s.excessExclusions).toBe(true); // 2 of 6 examined > max(1, 0.6)
   });
-  it('10 % is counted over the runs examined', () => {
+  it('F0 needs more than max(1, 10 %) of the runs examined excluded (A2 §4)', () => {
+    expect(excessExclusions(0, 4)).toBe(false);
+    expect(excessExclusions(1, 4)).toBe(false);
+    expect(excessExclusions(1, 9)).toBe(false);
+    expect(excessExclusions(2, 6)).toBe(true);
+    expect(excessExclusions(2, 10)).toBe(true);
+    expect(excessExclusions(2, 20)).toBe(false);
+    expect(excessExclusions(3, 20)).toBe(true);
+    expect(excessExclusions(0, 0)).toBe(false);
     const runs = group('T4a1', 48, 1000);
     const checks = new Map<string, RunCheck>();
     for (const r of runs) checks.set(r.id, r.seed < 1005 ? bad(r.id) : ok(r.id));
-    expect(selectGroup(runs, checks).over10pct).toBe(false); // 5 of 53
+    expect(selectGroup(runs, checks).excessExclusions).toBe(false); // 5 of 53
     checks.set('T4a1-1005', bad('T4a1-1005'));
-    expect(selectGroup(runs, checks).over10pct).toBe(true); // 6 of 54
+    expect(selectGroup(runs, checks).excessExclusions).toBe(true); // 6 of 54: the 10 % branch is unchanged
   });
   it('an extended group takes the next reserves after any replacement; exhaustion is a shortfall', () => {
     const runs = group('SL4', 4, 200);
@@ -106,7 +121,7 @@ describe('outcome overrides and the per-primary merge', () => {
       pq7Violations: 0,
       pq7c: 'PASS',
       pq7d: 'PASS',
-      exclusionsOver10pct: false,
+      excessExclusions: false,
       orderingFlag: false,
     } as Parameters<typeof finalize>[0];
     expect(finalize(o).overall).toBe('PASS');
@@ -125,7 +140,8 @@ describe('outcome overrides and the per-primary merge', () => {
 });
 
 describe('per-run checks on a real Universe B run (implementation test, tiny box)', () => {
-  const B = { Nc: 4, ch: 2, e: 0.9, KTred: henderson.KTred(0.2), courant: 0.025, observables: true, phi: 0.2 };
+  // N_c = 4, c_h = 2 near-equilibrium runs are assigned Courant 0.00625 (A2 §1.3); at 0.025 this box drifts above the rate gate
+  const B = { Nc: 4, ch: 2, e: 0.9, KTred: henderson.KTred(0.2), courant: 0.00625, observables: true, phi: 0.2 };
   const spec: UB0Spec = { ...B, id: 'sel-static', kind: 'static', seed: 9011, L: 14, prep: 1, settle: 0.5, measure: 2, sample: 0.5 };
   it('a clean run is included, with the stiffness diagnostic recorded', () => {
     const run = new UB0Run(spec);
@@ -141,5 +157,31 @@ describe('per-run checks on a real Universe B run (implementation test, tiny box
     const nf = JSON.parse(JSON.stringify(r));
     nf.samples[2].Pkin = null; // JSON turns NaN into null
     expect(checkRun(nf).excludeReasons).toContain('non-finite state');
+  });
+  it('PQ7(b) is the A2 rate gate for static, sound and wall runs: |ΔE/E| per D/σ_v ≤ 2e-7', () => {
+    const run = new UB0Run(spec);
+    while (!run.done) run.advance(1000);
+    const r = run.result();
+    const c = checkRun(r);
+    expect(c.gate.driftLimit).toBe(2e-7);
+    const m = r.phaseLedgers.measure as { relativeEnergyResidual: number };
+    expect(c.gate.drift).toBeCloseTo(Math.abs(m.relativeEnergyResidual) / spec.measure, 15);
+    // a residual of 1e-4 of E over a 500 D/σ_v window passes (the design's S-K number) and over 4200 it does not
+    const at = (resid: number, window: number) => {
+      const x = JSON.parse(JSON.stringify(r));
+      x.spec.measure = window;
+      x.phaseLedgers.measure.relativeEnergyResidual = resid;
+      return checkRun(x);
+    };
+    expect(at(0.99e-4, 500).excludeReasons).toEqual([]);
+    expect(at(1.01e-4, 500).excludeReasons.some((w) => w.startsWith('PQ7(b)'))).toBe(true);
+    expect(at(8.3e-4, 4200).excludeReasons).toEqual([]);
+    expect(at(8.5e-4, 4200).excludeReasons.some((w) => w.startsWith('PQ7(b)'))).toBe(true);
+    // a sound run uses the same rate gate, not the wave energy (A1's sound gate is superseded)
+    const snd = JSON.parse(JSON.stringify(r));
+    snd.spec.kind = 'sound';
+    snd.info.imposedKineticEnergy = 1e-9;
+    expect(checkRun(snd).gate.driftLimit).toBe(2e-7);
+    expect(checkRun(snd).excludeReasons).toEqual([]);
   });
 });

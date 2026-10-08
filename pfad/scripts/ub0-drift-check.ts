@@ -13,11 +13,14 @@
  * ratio ≈ 2, a random walk ≈ 1.4), the drift rate per D/σ_v, its linear
  * extrapolation to the judged measurement window against the PQ7(b) gate
  * (A1 §4.3), and the order between the two Courant numbers (4 = second order).
+ *
+ * Its output (2900d89) is the evidence of amendment A2's Courant assignment
+ * (src/universeB/UB0Timestep.ts reads `ratePerDsigma`). It still reports against the
+ * A1 absolute gates, as when it was run; A2 restates the static gate as a rate.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { henderson, UB0_PHI } from '../src/universeB/CoarseGrainMap';
-import { DRIFT_LIMIT_STATIC, DRIFT_LIMIT_WAVE } from '../src/universeB/UB0Blind';
 import { tauD } from '../src/universeB/UB0Plans';
 import { UB0Run, type UB0Spec } from '../src/universeB/UB0Run';
 import type { UBOccupancyForce } from '../src/universeB/UBOccupancyForce';
@@ -25,6 +28,9 @@ import type { UBOccupancyForce } from '../src/universeB/UBOccupancyForce';
 const argv = process.argv.slice(2);
 const out = argv.includes('--out') ? argv[argv.indexOf('--out') + 1] : 'results/ub0/implementation/drift_check.json';
 const KT = henderson.KTred(UB0_PHI);
+/** the A1 §4.3 gates this check was run against (superseded by A2 §1.2 for the judged runs) */
+const DRIFT_LIMIT_WAVE = 0.01;
+const DRIFT_LIMIT_STATIC = 1e-4;
 const W = 60;
 
 interface Case {

@@ -24,7 +24,7 @@ import { ens, type Stat } from './UB0Stage0';
 
 /**
  * From per-run estimates of the judged Universe B runs to the UB-0 outcomes
- * (design §6–§7; amendment A1). Group names are those of UB0Plans.ub0Groups.
+ * (design §6–§7; amendments A1, A2). Group names are those of UB0Plans.ub0Groups.
  * Pure function; tested on synthetic estimates (tests/universeB.judged.test.ts).
  */
 export interface StaticRun {
@@ -35,13 +35,14 @@ export interface StaticRun {
 
 export interface JudgedInputs {
   level: Record<string, number>; // per primary key: 0.95, or 0.975 after the single extension
-  /** Stage 0 (Universe A) statistics, molecular units */
+  /** Universe A statistics (Stage 0 + Stage 0b), molecular units, matched to each comparison's Courant number (A2 §1.4) */
   A: {
-    nuL80: Stat;
-    nuL160: Stat;
-    /** K_T,A = n kT · K_T,A/(n kT) */
+    /** ν_A per N_c: L 80 d (N_c 4, 16) or L 160 d (N_c 64), at the Courant number of that N_c's shear group */
+    nu: Record<NcKey, Stat>;
+    /** K_T,A = n kT · K_T,A/(n kT): the frozen Stage 0 mapping input */
     KT: Stat;
-    SA: Stat[];
+    /** S_A at the two lowest shells of L 80 d, at the Courant number of SL4 / SL16 */
+    SA: Record<4 | 16, Stat[]>;
   };
   /** frozen G3 predictions */
   P: {
@@ -59,7 +60,7 @@ export interface JudgedInputs {
   gates: RunGate[];
   /** ensemble-mean shear amplitude check per baseline group: true if oscillatory (mean U < −2 SE inside the window) */
   oscillatory: Record<string, boolean>;
-  exclusionsOver10pct: boolean;
+  excessExclusions: boolean;
   /** primary keys forced INCONCLUSIVE by the run-halves rule (design §11.5.1), e.g. 'pq2.16' */
   inconclusive?: string[];
 }
@@ -122,7 +123,7 @@ export function judge(i: JudgedInputs) {
   const NC: NcKey[] = [4, 16, 64];
   const skKey = (n: NcKey) => `SK${n}c2`;
   const tBase = (n: NcKey) => (n === 64 ? 'T64a1' : `T${n}a1`);
-  const nuARef = (n: NcKey) => (n === 64 ? i.A.nuL160 : i.A.nuL80);
+  const nuARef = (n: NcKey) => i.A.nu[n];
   const d: Record<string, unknown> = {};
 
   const r1 = Object.fromEntries(NC.map((n) => [n, pq1(nuOf(tBase(n)), nuARef(n), lv(i, `pq1.${n}`))])) as Record<NcKey, ReturnType<typeof pq1>>;
@@ -138,7 +139,7 @@ export function judge(i: JudgedInputs) {
   const r5 = Object.fromEntries(
     ([4, 16] as const).map((n) => {
       const sl = i.static[`SL${n}`].map((r) => r.est);
-      return [n, pq5([sl.map((e) => e.S[0]), sl.map((e) => e.S[1])], i.A.SA, i.P.rpaStrength[n], i.P.WhatShells[n], lv(i, `pq5.${n}`))];
+      return [n, pq5([sl.map((e) => e.S[0]), sl.map((e) => e.S[1])], i.A.SA[n], i.P.rpaStrength[n], i.P.WhatShells[n], lv(i, `pq5.${n}`))];
     }),
   ) as Record<4 | 16, ReturnType<typeof pq5>>;
   const r6a = Object.fromEntries(([4, 16] as const).map((n) => [n, armRatio(nuOf(`T${n}a1`), nuOf(`T${n}a05`), [0.95, 1.05], lv(i, `pq6a.${n}`))])) as Record<
@@ -148,14 +149,15 @@ export function judge(i: JudgedInputs) {
   const r6b = armRatio(nuOf('T16e08'), nuOf('T16e095'), [0.95, 1.05], lv(i, 'pq6b'));
   const KC4 = K(i, 'SK4c4', (r) => r.est.Pnorm);
   const r6c = pq6c(nuOf('T4c4'), nuOf('T4a1'), KC4, KB[4], lv(i, 'pq6c'));
-  const arm1 = pq1(nuOf('T4c4'), i.A.nuL80, lv(i, 'pq1.arm'));
+  const arm1 = pq1(nuOf('T4c4'), i.A.nu[4], lv(i, 'pq1.arm'));
   const arm2 = pq2(KC4, i.A.KT, lv(i, 'pq2.arm'));
+  // the dt arm at N_c = 4 (A2 §1.4): T4a1 at the N4-shear Courant number, T4dt at half of it
   const r7 = pq7(
     i.gates,
-    i.shear.T16a1.map((e) => e.driftOverWave),
-    i.shear.T16dt.map((e) => e.driftOverWave),
-    nuOf('T16a1'),
-    nuOf('T16dt'),
+    i.shear.T4a1.map((e) => e.driftOverWave),
+    i.shear.T4dt.map((e) => e.driftOverWave),
+    nuOf('T4a1'),
+    nuOf('T4dt'),
     lv(i, 'pq7d'),
   );
   const r8 = Object.fromEntries(NC.map((n) => [n, pq8(i.shear[tBase(n)].map((e) => e.occShare), lv(i, `pq8.${n}`))])) as Record<NcKey, ReturnType<typeof pq8>>;
@@ -180,7 +182,7 @@ export function judge(i: JudgedInputs) {
     pq7Violations: r7.violations.length,
     pq7c: r7.c,
     pq7d: r7.d.outcome,
-    exclusionsOver10pct: i.exclusionsOver10pct,
+    excessExclusions: i.excessExclusions,
     orderingFlag: ordering,
   };
   for (const key of i.inconclusive ?? []) setOutcome(o, key, 'INCONCLUSIVE');

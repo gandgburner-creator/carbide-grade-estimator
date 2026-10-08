@@ -36,7 +36,11 @@ function baseInputs(): JudgedInputs {
   const wall = (R: number): WallEstimate[] => Array.from({ length: 4 }, (_, i) => ({ gw1: jitter(1, i, 1e-4), gw2: jitter(1, i, 1e-3), gw3: jitter(1, i, 1e-3), R: jitter(R, i, 0.01) }) as WallEstimate);
   return {
     level: {},
-    A: { nuL80: S(1.38, 0.005, 48), nuL160: S(1.38, 0.005, 12), KT: S(KT, 0.003, 16), SA: [S(0.42, 0.005, 8), S(0.45, 0.005, 8)] },
+    A: {
+      nu: { 4: S(1.38, 0.005, 200), 16: S(1.38, 0.005, 200), 64: S(1.38, 0.005, 100) },
+      KT: S(KT, 0.003, 16),
+      SA: { 4: [S(0.42, 0.005, 16), S(0.45, 0.005, 16)], 16: [S(0.42, 0.005, 32), S(0.45, 0.005, 32)] },
+    },
     P: {
       judgedGamma: { 4: [1.01, 1.3], 16: [0.95, 1.11], 64: [0.95, 1.07] },
       rpaStrength: { 4: a4, 16: a16 },
@@ -45,7 +49,7 @@ function baseInputs(): JudgedInputs {
     },
     static: statics,
     shear: {
-      T4a1: shear(1.38, 48),
+      T4a1: shear(1.38, 48, 4e-4),
       T4a05: shear(1.38, 96),
       T16a1: shear(1.38, 48, 4e-4),
       T16a05: shear(1.38, 96),
@@ -53,13 +57,13 @@ function baseInputs(): JudgedInputs {
       T16e08: shear(1.38, 48),
       T16e095: shear(1.38, 48),
       T4c4: shear(1.38, 24),
-      T16dt: shear(1.38, 48, 1e-4),
+      T4dt: shear(1.38, 48, 1e-4),
     },
     sound: { L4: sound(1.1), L16: sound(1.03), L64: sound(1.01) },
     wall: { W4c2: wall(1.0), W16c2: wall(1.01), W4c4: wall(0.99) },
     gates: [{ id: 'x', momentumResidual: 1e-13, drift: 1e-4, driftLimit: 0.01, unexplainedLateContacts: 0, halted: false }],
     oscillatory: {},
-    exclusionsOver10pct: false,
+    excessExclusions: false,
   };
 }
 
@@ -78,10 +82,29 @@ describe('UB-0 judged-analysis assembly (synthetic estimates)', () => {
     i.shear.T16a05 = shear(1.7, 96);
     i.shear.T16e08 = shear(1.7, 48);
     i.shear.T16e095 = shear(1.7, 48);
-    i.shear.T16dt = shear(1.7, 48, 1e-4);
     const j = judge(i);
     expect(j.labels).toContain('F1');
     expect(j.overall).toBe('FAIL');
+  });
+
+  it('the dt arm is judged at N_c = 4 (A2 §1.4): PQ7(c) from T4a1/T4dt drift, PQ7(d) from their ν', () => {
+    const i = baseInputs();
+    i.shear.T4dt = shear(1.38, 48, 3e-4); // drift ratio 4e-4 / 3e-4 < 2.5 ⇒ PQ7(c) FAIL ⇒ F0
+    const j = judge(i);
+    expect(j.outcomes.pq7c).toBe('FAIL');
+    expect(j.labels).toContain('F0');
+    const k = baseInputs();
+    k.shear.T4dt = shear(1.38 * 1.08, 48, 1e-4); // an 8 % dt effect at N_c = 4 ⇒ PQ7(d) FAIL ⇒ F0
+    expect(judge(k).outcomes.pq7d).toBe('FAIL');
+    expect(judge(k).labels).toContain('F0');
+  });
+
+  it('PQ1 at each N_c uses its own matched ν_A (A2 §1.4)', () => {
+    const i = baseInputs();
+    i.A.nu[4] = S(1.38 * 1.2, 0.005, 200); // a reference 20 % off at N_c = 4 only
+    const j = judge(i);
+    expect(j.outcomes.pq1[4]).toBe('FAIL');
+    expect(j.outcomes.pq1[16]).toBe('PASS');
   });
 
   it('a pressure-closure miss at N_c = 16 with transport intact is a PARTIAL PASS', () => {

@@ -1,11 +1,9 @@
 import { sRPA, wallConfig, wallVerdict, type BulkOutcomes, type NcKey, type RunGate, type WallVerdict } from './UB0Analysis';
 import {
-  couetteEstimate,
   shearEstimate,
   soundEstimate,
   staticEstimate,
   wallEstimate,
-  type CouetteEstimate,
   type ShearEstimate,
   type SoundEstimate,
   type WallEstimate,
@@ -28,20 +26,20 @@ import {
 import type { Stat } from './UB0Stage0';
 
 /**
- * The judged UB-0 analysis pipeline (design §6–§7, §11; amendment A1), from run
+ * The judged UB-0 analysis pipeline (design §6–§7, §11; amendments A1, A2), from run
  * records to verdicts. Pure: the caller supplies the plan and a loader. Fixed
  * before any judged Universe B run; exercised on tiny design-seed runs only
  * (tests/universeB.pipeline.test.ts).
  */
 
-/** results/ub0/frozen_inputs.json (scripts/ub0-freeze.ts) */
+/** results/ub0/frozen_inputs.json, A2 structure (scripts/ub0-freeze.ts → UB0Freeze.composeFrozen, after Stage 0b) */
 export interface FrozenJudged extends FrozenInputs {
   judgedGamma: Record<NcKey, [number, number]>;
   What160: Record<NcKey, number>;
   WhatShells: Record<4 | 16, [number, number]>;
   rpaStrength: Record<4 | 16, number>;
   rho: number;
-  A: { nuL80: Stat; nuL160: Stat; KT: Stat; SA: Stat[] };
+  A: { nu: Record<NcKey, Stat>; KT: Stat; SA: Record<4 | 16, Stat[]> };
 }
 
 const BULK_PREFIX = /^(SK|SL|T|L)\d/;
@@ -59,8 +57,7 @@ export type PipelineResult =
       second?: ReturnType<typeof judge>;
       final: { outcomes: BulkOutcomes; labels: string[]; bulk: string; overall: string };
       stationarity: { group: string; quantity: string; diff: number; ci: [number, number]; threshold: number; flag: boolean; primaries: string[] }[];
-      wall: { verdict: WallVerdict; configs: Record<string, ReturnType<typeof wallConfig> & { over10pct: boolean }>; estimates: Record<string, WallEstimate[]> };
-      couette: Record<string, CouetteEstimate[]>;
+      wall: { verdict: WallVerdict; configs: Record<string, ReturnType<typeof wallConfig> & { excessExclusions: boolean }>; estimates: Record<string, WallEstimate[]> };
       diagnostics: Record<string, { maxOmegaDt: number; runs: number }>;
     };
 
@@ -107,11 +104,10 @@ export function runPipeline(
   const shear = (id: string) => est(id, (r, p) => shearEstimate(r, tauD(p.L!)));
   const sound = (id: string) => est(id, (r, p) => soundEstimate(r, p.periodHint!));
   const wall = (id: string) => est(id, (r) => wallEstimate(r));
-  const couette = (id: string) => est(id, (r) => couetteEstimate(r));
 
   const th = stationarityThresholds(frozen.A.KT.value, [0, 0]);
   const sThresh = (n: 4 | 16): [number, number] => {
-    const s = [0, 1].map((i) => sRPA(frozen.A.SA[i].value, frozen.rpaStrength[n], frozen.WhatShells[n][i]));
+    const s = [0, 1].map((i) => sRPA(frozen.A.SA[n][i].value, frozen.rpaStrength[n], frozen.WhatShells[n][i]));
     return [s[0] / 30, s[1] / 30];
   };
 
@@ -182,7 +178,7 @@ export function runPipeline(
       wall: walls,
       gates,
       oscillatory,
-      exclusionsOver10pct: Object.values(sel).some((s) => BULK_PREFIX.test(s.group) && s.over10pct),
+      excessExclusions: Object.values(sel).some((s) => BULK_PREFIX.test(s.group) && s.excessExclusions),
       inconclusive: [...inconclusive],
     };
     return { inputs, stationarity: st, walls };
@@ -212,20 +208,18 @@ export function runPipeline(
     finalOutcomes = JSON.parse(JSON.stringify(first.outcomes)) as BulkOutcomes;
     for (const k of extended) setOutcome(finalOutcomes, k, getOutcome(second.outcomes, k), second.primaries[k]?.estimate);
     finalOutcomes.pq7Violations = second.outcomes.pq7Violations;
-    finalOutcomes.exclusionsOver10pct = first.outcomes.exclusionsOver10pct || second.outcomes.exclusionsOver10pct;
+    finalOutcomes.excessExclusions = first.outcomes.excessExclusions || second.outcomes.excessExclusions;
     stationarity = [...b1.stationarity, ...b2.stationarity.filter((s) => extGroups.has(s.group)).map((s) => ({ ...s, group: `${s.group} (extended)` }))];
   }
   const fin = finalize(finalOutcomes);
 
-  const configs: Record<string, ReturnType<typeof wallConfig> & { over10pct: boolean }> = {};
+  const configs: Record<string, ReturnType<typeof wallConfig> & { excessExclusions: boolean }> = {};
   for (const g of WALL_GROUPS) {
     const es = b1.walls[g] ?? [];
-    configs[g] = { ...wallConfig(es.map((e) => ({ gw1: e.gw1, gw2: e.gw2, gw3: e.gw3, R: e.R }))), over10pct: sel1[g]?.over10pct ?? false };
+    configs[g] = { ...wallConfig(es.map((e) => ({ gw1: e.gw1, gw2: e.gw2, gw3: e.gw3, R: e.R }))), excessExclusions: sel1[g]?.excessExclusions ?? false };
   }
   let wv = wallVerdict(configs.W4c2, configs.W16c2);
-  if (configs.W4c2.over10pct || configs.W16c2.over10pct) wv = 'VOID';
-  const cou: Record<string, CouetteEstimate[]> = {};
-  for (const g of ['C4', 'C16']) cou[g] = (sel1[g]?.used ?? []).map(couette);
+  if (configs.W4c2.excessExclusions || configs.W16c2.excessExclusions) wv = 'VOID';
   const diagnostics: Record<string, { maxOmegaDt: number; runs: number }> = {};
   for (const [g, s] of Object.entries(extended ? sel2 : sel1)) {
     const om = s.used.map((id) => checks.get(id)!.maxOmegaDt).filter(Number.isFinite);
@@ -240,7 +234,6 @@ export function runPipeline(
     final: { outcomes: finalOutcomes, ...fin },
     stationarity,
     wall: { verdict: wv, configs, estimates: b1.walls },
-    couette: cou,
     diagnostics,
   };
 }

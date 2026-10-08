@@ -254,7 +254,11 @@ for (const r of rows.filter((x) => x.Nc > 1)) {
 // Projection of the judged plan (ESTIMATE; the stability pilots measure the actual per-run wall time)
 const projection: { group: string; n: number; coreHoursPerSeed: number; coreHours: number }[] = [];
 let total = 0;
-if (frozen) {
+// A2: the per-group Courant numbers and seed counts live in the power plan (scripts/ub0-power.ts,
+// which reuses this benchmark's rows through UB0Power.coreHoursPerSeed). This projection is the
+// design-count one, made only with A2-structure frozen inputs; the committed b0.json (f8cb934)
+// keeps the pre-A2 projection at Courant 0.025.
+if (frozen && frozen.version === 'A2') {
   for (const g of ub0Groups(frozen)) {
     const b = g.base;
     const box = b.kind === 'wall' || b.kind === 'couette' ? b.width! * b.height! : b.L! * b.L!;

@@ -166,7 +166,7 @@ export function pq8(shares: number[], level = 0.95) {
 export interface RunGate {
   id: string;
   momentumResidual: number;
-  /** drift relative to the PQ7(b) reference: wave energy (waves) or total energy (static, wall, Couette) */
+  /** PQ7(b) statistic (A2 §1.2): |ΔE|/wave energy (shear waves) or |ΔE/E| per D/σ_v (static, sound, wall) */
   drift: number;
   driftLimit: number;
   unexplainedLateContacts: number;
@@ -248,8 +248,8 @@ export interface BulkOutcomes {
   pq7Violations: number;
   pq7c: Outcome;
   pq7d: Outcome;
-  /** > 10 % of a configuration's runs excluded */
-  exclusionsOver10pct: boolean;
+  /** more than max(1, 10 %) of a bulk configuration's examined runs excluded (A2 §4) */
+  excessExclusions: boolean;
   /** SQ6/SQ13 flags at baseline: ψ₆ > 0.3, or an oscillatory ensemble-mean shear decay */
   orderingFlag: boolean;
 }
@@ -277,7 +277,7 @@ export function failureLabels(o: BulkOutcomes): FLabel[] {
   const explained = (o.pq1[64] !== 'FAIL' || mono(o.pq1Estimate, 1)) && (o.pq2[64] !== 'FAIL' || mono(o.pq2Estimate, 1)) && (o.pq8[64] !== 'FAIL' || mono(o.pq8Estimate, 0));
   const f6 = passLow && failHigh && explained;
   const ncs: NcKey[] = f6 ? [4, 16] : NCS;
-  if (o.pq7Violations > 0 || o.pq7c === 'FAIL' || o.pq7d === 'FAIL' || o.exclusionsOver10pct) out.add('F0');
+  if (o.pq7Violations > 0 || o.pq7c === 'FAIL' || o.pq7d === 'FAIL' || o.excessExclusions) out.add('F0');
   // F3: viscosity not emergent
   if (ncs.some((n) => o.pq8[n] === 'FAIL') || o.pq6b === 'FAIL' || ncs.some((n) => o.pq1[n] === 'FAIL' && o.pq8Estimate[n] >= 0.2)) out.add('F3');
   // F1: kinetic-level coarse-graining fails
