@@ -409,7 +409,12 @@ These follow the design's wording where it is explicit. Where it is not, the mor
 | D2: ρ\* in the map; predictions regenerated | 5deceda (code), db6484a (outputs) |
 | D1, D3, exclusion rule, seed plan, Stage 0b code | 60e585c |
 | Stage 0b protocol | 32abff3 |
-| provisional power plan (Stage 0 only), docs | §9 below |
+| provisional power plan (Stage 0 only), docs | 4e4db3b |
+| Stage 0b phase 1 (643 runs), amplitude decision (0.04) | fb0fa50, 6f5c1d5 |
+| Stage 0b phase 2 (48 runs), analysis (no review trigger) | fceeaec, a0c9435 |
+| predictions with the Stage 0b inputs; A2 frozen inputs | 5a5576e, 86560cb |
+| FINAL power plan and seed plan | 8ca3502 |
+| stability pilots | **not run**: Universe B, awaiting approval (all A2 §8 preconditions now hold) |
 
 ---
 
@@ -541,4 +546,175 @@ The pilots cannot run before it: the runner refuses them without the A2 frozen i
 5. **PQ3 at N_c 4.** The target is ½ of the judged interval's half-width (±0.08), which exceeds the ±0.05 tolerance outside the band. If the true Γ_self lies near a band edge, P-INC is not reachable at the planned counts, and PQ3.4 would be INCONCLUSIVE. This was accepted in A2 §3.5; the interval itself is unchanged.
 6. **The wall statistic R and PQ4, PQ8** have no Universe A analogue, so their precision is not planned.
 7. **The rate gate relaxes the design's absolute 10⁻⁴** for windows longer than 500 D/σ_v, by up to 8.4×. A2 §1.2 bounds the resulting bias at ≤ 7 % of each CI. It is a criterion amendment I made as the decision-maker, and it is named as such.
+
+---
+
+## 10. Stage 0b and the freeze sequence (2026-10-08/09)
+
+Universe A only, under `CRITERIA_UB0_STAGE0B.md` (32abff3).
+
+- **Code and seeds:** every run used the code at 4e4db3b, from a pinned worktree with a clean tree, so the runner's interlock passed. Seeds were 11001–12382.
+- **Restarts:** the runner was restarted at each 2-hour background limit. It skips finished runs and resumes from checkpoints. The runs in flight at a cut-off had not yet written a checkpoint, so they re-ran from the start, deterministically.
+- **No Universe B run of any kind was made.**
+
+### 10.1 Runs
+
+| phase | runs | failed / halted | excluded | commit |
+|---|---|---|---|---|
+| 1 (references, amplitude study, timestep cells) | 643 | 0 / 0 | 0 | fb0fa50 |
+| 2 (sound at the selected amplitude, Courant 0.0125 and 0.00625) | 48 | 0 / 0 | 0 | fceeaec |
+
+### 10.2 The amplitude decision (protocol §4)
+
+Made at Courant 0.025, with 32 seeds per amplitude, and committed (6f5c1d5) before any phase-2 run.
+
+| amplitude | per-seed relative SD of c | planning SD |
+|---|---|---|
+| 0.02 | 5.72 % | 6.46 % |
+| 0.04 | 3.77 % | 4.27 % |
+
+- c(0.04)/c(0.02) = 1.0014, 95 % CI [0.9773, 1.0260].
+- All three conditions hold, so **0.04 is selected**.
+- Doubling the amplitude cut the scatter by 34 %, not the factor of 2 that thermal noise alone would give. Signal-to-noise explains part of c's per-seed scatter; another part remains unexplained (§9.8, item 2).
+
+### 10.3 The analysis (protocol §5–§9; a0c9435)
+
+**No review trigger fired.**
+
+**K check (the mapping input):**
+
+| Courant | K/K_T,A | 95 % CI | outcome |
+|---|---|---|---|
+| 0.0125 | 1.0007 | [0.9977, 1.0038] | PASS |
+| 0.00625 | 1.0005 | [0.9976, 1.0034] | PASS |
+
+K_T,A is unchanged at 2.37564 ± 0.00249.
+
+**ν, c and S diagnostics (finer Courant number against 0.025):**
+
+| quantity | Courant | ratio | 95 % CI | outcome |
+|---|---|---|---|---|
+| ν | 0.0125 | 0.998 | — | PASS |
+| ν | 0.00625 | 0.982 | [0.959, 1.006] | INCONCLUSIVE |
+| c | 0.0125 | 0.989 | — | PASS |
+| c | 0.00625 | 0.991 | — | INCONCLUSIVE |
+| S, shell 1 | 0.00625 | 0.991 | — | INCONCLUSIVE |
+| S, shell 2 | 0.00625 | 1.005 | — | INCONCLUSIVE |
+
+None lies entirely outside [0.97, 1.03]. Universe A shows no detectable timestep effect at the precision UB-0 needs.
+
+**Matched references:**
+
+| quantity | N_c 4 | N_c 16 | N_c 64 |
+|---|---|---|---|
+| ν_A | 1.5433 ± 0.0134 (L 80, Courant 0.0125, n 200) | 1.5470 ± 0.0114 (L 80, 0.025, n 200) | 1.5756 ± 0.0105 (L 160, 0.025, n 100) |
+| c_A, amplitude 0.04 | 2.1901 ± 0.0200 (Courant 0.00625) | 2.2098 ± 0.0147 (0.025) | 2.2098 ± 0.0147 (0.025) |
+| S_A, shells 1 / 2 | 0.4195 / 0.4259 (n 16) | 0.4234 / 0.4240 (n 32) | — |
+
+The generated provenance strings say "Stage 0 + Stage 0b" for the amplitude-0.04 c_A values. Those come from Stage 0b runs only, since Stage 0 ran at 0.02. The values are right; only the label is generic.
+
+**Noise basis** (per-seed SD, with df and the planning SD):
+
+| quantity | SD | df | planning SD |
+|---|---|---|---|
+| ν, L 80 | 11.0 % | 497 | 11.3 % |
+| ν, L 80, σ_v/2 | 20.5 % | 95 | 21.9 % |
+| ν, L 160 | 6.7 % | 99 | 7.1 % |
+| c | 4.2 % | 77 | 4.5 % |
+| S, shell 1 / shell 2 | 5.6 / 4.3 % | 46 | 6.2 / 4.7 % |
+| G-W1 / G-W2 / G-W3 | 0.44 / 3.3 / 0.42 % | 31 | — |
+
+ν at L 160 is noisier per seed than Stage 0's 12 seeds suggested (6.7 % against 5.0 %).
+
+### 10.4 Pooling diagnostic (post hoc; no rule depends on it)
+
+This is `scripts/ub0-stage0b-pooling-check.ts`.
+
+**Re-run check.** Stage 0 seeds re-run with the Stage 0b code are **identical** to their stored Stage 0 records, apart from the late-contact counter (0 in both). Six runs were checked: four T80a1, one SL, one L160. So the pooled groups are generated by identical dynamics.
+
+**Means of the two stages, identical specs (Welch):**
+
+| group | difference | t | p |
+|---|---|---|---|
+| T80a1 ν | +4.0 % (1.5151, n 94 → 1.5753, n 106) | 2.68 | **0.008** |
+| other seven (T160a1, S ×2, c, wall gates ×3) | — | — | 0.27–0.73 |
+
+**ANOVA over the four T80a1 cells** (Stage 0 and Stage 0b at 0.025; 0.0125; 0.00625): means 1.515 / 1.575 / 1.543 / 1.519, F = 2.75 (3, 496), **p = 0.042**.
+
+**Reading.**
+
+- There is no mechanism for a difference: the code is identical and the seed streams independent. The family-wise probability over the eight comparisons is ≈ 0.06, so chance is the plausible explanation.
+- The protocol pre-registers pooling, so the references are pooled as committed.
+- If an unmodelled between-batch component of about 1.6 % SD were real, the ν_A SEs would be understated. PQ1's expected half-width would then rise from ≈ 2.0 % to ≈ 3.5 %, still inside the ±10 % margin, though above the ⅓ target.
+- I report it here and do not act on it. Changing the pooling now would be a data-driven change.
+
+### 10.5 Predictions, frozen inputs, power plan, seed plan
+
+**Predictions** (5a5576e). With the Stage 0b inputs, post-D2:
+
+| N_c | Γ_A | PQ3 judged interval |
+|---|---|---|
+| 4 | 2.0191 ± 0.0369 | [1.0090, 1.3236] |
+| 16 | 2.0556 ± 0.0275 | [0.9539, 1.1195] |
+| 64 | 2.0556 ± 0.0275 | [0.9502, 1.0674] |
+
+**Frozen inputs** (86560cb). A2 structure, K_T,A unchanged, amplitude 0.04. The pre-A2 Stage 0 freeze stays in history.
+
+**FINAL power plan and seed plan** (8ca3502).
+
+| groups | seeds |
+|---|---|
+| T4a1, T16a1 | 238 each |
+| T4a05, T16a05 | 475 each |
+| T16e08, T16e095 | 167 each |
+| T4c4 | 55 |
+| T4dt | 48 |
+| T64a1 | 26 |
+| SL4, SL16 | 10 each |
+| L4, L16, L64 | 12, 26, 45 |
+| W4c2, W16c2 | 27 each |
+| W4c4 | 4 |
+| SK | 8 each |
+
+- In total 2146 planned and 2146 reserve seeds, numbered **20001–24292**.
+- The seed plan regenerates identically from the committed frozen inputs and power plan, and its blocks are disjoint from every other block (checked).
+
+**Expected 95 % half-widths**, every powered primary inside its target:
+
+| primary | half-width |
+|---|---|
+| PQ1 at N_c 4 / 16 / 64 | 2.2 / 2.0 / 3.1 % |
+| PQ6a and PQ6b | 2.44 % |
+| PQ6c-ν | 3.37 % |
+| PQ5 | 4.5 % |
+| PQ3 at N_c 4 / 16 / 64 | ±0.076 / 0.041 / 0.029 |
+| wall gates | 49 % of tolerance |
+
+**False-PASS simulation** at the margin edge: 2.30–2.58 % at the first look, ≤ 3.25 % per side with the extension.
+
+**Cost (B0 estimate):**
+
+| block | core-hours |
+|---|---|
+| judged, planned | ≈ 360 |
+| extension, if every bulk primary were extended | ≤ 337 |
+| extension, arms and sound only | ≈ 194 |
+| pilots | ≈ 14 |
+| Stage 0b (spent) | ≈ 38 measured in the cost model; ≈ 11 h wall-clock on 4 cores |
+
+**T64a1** needs 26 seeds, not the ≈ 15 I projected (§9.5), because its per-seed scatter is higher (above). It is the largest single cost, ≈ 84 core-hours. Its feasibility limit (A2 §1.7) is a pilot cost above 6.4 core-hours per seed.
+
+### 10.6 Where this leaves the sequence
+
+**Every precondition the A2 task set for the blind pilots now holds:**
+
+1. A2 is committed.
+2. D2 and D1 are implemented.
+3. The D3 power calculation is implemented.
+4. The Stage 0b protocol was committed before any data.
+5. Stage 0b is measured.
+6. The frozen inputs are regenerated.
+7. The seed plan is generated from them.
+
+The runner's pilot interlock is satisfied. The pilots are Universe B runs, though blind, and were not part of the approval to run Stage 0b. **They have not been run.**
 

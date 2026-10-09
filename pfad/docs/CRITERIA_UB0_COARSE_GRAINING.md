@@ -4,9 +4,9 @@
 >
 > The three open decisions D1–D3 are decided and recorded in amendment A2 (`UB0_DESIGN_AMENDMENT_2.md`), and implemented. What remains before the freeze (A2 §8):
 >
-> 1. Stage 0b (Universe A; `CRITERIA_UB0_STAGE0B.md`), and its analysis;
-> 2. the predictions with the Stage 0b inputs; the frozen inputs (A2 structure); the FINAL power plan and the seed plan. The values marked **[Stage 0b]** below are filled in from these;
-> 3. the blind stability pilots under A2 §1.5, and their outcome written in here;
+> 1. ~~Stage 0b (Universe A; `CRITERIA_UB0_STAGE0B.md`), and its analysis~~ — **done** (fb0fa50, 6f5c1d5, a0c9435; no review trigger);
+> 2. ~~the predictions with the Stage 0b inputs; the frozen inputs (A2 structure); the FINAL power plan and the seed plan~~ — **done** (5a5576e, 86560cb, 8ca3502); the values below are filled in from them;
+> 3. the blind stability pilots under A2 §1.5, and their outcome written in here — **not run** (Universe B; awaits approval);
 > 4. remove this banner; commit and tag (`ub0-prereg`).
 >
 > The judged runner refuses to start unless `--approved-commit` equals that commit and the tree is clean.
@@ -84,24 +84,24 @@ The e arms at N_c = 16: ρ_rel = 0.011858 (e 0.8) and 0.003239 (e 0.95). Source:
 - Standing waves run for 14 periods L/c_lo, where c_lo is the lower edge of the G3 c_B band computed with the N_c's matched c_A (A2 §1.4).
 - Sample intervals: 0.5 D/σ_v for waves, 1 D/σ_v otherwise.
 - **Courant numbers** are per comparability group (A2 §1.3, Table 1.3).
-- **Seed counts** are set by the power plan (A2 §3), with the design's counts as floors. The provisional values are from Stage 0 alone (`results/ub0/power_plan_provisional.json`); the final ones are **[Stage 0b]**.
+- **Seed counts** are set by the power plan (A2 §3), with the design's counts as floors. The final counts are in `results/ub0/power_plan.json` (8ca3502; Stage 0 + Stage 0b noise). The provisional, Stage 0-only values are kept for comparison in `results/ub0/power_plan_provisional.json`.
 
-| group | kind | N_c | c_h | e | box (D) | U₀ / amplitude | measured window (D/σ_v) | Courant | seeds: design floor / provisional |
+| group | kind | N_c | c_h | e | box (D) | U₀ / amplitude | measured window (D/σ_v) | Courant | seeds: design floor / **final** |
 |---|---|---|---|---|---|---|---|---|---|
 | SK4c2p{18,20,22}, SK4c4p{18,20,22} | static | 4 | 2; 4 | 0.9 | L 80, φ 0.18 / 0.20 / 0.22 | — | 500 | 0.00625 | 8 / 8 |
 | SK{16,64}c2p{18,20,22} | static | 16, 64 | 2 | 0.9 | L 80 | — | 500 | 0.025 | 8 / 8 |
-| SL4 | static (+ g(r), ψ₆, MSD) | 4 | 2 | 0.9 | L 80 | — | 4200 | 0.00625 | 4 / 20 |
-| SL16 | static (+ g(r), ψ₆, MSD) | 16 | 2 | 0.9 | L 80 | — | 4200 | 0.025 | 4 / 19 |
-| T4a1, T16a1 | shear wave | 4, 16 | 2 | 0.9 | L 80 | σ_v | 1.5 τ_D(80) = 176.4 | 0.0125; 0.025 | 48 / 238 each |
-| T4a05, T16a05 | shear wave | 4, 16 | 2 | 0.9 | L 80 | σ_v/2 | 176.4 | 0.0125; 0.025 | 96 / 476 each |
-| T64a1 | shear wave | 64 | 2 | 0.9 | L 160 | σ_v | 1.5 τ_D(160) = 705.7 | 0.025 | 6 / **[Stage 0b]** (≈ 15 projected with 100 reference seeds; 1325 on Stage 0's 12) |
-| T16e08, T16e095 | shear wave | 16 | 2 | 0.8; 0.95 | L 80 | σ_v | 176.4 | 0.025 | 48 / 168 each |
-| T4c4 | shear wave | 4 | 4 | 0.9 | L 80 | σ_v | 176.4 | 0.0125 | 24 / 55 |
-| **T4dt** (dt arm) | shear wave, half the N4-shear Courant number | 4 | 2 | 0.9 | L 80 | σ_v | 176.4 | 0.00625 | 48 / 48 |
-| L4 | standing longitudinal wave | 4 | 2 | 0.9 | L 160 | a × c_mid, a = 0.02 or 0.04 **[Stage 0b §4]** | 14 × L/c_lo | 0.00625 | 4 / 17 |
-| L16, L64 | standing longitudinal wave | 16, 64 | 2 | 0.9 | L 160 | a × c_mid | 14 × L/c_lo | 0.025 | 4 / 41, 74 |
-| W4c2 | static wall box (Maxwell, Aw 1) | 4 | 2 | 0.9 | width 40, H = 10h | — | 2000 (after 640) | 0.00625 | 4 / 88 |
-| W16c2, W4c4 | static wall box | 16; arm 4 | 2; 4 | 0.9 | width 40, H = 10h | — | 2000 (after 640) | 0.0125 | 4 / 88; 4 / 4 |
+| SL4 | static (+ g(r), ψ₆, MSD) | 4 | 2 | 0.9 | L 80 | — | 4200 | 0.00625 | 4 / **10** |
+| SL16 | static (+ g(r), ψ₆, MSD) | 16 | 2 | 0.9 | L 80 | — | 4200 | 0.025 | 4 / **10** |
+| T4a1, T16a1 | shear wave | 4, 16 | 2 | 0.9 | L 80 | σ_v | 1.5 τ_D(80) = 176.4 | 0.0125; 0.025 | 48 / **238** each |
+| T4a05, T16a05 | shear wave | 4, 16 | 2 | 0.9 | L 80 | σ_v/2 | 176.4 | 0.0125; 0.025 | 96 / **475** each |
+| T64a1 | shear wave | 64 | 2 | 0.9 | L 160 | σ_v | 1.5 τ_D(160) = 705.7 | 0.025 | 6 / **26** |
+| T16e08, T16e095 | shear wave | 16 | 2 | 0.8; 0.95 | L 80 | σ_v | 176.4 | 0.025 | 48 / **167** each |
+| T4c4 | shear wave | 4 | 4 | 0.9 | L 80 | σ_v | 176.4 | 0.0125 | 24 / **55** |
+| **T4dt** (dt arm) | shear wave, half the N4-shear Courant number | 4 | 2 | 0.9 | L 80 | σ_v | 176.4 | 0.00625 | 48 / **48** |
+| L4 | standing longitudinal wave | 4 | 2 | 0.9 | L 160 | 0.04 × c_mid (Stage 0b §4) = 0.133 σ_v | 14 × L/c_lo = 704.6 | 0.00625 | 4 / **12** |
+| L16, L64 | standing longitudinal wave | 16, 64 | 2 | 0.9 | L 160 | 0.04 × c_mid = 0.251 / 0.495 σ_v | 14 × L/c_lo = 362.6 / 181.6 | 0.025 | 4 / **26**, **45** |
+| W4c2 | static wall box (Maxwell, Aw 1) | 4 | 2 | 0.9 | width 40, H = 10h | — | 2000 (after 640) | 0.00625 | 4 / **27** |
+| W16c2, W4c4 | static wall box | 16; arm 4 | 2; 4 | 0.9 | width 40, H = 10h | — | 2000 (after 640) | 0.0125 | 4 / **27**; 4 / **4** |
 
 **Removed from UB-0 by A2.**
 
@@ -110,7 +110,7 @@ The e arms at N_c = 16: ρ_rel = 0.011858 (e 0.8) and 0.003239 (e 0.95). Source:
 
 **Seed blocks (A2 §6).**
 
-- Judged: from **20001**, a contiguous block of 2n per group in the order of `ub0Groups` (planned, then reserve), generated by `scripts/ub0-power.ts` from the FINAL power plan into `results/ub0/seed_plan.json` **[Stage 0b]**.
+- Judged: **20001–24292**. That is 2146 planned and 2146 reserve seeds: a contiguous block of 2n per group in the order of `ub0Groups` (planned, then reserve), generated by `scripts/ub0-power.ts` from the FINAL power plan into `results/ub0/seed_plan.json` (8ca3502). The per-group ranges are listed there.
 - Stage 0b (Universe A): 11001–12382; its contingency block 12401–12792.
 - Stability pilots: 9501 + the group's index (round 2 reuses them).
 - B0: 9901+.
@@ -141,7 +141,7 @@ None of the non-judged seeds is ever judged.
 |---|---|---|---|---|
 | **PQ1** | ν_B/ν_A (thermal-time fit of the shear-wave decay, A-22) | ν_A at L 80 d (N_c 4, 16) and L 160 d (N_c 64), Stage 0 + Stage 0b, at the N_c's shear-group Courant number (A2 §1.4) | [0.90, 1.10] | T4a1, T16a1, T64a1 |
 | **PQ2** | K_B/K_T,A, K_B = (φ/Δφ)(P̂(0.22) − P̂(0.18)), with P̂ = (P_kin + P_coll)/T_meas + P_occ | K_T,A, Stage 0 | [0.90, 1.10] | SK*c2p18/p22 |
-| **PQ3** | Γ_self = ρc_B²/K_B(k), K_B(k) by the same central difference of (P_kin + P_coll)/T + W̃(k_L h)·P_occ | judged interval [1 + Δ_A,lo/N_c² − 0.05, 1 + Δ_A,hi/N_c + 0.05] per N_c from that N_c's matched c_A: **[Stage 0b]** (with Stage 0 alone: [1.0074, 1.3338] / [0.9536, 1.1209] / [0.9502, 1.0677], Γ_A = 2.0265 ± 0.0506) | **P-INC**: CI inside; **T-FAIL-high/low**: CI entirely above/below; INCONCLUSIVE otherwise | L{4,16,64} with SK*c2 |
+| **PQ3** | Γ_self = ρc_B²/K_B(k), K_B(k) by the same central difference of (P_kin + P_coll)/T + W̃(k_L h)·P_occ | judged interval [1 + Δ_A,lo/N_c² − 0.05, 1 + Δ_A,hi/N_c + 0.05] per N_c from that N_c's matched c_A (Stage 0b, amplitude 0.04): **[1.0090, 1.3236] / [0.9539, 1.1195] / [0.9502, 1.0674]** (Γ_A = 2.0191 ± 0.0369 at N_c 4; 2.0556 ± 0.0275 at N_c 16 and 64). Source: `results/ub0/predictions_stage0b.txt`; with Stage 0 alone they were [1.0074, 1.3338] / [0.9536, 1.1209] / [0.9502, 1.0677] | **P-INC**: CI inside; **T-FAIL-high/low**: CI entirely above/below; INCONCLUSIVE otherwise | L{4,16,64} with SK*c2 |
 | **PQ4** | T_kin/T_int and a₂ (time and parcel averages, per seed) | 1 and 0 | [0.97, 1.03] and \|a₂\| ≤ 0.03; FAIL if either FAILs, PASS if both PASS | SK*c2p20 + SL* |
 | **PQ5** | S_B/S_RPA at the two lowest shells of L 80 D; 1/S_RPA = 1/S_A + (N_c − 1)(K_T,A/(nkT)) W̃(kh) | S_A(k), Stage 0 + Stage 0b, at SL4's / SL16's Courant number | [0.90, 1.10] each shell; FAIL if either FAILs | SL4, SL16 |
 | **PQ6a** | ν(U₀ = σ_v)/ν(σ_v/2) | — | [0.95, 1.05] | T{4,16}a1 vs a05 |
@@ -310,7 +310,10 @@ The primaries a NON-STATIONARY group feeds are INCONCLUSIVE.
 - **Code changes during the judged runs.** Allowed only for crash or resume fixes proven byte-identical (design G6). Anything else is a deviation that voids the affected configuration.
 - **Timing is not data.** Wall-clock appears only in `timing` and `timings.log`.
 - **Cost.** B0 (`results/ub0/b0/b0.json`): 0.139 µs + 36.7 ns · c_h²N_c per parcel-step; G = 3.9 / 20 / 91 (c_h 2).
-  - The projection per group, at its Courant number and its powered count, is in the power plan file. Planned: **[Stage 0b]**.
+  - The projection per group, at its Courant number and its powered count, is in the power plan file.
+  - Planned judged seeds: **≈ 360 core-hours**.
+  - The single extension: ≤ 337 core-hours if every bulk primary were extended; ≈ 194 if only the arms and the sound groups are.
+  - Pilots: ≈ 14 core-hours.
 - **N_c = 64 (A2 §1.7).** T64a1 is run at its powered count. It is postponed — never shrunk; "64 not run (infeasible)", distinct from F6 — only if:
   - its pilot halts or shows a defect that review does not resolve; or
   - its pilot-measured cost per seed exceeds 2 × the B0 projection (≈ 3.2 core-hours at 0.025).
@@ -349,7 +352,7 @@ The crossing ledger L1–L4 is reported by the analysis, each line as held / cro
 - The kernel shape is inherited and untested.
 - Wall transport is untested (UB-0W).
 - No thermal occupancy law (UB-1).
-- N_c = 64 is tested at one box size (L 160) only. Its seed count is set by the power plan; it is ≈ 15 (projected) if the Stage 0b reference reaches its planned precision.
+- N_c = 64 is tested at one box size (L 160) only. Its seed count is set by the power plan: 26 seeds, ≈ 84 core-hours.
 - The transfer of per-seed scatter from Universe A to Universe B is an assumption (A2 §3.3). For c, S and the wall gates it can err in either direction. A precision shortfall makes a primary INCONCLUSIVE; it never makes it PASS.
 
 ## 15. Differences from the design and A1 (all decided before any judged run)
