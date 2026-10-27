@@ -1,11 +1,23 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { FIELD_INFO } from '../app/fields';
 import type { Frame } from '../workers/protocol';
+import { fieldScale, ramp } from './colors';
+
+export { ramp } from './colors';
 
 export interface ViewOptions {
   vectors: boolean;
   collisions: boolean;
   trails: boolean;
   colorBySpeed: boolean;
+  particles: boolean;
+}
+
+/** zoom about the domain point (cx, cy); zoom 1 fits the domain */
+export interface Camera {
+  zoom: number;
+  cx: number;
+  cy: number;
 }
 
 interface Props {
@@ -13,49 +25,50 @@ interface Props {
   options: ViewOptions;
   selected: number | null;
   onPick: (index: number | null) => void;
+  camera: Camera | null;
+  onCamera: (c: Camera | null) => void;
+  canvasRef?: React.RefObject<HTMLCanvasElement | null>;
 }
 
-/** Perceptually ordered colour ramp (approximate viridis), t ∈ [0, 1]. */
-export function ramp(t: number): [number, number, number] {
-  const stops: [number, number, number][] = [
-    [68, 1, 84],
-    [59, 82, 139],
-    [33, 145, 140],
-    [94, 201, 98],
-    [253, 231, 37],
-  ];
-  const x = Math.min(1, Math.max(0, t)) * (stops.length - 1);
-  const i = Math.min(stops.length - 2, Math.floor(x));
-  const f = x - i;
-  const a = stops[i];
-  const b = stops[i + 1];
-  return [a[0] + f * (b[0] - a[0]), a[1] + f * (b[1] - a[1]), a[2] + f * (b[2] - a[2])];
-}
+type Dom = Frame['domain'];
 
-function transform(frame: Frame, w: number, h: number) {
-  const d = frame.domain;
+export function transformOf(d: Dom, w: number, h: number, cam: Camera | null) {
   const pad = 14;
-  const sx = (w - 2 * pad) / (d.xmax - d.xmin);
-  const sy = (h - 2 * pad) / (d.ymax - d.ymin);
-  const s = Math.min(sx, sy);
-  const ox = (w - s * (d.xmax - d.xmin)) / 2;
-  const oy = (h - s * (d.ymax - d.ymin)) / 2;
+  const fit = Math.min((w - 2 * pad) / (d.xmax - d.xmin), (h - 2 * pad) / (d.ymax - d.ymin));
+  const zoom = cam?.zoom ?? 1;
+  const cx = cam?.cx ?? (d.xmin + d.xmax) / 2;
+  const cy = cam?.cy ?? (d.ymin + d.ymax) / 2;
+  const s = fit * zoom;
   return {
     s,
-    X: (x: number) => ox + (x - d.xmin) * s,
-    Y: (y: number) => h - oy - (y - d.ymin) * s, // y up
-    invX: (px: number) => d.xmin + (px - ox) / s,
-    invY: (py: number) => d.ymin + (h - oy - py) / s,
+    fit,
+    X: (x: number) => w / 2 + (x - cx) * s,
+    Y: (y: number) => h / 2 - (y - cy) * s, // y up
+    invX: (px: number) => cx + (px - w / 2) / s,
+    invY: (py: number) => cy - (py - h / 2) / s,
   };
 }
 
-export function ParticleView({ frame, options, selected, onPick }: Props) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+export function ParticleView({ frame, options, selected, onPick, camera, onCamera, canvasRef }: Props) {
+  const localRef = useRef<HTMLCanvasElement>(null);
+  const ref = canvasRef ?? localRef;
   const frameRef = useRef<Frame | null>(null);
   frameRef.current = frame;
+  const drag = useRef<{ x: number; y: number; cam: Camera; moved: boolean } | null>(null);
+  const [probe, setProbe] = useState<{ x: number; y: number; px: number; py: number } | null>(null);
+  const [size, setSize] = useState(0);
+
+  // redraw on container resize
+  useEffect(() => {
+    const c = ref.current;
+    if (!c) return;
+    const ro = new ResizeObserver(() => setSize((s) => s + 1));
+    ro.observe(c);
+    return () => ro.disconnect();
+  }, [ref]);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
+    const canvas = ref.current;
     if (!canvas || !frame) return;
     const dpr = window.devicePixelRatio || 1;
     const w = canvas.clientWidth;
@@ -68,50 +81,48 @@ export function ParticleView({ frame, options, selected, onPick }: Props) {
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.fillStyle = '#0b0e12';
     g.fillRect(0, 0, w, h);
-    const T = transform(frame, w, h);
     const d = frame.domain;
+    const T = transformOf(d, w, h, camera);
 
-    // domain background
     g.fillStyle = '#10151b';
     g.fillRect(T.X(d.xmin), T.Y(d.ymax), (d.xmax - d.xmin) * T.s, (d.ymax - d.ymin) * T.s);
 
-    // field overlay
     if (frame.field) {
       const f = frame.field;
+      const sc = fieldScale(f.kind, f.min, f.max);
       const cw = ((d.xmax - d.xmin) / f.nx) * T.s;
       const ch = ((d.ymax - d.ymin) / f.ny) * T.s;
-      const span = f.max - f.min || 1;
       for (let cy = 0; cy < f.ny; cy++) {
         for (let cx = 0; cx < f.nx; cx++) {
-          const v = f.values[cy * f.nx + cx];
-          const [r, gg, b] = ramp((v - f.min) / span);
+          const [r, gg, b] = sc.color(f.values[cy * f.nx + cx]);
           g.fillStyle = `rgb(${r | 0},${gg | 0},${b | 0})`;
           g.fillRect(T.X(d.xmin) + cx * cw, T.Y(d.ymin) - (cy + 1) * ch, cw + 0.6, ch + 0.6);
         }
       }
     }
 
-    // particles
     const n = frame.count;
     const P = frame.positions;
     const V = frame.velocities;
-    let vmax = 1e-9;
-    if (options.colorBySpeed && !frame.field) {
-      for (let i = 0; i < n; i++) vmax = Math.max(vmax, Math.hypot(V[2 * i], V[2 * i + 1]));
-    }
-    for (let i = 0; i < n; i++) {
-      const r = Math.max(0.8, frame.radii[i] * T.s);
-      if (frame.field) g.fillStyle = 'rgba(255,255,255,0.55)';
-      else if (options.colorBySpeed) {
-        const [cr, cg, cb] = ramp(Math.hypot(V[2 * i], V[2 * i + 1]) / (0.6 * vmax));
-        g.fillStyle = `rgb(${cr | 0},${cg | 0},${cb | 0})`;
-      } else g.fillStyle = '#9fb3c8';
-      g.beginPath();
-      g.arc(T.X(P[2 * i]), T.Y(P[2 * i + 1]), r, 0, 2 * Math.PI);
-      g.fill();
+    if (options.particles) {
+      let vmax = 1e-9;
+      if (options.colorBySpeed && !frame.field) for (let i = 0; i < n; i++) vmax = Math.max(vmax, Math.hypot(V[2 * i], V[2 * i + 1]));
+      for (let i = 0; i < n; i++) {
+        const x = T.X(P[2 * i]);
+        const y = T.Y(P[2 * i + 1]);
+        if (x < -10 || y < -10 || x > w + 10 || y > h + 10) continue;
+        const r = Math.max(0.8, frame.radii[i] * T.s);
+        if (frame.field) g.fillStyle = 'rgba(255,255,255,0.55)';
+        else if (options.colorBySpeed) {
+          const [cr, cg, cb] = ramp(Math.hypot(V[2 * i], V[2 * i + 1]) / (0.6 * vmax));
+          g.fillStyle = `rgb(${cr | 0},${cg | 0},${cb | 0})`;
+        } else g.fillStyle = '#9fb3c8';
+        g.beginPath();
+        g.arc(x, y, r, 0, 2 * Math.PI);
+        g.fill();
+      }
     }
 
-    // velocity vectors (subsample)
     if (options.vectors) {
       const stride = Math.max(1, Math.floor(n / 700));
       g.strokeStyle = 'rgba(255,255,255,0.7)';
@@ -127,41 +138,40 @@ export function ParticleView({ frame, options, selected, onPick }: Props) {
       g.stroke();
     }
 
-    // recent collisions
     if (options.collisions) {
       const C = frame.collisions;
       g.fillStyle = 'rgba(255, 196, 0, 0.9)';
       for (let k = 0; k < C.length / 2; k++) {
-        const a = 1 - k / (C.length / 2);
-        g.globalAlpha = 0.25 + 0.75 * a;
+        g.globalAlpha = 0.25 + 0.75 * (1 - k / (C.length / 2));
         g.fillRect(T.X(C[2 * k]) - 1.5, T.Y(C[2 * k + 1]) - 1.5, 3, 3);
       }
       g.globalAlpha = 1;
     }
 
-    // walls
-    for (const wall of frame.walls) {
-      const col = wall.accommodation > 0 ? `rgba(255, 150, 60, ${0.5 + 0.5 * wall.accommodation})` : '#c9d1d9';
-      g.strokeStyle = col;
-      g.lineWidth = 3;
+    const side = (s: string) => {
       g.beginPath();
-      if (wall.side === 'left' || wall.side === 'right') {
-        const x = T.X(wall.side === 'left' ? d.xmin : d.xmax);
+      if (s === 'left' || s === 'right') {
+        const x = T.X(s === 'left' ? d.xmin : d.xmax);
         g.moveTo(x, T.Y(d.ymin));
         g.lineTo(x, T.Y(d.ymax));
       } else {
-        const y = T.Y(wall.side === 'bottom' ? d.ymin : d.ymax);
+        const y = T.Y(s === 'bottom' ? d.ymin : d.ymax);
         g.moveTo(T.X(d.xmin), y);
         g.lineTo(T.X(d.xmax), y);
       }
       g.stroke();
+    };
+    for (const wall of frame.walls) {
+      const col = wall.accommodation > 0 ? `rgba(255, 150, 60, ${0.5 + 0.5 * wall.accommodation})` : '#c9d1d9';
+      g.strokeStyle = col;
+      g.lineWidth = 3;
+      side(wall.side);
       if (wall.tangentialVelocity !== 0 && (wall.side === 'top' || wall.side === 'bottom')) {
-        const y = T.Y(wall.side === 'bottom' ? d.ymin : d.ymax) + (wall.side === 'bottom' ? 12 : -12);
+        const y = T.Y(wall.side === 'bottom' ? d.ymin : d.ymax) + (wall.side === 'bottom' ? 14 : -8);
         g.fillStyle = col;
-        g.font = '11px monospace';
-        g.fillText(`U = ${wall.tangentialVelocity} →`, T.X(d.xmin) + 6, y + 4);
+        g.font = '11px ui-monospace, monospace';
+        g.fillText(`U = ${wall.tangentialVelocity.toPrecision(3)} →`, T.X(d.xmin) + 6, y);
       }
-      // segments with their own accommodation (e.g. a diffuse plate in a specular floor)
       for (const sg of wall.segments) {
         g.strokeStyle = `rgba(255, 150, 60, ${0.5 + 0.5 * sg.accommodation})`;
         g.lineWidth = 5;
@@ -178,7 +188,6 @@ export function ParticleView({ frame, options, selected, onPick }: Props) {
         g.stroke();
       }
     }
-    // solid bodies: filled polygons, outline coloured by accommodation
     for (const b of frame.bodies ?? []) {
       const v = b.vertices;
       g.beginPath();
@@ -191,47 +200,17 @@ export function ParticleView({ frame, options, selected, onPick }: Props) {
       g.lineWidth = 2;
       g.stroke();
     }
-    // open reservoir boundaries: dashed blue
     g.setLineDash([6, 4]);
     g.strokeStyle = 'rgba(88,166,255,0.8)';
     g.lineWidth = 2;
-    for (const side of frame.openSides) {
-      g.beginPath();
-      if (side === 'left' || side === 'right') {
-        const x = T.X(side === 'left' ? d.xmin : d.xmax);
-        g.moveTo(x, T.Y(d.ymin));
-        g.lineTo(x, T.Y(d.ymax));
-      } else {
-        const y = T.Y(side === 'bottom' ? d.ymin : d.ymax);
-        g.moveTo(T.X(d.xmin), y);
-        g.lineTo(T.X(d.xmax), y);
-      }
-      g.stroke();
-    }
-    g.setLineDash([]);
-    // periodic boundaries drawn dashed
+    for (const s of frame.openSides) side(s);
     g.setLineDash([4, 4]);
     g.strokeStyle = '#3b4652';
     g.lineWidth = 1;
-    if (d.periodicX) {
-      for (const x of [d.xmin, d.xmax]) {
-        g.beginPath();
-        g.moveTo(T.X(x), T.Y(d.ymin));
-        g.lineTo(T.X(x), T.Y(d.ymax));
-        g.stroke();
-      }
-    }
-    if (d.periodicY) {
-      for (const y of [d.ymin, d.ymax]) {
-        g.beginPath();
-        g.moveTo(T.X(d.xmin), T.Y(y));
-        g.lineTo(T.X(d.xmax), T.Y(y));
-        g.stroke();
-      }
-    }
+    if (d.periodicX) ['left', 'right'].forEach(side);
+    if (d.periodicY) ['bottom', 'top'].forEach(side);
     g.setLineDash([]);
 
-    // selected particle + trajectory
     if (selected !== null && selected < n) {
       const tr = frame.inspected?.trajectory;
       if (options.trails && tr && tr.length >= 4) {
@@ -240,10 +219,8 @@ export function ParticleView({ frame, options, selected, onPick }: Props) {
         g.beginPath();
         g.moveTo(T.X(tr[0]), T.Y(tr[1]));
         for (let k = 2; k < tr.length; k += 2) {
-          // break the line across periodic wraps
-          if (Math.abs(tr[k] - tr[k - 2]) > 0.5 * (d.xmax - d.xmin) || Math.abs(tr[k + 1] - tr[k - 1]) > 0.5 * (d.ymax - d.ymin)) {
-            g.moveTo(T.X(tr[k]), T.Y(tr[k + 1]));
-          } else g.lineTo(T.X(tr[k]), T.Y(tr[k + 1]));
+          if (Math.abs(tr[k] - tr[k - 2]) > 0.5 * (d.xmax - d.xmin) || Math.abs(tr[k + 1] - tr[k - 1]) > 0.5 * (d.ymax - d.ymin)) g.moveTo(T.X(tr[k]), T.Y(tr[k + 1]));
+          else g.lineTo(T.X(tr[k]), T.Y(tr[k + 1]));
         }
         g.stroke();
       }
@@ -253,31 +230,116 @@ export function ParticleView({ frame, options, selected, onPick }: Props) {
       g.arc(T.X(P[2 * selected]), T.Y(P[2 * selected + 1]), Math.max(4, frame.radii[selected] * T.s + 3), 0, 2 * Math.PI);
       g.stroke();
     }
-  }, [frame, options, selected]);
 
-  const onClick = (ev: React.MouseEvent<HTMLCanvasElement>) => {
+    // scale bar: a round number of particle diameters
+    const target = 80 / T.s;
+    const p10 = 10 ** Math.floor(Math.log10(target));
+    const len = [1, 2, 5, 10].map((k) => k * p10).find((v) => v >= target * 0.5) ?? p10;
+    g.strokeStyle = '#8b98a5';
+    g.fillStyle = '#8b98a5';
+    g.lineWidth = 2;
+    g.beginPath();
+    g.moveTo(12, h - 12);
+    g.lineTo(12 + len * T.s, h - 12);
+    g.stroke();
+    g.font = '10px ui-monospace, monospace';
+    g.fillText(`${len} d`, 12, h - 17);
+  }, [frame, options, selected, camera, size, ref]);
+
+  const toDomain = (ev: { clientX: number; clientY: number }) => {
     const f = frameRef.current;
-    const canvas = canvasRef.current;
-    if (!f || !canvas) return;
+    const canvas = ref.current;
+    if (!f || !canvas) return null;
     const rect = canvas.getBoundingClientRect();
-    const T = transform(f, canvas.clientWidth, canvas.clientHeight);
-    const x = T.invX(ev.clientX - rect.left);
-    const y = T.invY(ev.clientY - rect.top);
+    const T = transformOf(f.domain, canvas.clientWidth, canvas.clientHeight, camera);
+    const px = ev.clientX - rect.left;
+    const py = ev.clientY - rect.top;
+    return { x: T.invX(px), y: T.invY(py), px, py, T };
+  };
+
+  const cam = (): Camera => {
+    const d = frameRef.current!.domain;
+    return camera ?? { zoom: 1, cx: (d.xmin + d.xmax) / 2, cy: (d.ymin + d.ymax) / 2 };
+  };
+
+  const onWheel = (ev: React.WheelEvent<HTMLCanvasElement>) => {
+    const p = toDomain(ev);
+    if (!p) return;
+    const c = cam();
+    const k = Math.exp(-ev.deltaY * 0.0015);
+    const zoom = Math.min(200, Math.max(0.5, c.zoom * k));
+    const r = zoom / c.zoom;
+    // keep the domain point under the cursor fixed
+    onCamera({ zoom, cx: p.x - (p.x - c.cx) / r, cy: p.y - (p.y - c.cy) / r });
+  };
+
+  const onDown = (ev: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!frameRef.current) return;
+    ev.currentTarget.setPointerCapture(ev.pointerId);
+    drag.current = { x: ev.clientX, y: ev.clientY, cam: cam(), moved: false };
+  };
+
+  const onMove = (ev: React.PointerEvent<HTMLCanvasElement>) => {
+    const p = toDomain(ev);
+    if (p) setProbe({ x: p.x, y: p.y, px: p.px, py: p.py });
+    const dr = drag.current;
+    if (!dr || !p) return;
+    const dx = ev.clientX - dr.x;
+    const dy = ev.clientY - dr.y;
+    if (!dr.moved && Math.hypot(dx, dy) < 4) return;
+    dr.moved = true;
+    onCamera({ zoom: dr.cam.zoom, cx: dr.cam.cx - dx / p.T.s, cy: dr.cam.cy + dy / p.T.s });
+  };
+
+  const onUp = (ev: React.PointerEvent<HTMLCanvasElement>) => {
+    const dr = drag.current;
+    drag.current = null;
+    if (!dr || dr.moved) return;
+    const f = frameRef.current;
+    const p = toDomain(ev);
+    if (!f || !p) return;
     let best = -1;
     let bestD = Infinity;
     for (let i = 0; i < f.count; i++) {
-      const dd = Math.hypot(f.positions[2 * i] - x, f.positions[2 * i + 1] - y);
+      const dd = Math.hypot(f.positions[2 * i] - p.x, f.positions[2 * i + 1] - p.y);
       if (dd < bestD) {
         bestD = dd;
         best = i;
       }
     }
-    onPick(best >= 0 && bestD < Math.max(3, 6 / T.s) ? best : null);
+    onPick(best >= 0 && bestD < Math.max(0.6, 8 / p.T.s) ? best : null);
   };
+
+  // field value under the pointer
+  let readout: string | null = null;
+  if (probe && frame) {
+    const d = frame.domain;
+    const inside = probe.x >= d.xmin && probe.x <= d.xmax && probe.y >= d.ymin && probe.y <= d.ymax;
+    if (inside) {
+      readout = `x ${probe.x.toFixed(2)}  y ${probe.y.toFixed(2)} d`;
+      const f = frame.field;
+      if (f) {
+        const cx = Math.min(f.nx - 1, Math.floor(((probe.x - d.xmin) / (d.xmax - d.xmin)) * f.nx));
+        const cy = Math.min(f.ny - 1, Math.floor(((probe.y - d.ymin) / (d.ymax - d.ymin)) * f.ny));
+        const info = FIELD_INFO[f.kind as keyof typeof FIELD_INFO];
+        readout += `  ·  ${info.symbol} = ${f.values[cy * f.nx + cx].toPrecision(4)} ${info.units}  (cell ${cx},${cy})`;
+      }
+    }
+  }
 
   return (
     <div className="canvas-host">
-      <canvas ref={canvasRef} onClick={onClick} aria-label="Particle view" />
+      <canvas
+        ref={ref}
+        onWheel={onWheel}
+        onPointerDown={onDown}
+        onPointerMove={onMove}
+        onPointerUp={onUp}
+        onPointerLeave={() => setProbe(null)}
+        onDoubleClick={() => onCamera(null)}
+        aria-label="Particle view: wheel to zoom, drag to pan, double-click to fit, click a particle to inspect it"
+      />
+      {readout && <div className="probe">{readout}</div>}
     </div>
   );
 }

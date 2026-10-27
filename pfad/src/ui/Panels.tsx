@@ -20,16 +20,20 @@ export function ExperimentSelector({
   selected,
   onSelect,
   statuses,
+  entries = CATALOG,
+  title = 'Experiments — Phase 0',
 }: {
   selected: string;
   onSelect: (e: CatalogEntry) => void;
   statuses: Record<string, ValidationStatus>;
+  entries?: CatalogEntry[];
+  title?: string;
 }) {
   return (
     <div className="section">
-      <h2>Experiments — Phase 0</h2>
+      <h2>{title}</h2>
       <div className="exp-list">
-        {CATALOG.map((e) => (
+        {entries.map((e) => (
           <button
             key={e.key}
             className={`exp-item ${selected === e.key ? 'active' : ''} ${e.engine ? '' : 'disabled'}`}
@@ -39,9 +43,12 @@ export function ExperimentSelector({
             <span>
               {e.label}
               <br />
-              <span className="step">{e.step}</span>
+              <span className="step">
+                {e.step}
+                {e.universe === 'A+variants' ? ' · incl. experimental model variants' : ''}
+              </span>
             </span>
-            <Badge status={statuses[e.key] ?? 'UNTESTED'} />
+            {e.locked ? <Badge status="LOCKED" /> : <Badge status={statuses[e.key] ?? 'UNTESTED'} />}
           </button>
         ))}
       </div>
@@ -57,14 +64,17 @@ export function ParamsForm({
   params,
   onChange,
   disabled,
+  hidden = [],
 }: {
   entry: CatalogEntry;
   params: Params;
   onChange: (p: Params) => void;
   disabled: boolean;
+  /** parameters that do not apply to this configuration (not shown) */
+  hidden?: string[];
 }) {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
-  const keys = Object.keys(params).filter((k) => k !== 'seeds');
+  const keys = Object.keys(params).filter((k) => k !== 'seeds' && !hidden.includes(k));
   const set = (k: string, v: unknown) => onChange({ ...params, [k]: v });
   return (
     <div className="params">
@@ -88,13 +98,23 @@ export function ParamsForm({
             </label>
           );
         }
+        if (typeof v === 'boolean') {
+          return (
+            <label key={k} className="check-label">
+              <input type="checkbox" checked={v} disabled={disabled} onChange={(e) => set(k, e.target.checked)} />
+              {k}
+            </label>
+          );
+        }
         if (typeof v === 'string') {
           const options =
             k === 'distribution'
               ? ['maxwell', 'uniform-speed', 'uniform-box', 'two-beam']
               : k === 'contact'
                 ? ['rewind-to-contact', 'impulse-at-detection']
-                : [v];
+                : k === 'kind' && entry.engine === 'ub-instrument'
+                  ? ['static', 'shear', 'sound', 'wall', 'couette']
+                  : [v];
           return (
             <label key={k}>
               {k}
@@ -217,17 +237,19 @@ export function LiveMetrics({ frame }: { frame: Frame | null }) {
 
 export function PerfOverlay({ frame, fps, renderMs }: { frame: Frame | null; fps: number; renderMs: number }) {
   if (!frame) return null;
+  const elapsed = frame.activeMs / 1000;
   const p = frame.perf;
   const mem = (performance as unknown as { memory?: { usedJSHeapSize: number } }).memory;
   const rows: [string, string][] = [
     ['FPS', fmt(fps, 3)],
     ['sim steps/s', fmt(p.stepsPerSecond, 3)],
     ['particles', String(frame.count)],
+    ['compute time', `${elapsed.toFixed(1)} s`],
     ['collisions', String(p.collisionCount)],
-    ['occupancy ms', fmt(p.fieldMs, 2)],
+    ['field ms', fmt(p.fieldMs, 2)],
     ['render ms', fmt(renderMs, 2)],
     ['memory', mem ? `${(mem.usedJSHeapSize / 1048576).toFixed(0)} MB` : 'n/a'],
-    ['t', fmt(p.time)],
+    ['t [τ]', fmt(p.time)],
     ['dt', fmt(p.dt, 3)],
     ['max |v|', fmt(p.maxSpeed, 3)],
     ['energy error', fmt(p.energyError, 2)],
@@ -298,8 +320,9 @@ export function Inspector({ data }: { data: InspectData | null }) {
 }
 
 // ---------------------------------------------------------------- record
-export function RecordView({ record }: { record: ExperimentRecord | null }) {
+export function RecordView({ record, compact = false }: { record: ExperimentRecord | null; compact?: boolean }) {
   if (!record) return <div className="note">The record appears when every run has finished.</div>;
+  if (compact) return <Headline record={record} />;
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -525,6 +548,37 @@ function Headline({ record }: { record: ExperimentRecord }) {
               </tr>
             ) : null,
           )}
+        </tbody>
+      </table>
+    );
+  }
+  if (record.experimentType === 'ub-instrument' && r.ensemble) {
+    const primary: Record<string, string[]> = {
+      static: ['Pnorm', 'Pkin', 'Pcoll', 'T', 'a2', 'collisionRate_p', 'lambda_p'],
+      shear: ['nu_p', 'nuRaw_p', 'nuKin_p', 'nuColl_p', 'Tstart', 'Tend'],
+      sound: ['c', 'cDensity', 'gamma_p'],
+      wall: ['Pwall', 'gw1', 'gw2', 'gw3'],
+      couette: ['mu', 'shearRate', 'tauWall', 'slipBottom', 'slipTop'],
+    };
+    return (
+      <table className="results" style={{ marginTop: 8 }}>
+        <thead>
+          <tr>
+            <th>MEASURED ({r.kind}, Universe A)</th>
+            <th>mean ± SE over seeds</th>
+            <th>n</th>
+          </tr>
+        </thead>
+        <tbody>
+          {(primary[r.kind] ?? []).filter((k) => r.ensemble[k]).map((k) => (
+            <tr key={k}>
+              <td>{k}</td>
+              <td>
+                {fmt(r.ensemble[k].mean)} ± {fmt(r.ensemble[k].se, 2)}
+              </td>
+              <td>{r.ensemble[k].n}</td>
+            </tr>
+          ))}
         </tbody>
       </table>
     );

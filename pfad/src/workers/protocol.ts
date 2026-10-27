@@ -4,17 +4,37 @@ import type { ValidationStatus } from '../validation/Status';
 
 /** Messages between the UI thread and the simulation worker. */
 
-export type FieldKind = 'none' | 'occupancy' | 'occupancyGradient' | 'density' | 'speed' | 'kT' | 'pressure' | 'shear';
+export type FieldKind =
+  | 'none'
+  | 'occupancy'
+  | 'occupancyGradient'
+  | 'density'
+  | 'speed'
+  | 'ux'
+  | 'uy'
+  | 'momentumX'
+  | 'momentumY'
+  | 'kT'
+  | 'pressure'
+  | 'shear';
+
+/** Near-wall / cross-stream profile request: bins along y inside the x window [x0, x1]. */
+export interface ProfileRequest {
+  x0: number;
+  x1: number;
+  bins: number;
+}
 
 export type ToWorker =
-  | { type: 'init'; experiment: ExperimentType; params: unknown; epoch: number }
+  | { type: 'init'; experiment: ExperimentType; params: unknown; epoch: number; resume?: unknown }
   | { type: 'run' }
   | { type: 'pause' }
   | { type: 'step'; steps: number }
   | { type: 'stop' }
   | { type: 'inspect'; index: number | null }
-  | { type: 'view'; field: FieldKind; perCell: number; average: boolean; trails: boolean }
+  | { type: 'view'; field: FieldKind; perCell: number; average: boolean; trails: boolean; profile?: ProfileRequest | null }
   | { type: 'resetAverage' }
+  | { type: 'checkpoint' }
   | { type: 'unload'; epoch: number };
 
 export interface WallGeometry {
@@ -63,7 +83,20 @@ export interface Frame {
     note?: string;
     /** mean particles per cell per snapshot */
     particlesPerCell: number;
+    /** simulation time of the first and the latest snapshot in the average */
+    t0: number;
+    t1: number;
   };
+  /** wall and body momentum transfer since the start of the current run phase */
+  transfer: TransferData | null;
+  /** near-wall profile, when requested */
+  profile: ProfileData | null;
+  /** time series of every numeric live value (columnar) */
+  history: { t: number[]; columns: Record<string, number[]> };
+  /** active compute time of this experiment session, ms */
+  activeMs: number;
+  /** the experiment can return a resumable checkpoint */
+  checkpointable: boolean;
   live: Record<string, number | string>;
   perf: {
     stepsPerSecond: number;
@@ -78,7 +111,6 @@ export interface Frame {
     steps: number;
   };
   flags: SafetyFlag[];
-  series: { t: number; c: number; value: number; label: string }[];
   inspected: null | InspectData;
 }
 
@@ -101,7 +133,51 @@ export interface InspectData {
   trajectory: number[];
 }
 
+export interface TransferData {
+  /** averaging window: simulation time since the monitor started */
+  t0: number;
+  t1: number;
+  walls: {
+    side: string;
+    length: number;
+    accommodation: number;
+    hits: number;
+    /** Σ normal impulse / (Δt · L): wall pressure from momentum transfer */
+    pressure: number;
+    /** Σ tangential impulse / (Δt · L) */
+    shear: number;
+  }[];
+  bodies: {
+    hits: number;
+    /** Δ(body impulse) / Δt: mean force on the body from particle impacts */
+    fx: number;
+    fy: number;
+  }[];
+}
+
+export interface ProfileBin {
+  mean: number;
+  se: number;
+}
+
+export interface ProfileData {
+  x0: number;
+  x1: number;
+  /** bin centres, distance from the bottom of the domain (y − ymin) */
+  y: number[];
+  binWidth: number;
+  snapshots: number;
+  batches: number;
+  numberDensity: ProfileBin[];
+  ux: ProfileBin[];
+  uy: ProfileBin[];
+  kT: ProfileBin[];
+}
+
 export type FromWorker =
   | Frame
-  | { type: 'record'; record: ExperimentRecord; epoch: number }
+  | { type: 'record'; record: ExperimentRecord; epoch: number; activeMs: number }
+  | { type: 'stopped'; message: string; epoch: number; activeMs: number }
+  | { type: 'failed'; message: string; epoch: number; activeMs: number }
+  | { type: 'checkpoint'; state: unknown; epoch: number; activeMs: number }
   | { type: 'error'; message: string; epoch: number };

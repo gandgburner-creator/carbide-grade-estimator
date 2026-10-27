@@ -11,6 +11,7 @@ import type { ParticleStore } from '../core/ParticleStore';
  *   φ    = Σ area / (snapshots · A_cell)
  *   ρ    = Σ m / (snapshots · A_cell)
  *   u    = Σ m v / Σ m
+ *   ρu   = Σ m v / (snapshots · A_cell)   (momentum density)
  *   kT   = (Σ ½m|v|² − ½|Σ m v|²/Σ m) / Σ count   (peculiar w.r.t. the averaged u)
  * The number of snapshots and the mean particles per cell per snapshot are
  * reported with every field so that noise is never mistaken for structure.
@@ -25,7 +26,7 @@ import type { ParticleStore } from '../core/ParticleStore';
  * kinetic part is present, which the caller must say. Wall impulses remain
  * the measurement used for reported wall pressure and shear.
  */
-export type FieldName = 'occupancy' | 'occupancyGradient' | 'density' | 'speed' | 'ux' | 'uy' | 'kT' | 'pressure' | 'shear';
+export type FieldName = 'occupancy' | 'occupancyGradient' | 'density' | 'speed' | 'ux' | 'uy' | 'momentumX' | 'momentumY' | 'kT' | 'pressure' | 'shear';
 
 export class FieldAverager {
   readonly nx: number;
@@ -175,6 +176,12 @@ export class FieldAverager {
           break;
         case 'uy':
           out[c] = uy;
+          break;
+        case 'momentumX':
+          out[c] = this.px[c] / A;
+          break;
+        case 'momentumY':
+          out[c] = this.py[c] / A;
           break;
         case 'kT':
           out[c] = this.count[c] > 0 ? (this.ke[c] - (0.5 * (this.px[c] ** 2 + this.py[c] ** 2)) / M) / this.count[c] : 0;

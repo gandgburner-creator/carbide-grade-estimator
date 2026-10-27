@@ -49,3 +49,17 @@ describe('architecture: benchmarks are isolated from the solver', () => {
     }
   });
 });
+
+describe('architecture: the laboratory app layer adds no physics', () => {
+  const root = join(__dirname, '..', 'src');
+  const appFiles = [...files(join(root, 'app')), ...files(join(root, 'workers'))];
+  it('src/app and src/workers do not import benchmarks or mention a classical aerodynamic method', () => {
+    expect(appFiles.length).toBeGreaterThan(0);
+    for (const f of appFiles) {
+      const src = readFileSync(f, 'utf8');
+      expect(src, f).not.toMatch(/from\s+['"][^'"]*benchmarks[^'"]*['"]/);
+      const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+      for (const term of FORBIDDEN_TERMS) expect(code, `${f} contains ${term}`).not.toMatch(term);
+    }
+  });
+});
