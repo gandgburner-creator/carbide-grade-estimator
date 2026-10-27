@@ -40,7 +40,8 @@ page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
 page.on('console', (m) => m.type() === 'error' && errors.push(`console: ${m.text()}`));
 const step = (s) => console.log(`· ${s}`);
 const shot = (name) => page.screenshot({ path: join(out, `${name}.png`) });
-const expectText = async (text, timeout = 10000) => page.getByText(text, { exact: false }).first().waitFor({ timeout });
+// both workspaces stay mounted: look only inside the visible one
+const expectText = async (text, timeout = 10000) => page.locator('.shell-body:visible').getByText(text, { exact: false }).first().waitFor({ timeout });
 const button = (name) => page.getByRole('button', { name, exact: true });
 const download = async (name) => {
   const [d] = await Promise.all([page.waitForEvent('download', { timeout: 15000 }), button(name).first().click()]);

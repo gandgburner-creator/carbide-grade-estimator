@@ -116,7 +116,7 @@ export function DetectorPanel({ analysis, window: win, onSelectX, selectedX }: {
       <details style={{ marginTop: 6 }} open>
         <summary className="note">Stations (click a row to see its profile)</summary>
         <div className="table-scroll" style={{ maxHeight: 230 }}>
-          <table className="results">
+          <table className="results tight">
             <thead>
               <tr>
                 <th>x</th>

@@ -433,6 +433,12 @@ table.results td:first-child {
   text-align: left;
 }
 
+table.results.tight td,
+table.results.tight th {
+  padding: 3px 2px;
+  font-size: 10px;
+}
+
 table.results th {
   color: var(--muted);
   font-weight: 500;
