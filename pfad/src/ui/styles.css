@@ -78,6 +78,12 @@ body,
   min-height: 0;
 }
 
+@media (min-width: 1450px) {
+  .flow .main {
+    grid-template-columns: 300px minmax(0, 1fr) 500px;
+  }
+}
+
 
 .column {
   overflow: auto;
