@@ -28,6 +28,10 @@ interface Props {
   camera: Camera | null;
   onCamera: (c: Camera | null) => void;
   canvasRef?: React.RefObject<HTMLCanvasElement | null>;
+  /** drawn last, in simulation coordinates through the view transform (workspace annotations) */
+  overlay?: (g: CanvasRenderingContext2D, T: ReturnType<typeof transformOf>, frame: Frame) => void;
+  /** drawn before the particles, over the field cells and under the body (e.g. a measured mean field) */
+  underlay?: (g: CanvasRenderingContext2D, T: ReturnType<typeof transformOf>, frame: Frame) => void;
 }
 
 type Dom = Frame['domain'];
@@ -49,7 +53,7 @@ export function transformOf(d: Dom, w: number, h: number, cam: Camera | null) {
   };
 }
 
-export function ParticleView({ frame, options, selected, onPick, camera, onCamera, canvasRef }: Props) {
+export function ParticleView({ frame, options, selected, onPick, camera, onCamera, canvasRef, overlay, underlay }: Props) {
   const localRef = useRef<HTMLCanvasElement>(null);
   const ref = canvasRef ?? localRef;
   const frameRef = useRef<Frame | null>(null);
@@ -101,6 +105,7 @@ export function ParticleView({ frame, options, selected, onPick, camera, onCamer
       }
     }
 
+    underlay?.(g, T, frame);
     const n = frame.count;
     const P = frame.positions;
     const V = frame.velocities;
@@ -231,6 +236,8 @@ export function ParticleView({ frame, options, selected, onPick, camera, onCamer
       g.stroke();
     }
 
+    overlay?.(g, T, frame);
+
     // scale bar: a round number of particle diameters
     const target = 80 / T.s;
     const p10 = 10 ** Math.floor(Math.log10(target));
@@ -244,7 +251,7 @@ export function ParticleView({ frame, options, selected, onPick, camera, onCamer
     g.stroke();
     g.font = '10px ui-monospace, monospace';
     g.fillText(`${len} d`, 12, h - 17);
-  }, [frame, options, selected, camera, size, ref]);
+  }, [frame, options, selected, camera, size, ref, overlay, underlay]);
 
   const toDomain = (ev: { clientX: number; clientY: number }) => {
     const f = frameRef.current;

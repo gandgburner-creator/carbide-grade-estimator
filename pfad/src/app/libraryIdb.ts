@@ -2,15 +2,16 @@ import { MemoryLibrary, type LibraryEntry, type LibraryPayload, type LibraryStor
 
 /** Browser persistence of the library (IndexedDB: entries and payloads in two stores). */
 const DB = 'pfad-lab';
-const VERSION = 1;
+const VERSION = 2;
 
-function open(): Promise<IDBDatabase> {
+export function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB, VERSION);
     req.onupgradeneeded = () => {
       const db = req.result;
       if (!db.objectStoreNames.contains('entries')) db.createObjectStore('entries', { keyPath: 'id' });
       if (!db.objectStoreNames.contains('payloads')) db.createObjectStore('payloads');
+      if (!db.objectStoreNames.contains('projects')) db.createObjectStore('projects', { keyPath: 'id' });
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error ?? new Error('IndexedDB unavailable'));
@@ -27,7 +28,7 @@ function done<T>(req: IDBRequest<T>): Promise<T> {
 export class IdbLibrary implements LibraryStore {
   private db: Promise<IDBDatabase>;
   constructor() {
-    this.db = open();
+    this.db = openDb();
   }
   async list() {
     const db = await this.db;

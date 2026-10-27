@@ -34,3 +34,13 @@ export function freeSeeds(start: number, n: number): number[] {
   }
   return out;
 }
+
+/** One message per seed that lies in a UB-0 protocol range (the flow-guided geometry workspace refuses them too). */
+export function reservedSeedErrors(seeds: number[]): string[] {
+  const out: string[] = [];
+  for (const s of seeds) {
+    const owner = Number.isInteger(s) ? reservedOwner(s) : null;
+    if (owner) out.push(`seed ${s} is reserved by the UB-0 protocol (${owner.owner}); this workspace never uses it`);
+  }
+  return out;
+}
