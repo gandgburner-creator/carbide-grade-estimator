@@ -21,14 +21,36 @@ export interface Typed {
   b64: string;
 }
 
+/*
+ * Standard base64. Node uses Buffer (as it always has); a browser (the laboratory
+ * app's worker, which has no Buffer) uses btoa/atob, which give the same text.
+ */
+type NodeBuffer = { from(x: Uint8Array | string, enc?: string): Uint8Array & { toString(enc: string): string } };
+const NodeBuf = (globalThis as unknown as { Buffer?: NodeBuffer }).Buffer;
+
+export function toBase64(bytes: Uint8Array): string {
+  if (NodeBuf) return NodeBuf.from(bytes).toString('base64');
+  let s = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+
+export function fromBase64(b64: string): Uint8Array {
+  if (NodeBuf) return NodeBuf.from(b64, 'base64');
+  const s = atob(b64);
+  const out = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i++) out[i] = s.charCodeAt(i);
+  return out;
+}
+
 export function encode(a: Float64Array | Int32Array | Uint32Array, n = a.length): Typed {
   const t = a instanceof Float64Array ? 'f64' : a instanceof Int32Array ? 'i32' : 'u32';
   const bytes = new Uint8Array(a.buffer, a.byteOffset, n * a.BYTES_PER_ELEMENT);
-  return { t, b64: Buffer.from(bytes).toString('base64') };
+  return { t, b64: toBase64(bytes) };
 }
 
 export function decodeInto(target: Float64Array | Int32Array | Uint32Array, e: Typed): number {
-  const buf = Buffer.from(e.b64, 'base64');
+  const buf = fromBase64(e.b64);
   const per = target.BYTES_PER_ELEMENT;
   const n = buf.length / per;
   if (n > target.length) throw new Error(`typed array too small: ${n} > ${target.length}`);
@@ -42,7 +64,7 @@ export function encodeF64(a: ArrayLike<number>): Typed {
 }
 
 export function decodeF64(e: Typed): Float64Array {
-  const buf = Buffer.from(e.b64, 'base64');
+  const buf = fromBase64(e.b64);
   const out = new Float64Array(buf.length / 8);
   new Uint8Array(out.buffer).set(buf);
   return out;

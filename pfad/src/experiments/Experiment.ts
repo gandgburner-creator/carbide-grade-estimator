@@ -21,7 +21,8 @@ export type ExperimentType =
   | 'separation'
   | 'kutta'
   | 'scaling'
-  | 'ab-test';
+  | 'ab-test'
+  | 'ub-instrument';
 
 /**
  * Serializable experiment record (Master prompt §24, Bible §33).
@@ -105,9 +106,9 @@ export abstract class SequentialExperiment<Spec, R> {
   abstract readonly type: ExperimentType;
   readonly specs: Spec[];
   readonly results: R[] = [];
-  private current: Run<R> | null = null;
-  private index = 0;
-  private totalSteps = 0;
+  protected current: Run<R> | null = null;
+  protected index = 0;
+  protected totalSteps = 0;
 
   constructor(specs: Spec[]) {
     if (specs.length === 0) throw new Error('experiment has no runs');

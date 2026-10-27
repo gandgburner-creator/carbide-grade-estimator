@@ -10,6 +10,7 @@ import { SCALING_REFERENCE, ScalingExperiment, setScalingFactory, type ScalingPa
 import { SOUND_VALIDATION, SoundSpeedExperiment, type SoundParams } from './SoundSpeedExperiment';
 import { STATIC_BOX_REFERENCE, StaticBoxExperiment, type StaticBoxParams } from './StaticBoxExperiment';
 import { THERMAL_REFERENCE, ThermalExperiment, type ThermalParams } from './ThermalExperiment';
+import { UB_INSTRUMENT_QUICK, UB_INSTRUMENT_REFERENCE, UBInstrumentExperiment, type UBInstrumentParams } from './UBInstrumentExperiment';
 import {
   WALL_ACCOMMODATION_REFERENCE,
   WallAccommodationExperiment,
@@ -304,6 +305,14 @@ const abTest: ExperimentEntry<ABTestParams> = {
   create: (p) => new ABTestExperiment(p) as unknown as SequentialExperiment<unknown, unknown>,
 };
 
+const ubInstrument: ExperimentEntry<UBInstrumentParams> = {
+  type: 'ub-instrument',
+  title: 'UB-0 instrument, Universe A (N_c = 1)',
+  defaults: UB_INSTRUMENT_REFERENCE.static,
+  quick: UB_INSTRUMENT_QUICK.static,
+  create: (p) => new UBInstrumentExperiment(p) as unknown as SequentialExperiment<unknown, unknown>,
+};
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const EXPERIMENTS: Partial<Record<ExperimentType, ExperimentEntry<any>>> = {
   'static-box': staticBox,
@@ -321,11 +330,12 @@ export const EXPERIMENTS: Partial<Record<ExperimentType, ExperimentEntry<any>>> 
   separation,
   kutta,
   scaling,
+  'ub-instrument': ubInstrument,
 };
 
 setScalingFactory((type, params) => {
   const entry = EXPERIMENTS[type];
-  if (!entry || type === 'scaling' || type === 'ab-test') throw new Error(`cannot scale experiment type ${type}`);
+  if (!entry || type === 'scaling' || type === 'ab-test' || type === 'ub-instrument') throw new Error(`cannot scale experiment type ${type}`);
   return entry.create(params);
 });
 
