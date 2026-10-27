@@ -4,7 +4,7 @@ Live: https://gandgburner-creator.github.io/carbide-grade-estimator/pfad-lab/
 
 This folder is a static production build of the PFAD laboratory application
 (`npm run build` in `pfad/`). The build is from commit
-a9391b53c18aeea6d71e77105c60002a690d0bd8 on branch
+23035ab89233b40717b5f0308f48c2492735dabb on branch
 `claude/bible-master-build-prompt-xtrg6e`; the app shows that commit in its
 top bar and writes it into every export. Source, user guide and tests are on
 that branch, in `pfad/` (guide: `pfad/docs/LAB_APP.md`).
