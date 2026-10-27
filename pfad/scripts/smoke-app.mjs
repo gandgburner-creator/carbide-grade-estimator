@@ -38,7 +38,9 @@ page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
 page.on('console', (m) => m.type() === 'error' && errors.push(`console: ${m.text()}`));
 const step = (s) => console.log(`· ${s}`);
 const shot = (name) => page.screenshot({ path: join(out, `${name}.png`) });
-const expectText = async (text, timeout = 10000) => page.getByText(text, { exact: false }).first().waitFor({ timeout });
+// the two workspaces both stay mounted: look only inside the visible one
+const vis = (sel) => page.locator(`.shell-body:visible ${sel}`);
+const expectText = async (text, timeout = 10000) => page.locator('.shell-body:visible').getByText(text, { exact: false }).first().waitFor({ timeout });
 const button = (name) => page.getByRole('button', { name, exact: true });
 const download = async (name) => {
   const [d] = await Promise.all([page.waitForEvent('download', { timeout: 10000 }), button(name).first().click()]);
@@ -61,7 +63,7 @@ step('static box finished');
 await expectText('Measured (');
 await expectText('MEASURED wall pressure');
 await shot('1-static-box-finished');
-const legend = await page.locator('.legend').innerText();
+const legend = await vis('.legend').innerText();
 if (!/kT₀/.test(legend) || !/MEASURED/.test(legend) || !/time-averaged|instantaneous/.test(legend)) throw new Error(`field legend lacks units/origin/averaging: ${legend}`);
 step('field legend states units, origin and averaging');
 
@@ -80,14 +82,14 @@ step('field CSV and view PNG exported');
 await button('Wall momentum transfer').click();
 await expectText('P_wall [kT₀/d²]');
 await button('Near-wall profile').click();
-await page.locator('.analysis input[type=checkbox]').first().check();
+await vis('.analysis input[type=checkbox]').first().check();
 await page.waitForTimeout(300);
 await shot('2-profile-tab');
 await button('Time series').click();
 step('analysis tabs render');
 
 // zoom and pan
-const canvas = page.locator('.canvas-host canvas');
+const canvas = vis('.canvas-host canvas');
 const box = await canvas.boundingBox();
 await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
 await page.mouse.wheel(0, -600);
@@ -131,20 +133,20 @@ step('checkpoint resumed from the library and finished with a record');
 // import repository records and compare two of them
 await page.getByRole('button', { name: /^Library/ }).click();
 const here = new URL('.', import.meta.url).pathname;
-await page.locator('.lib-item, .section').first().waitFor();
+await vis('.lib-item, .section').first().waitFor();
 await page.setInputFiles('input[type=file][multiple]', [join(here, '..', 'results', 'static-box_reference_seed7.json'), join(here, '..', 'results', 'viscosity_reference.json')]);
 await expectText('Imported 2 record(s)');
 await expectText('IMPORTED');
 step('imported two repository records');
 await page.getByRole('button', { name: 'Compare', exact: true }).click();
-const selects = page.locator('.field select');
+const selects = vis('.field select');
 const opts = await selects.first().locator('option').allTextContents();
 const staticOpts = opts.filter((o) => /Static box/i.test(o));
 if (staticOpts.length < 2) throw new Error(`expected two static-box records to compare, got ${staticOpts.join(' | ')}`);
 await selects.nth(0).selectOption({ label: staticOpts[0] });
 await selects.nth(1).selectOption({ label: staticOpts[1] });
 await expectText('not a hypothesis test');
-await page.locator('.table-scroll table tbody tr').first().waitFor();
+await vis('.table-scroll table tbody tr').first().waitFor();
 await shot('7-compare');
 step('compared two static-box records');
 
