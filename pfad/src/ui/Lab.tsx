@@ -170,7 +170,9 @@ export function Lab() {
         case 'frame': {
           const t0 = performance.now();
           setFrame(m);
-          if (m.running) setPhase('running');
+          // The worker's own state decides. A frame that was queued before it handled PAUSE
+          // still says running; the forced frame that follows says paused and wins.
+          setPhase((prev) => (prev === 'finished' || prev === 'stopped' || prev === 'failed' ? prev : m.running ? 'running' : prev === 'running' ? 'paused' : prev));
           const now = performance.now();
           frameTimes.current = [...frameTimes.current.filter((t) => now - t < 1000), now];
           setFps(frameTimes.current.length);
@@ -367,6 +369,15 @@ export function Lab() {
     }
     await refresh();
     setMessage(errors.length ? { kind: 'error', text: `Imported ${n}; failed: ${errors.join('; ')}` } : { kind: 'info', text: `Imported ${n} record(s) into the library.` });
+  };
+
+  /** zoom about the centre of the current view (buttons; the wheel zooms about the pointer) */
+  const zoomBy = (k: number) => {
+    const d = frame?.domain;
+    if (!d) return;
+    const c = camera ?? { zoom: 1, cx: (d.xmin + d.xmax) / 2, cy: (d.ymin + d.ymax) / 2 };
+    const zoom = Math.min(200, Math.max(0.5, c.zoom * k));
+    setCamera(Math.abs(zoom - 1) < 1e-9 ? null : { ...c, zoom });
   };
 
   const exportFieldCSV = () => {
@@ -569,7 +580,7 @@ export function Lab() {
             )}
           </div>
           {entry.engine && params && !entry.locked && (
-            <div className="section">
+            <div className="section run-section">
               <h2>Run</h2>
               <div className="controls">
                 <button className="ctl primary" disabled={running || (loaded && !ended) || !!validation?.errors.length} onClick={() => load()} title="build the initial state">
@@ -630,7 +641,7 @@ export function Lab() {
                 <div style={{ width: `${(100 * (frame?.progress ?? 0)).toFixed(1)}%` }} />
               </div>
               {message && <div className={message.kind === 'error' ? 'error' : message.kind === 'warn' ? 'warn' : 'info'}>{message.text}</div>}
-              <div className="note" style={{ marginTop: 6 }}>
+              <div className="note run-help" style={{ marginTop: 6 }}>
                 LOAD builds the initial state; RESET rebuilds it from the same seeds (identical replay). Every started run is kept in the library, finished or not.
               </div>
             </div>
@@ -671,9 +682,17 @@ export function Lab() {
               <input type="checkbox" checked={showPerf} onChange={(e) => setShowPerf(e.target.checked)} />
               perf
             </label>
-            <button className="ctl" onClick={() => setCamera(null)} disabled={!camera} title="zoom to fit (or double-click the view)">
-              fit {camera ? `(${camera.zoom.toFixed(1)}×)` : ''}
-            </button>
+            <span className="zoom-buttons">
+              <button className="ctl" disabled={!frame} onClick={() => zoomBy(1.6)} title="zoom in (or use the wheel)" aria-label="zoom in">
+                ＋
+              </button>
+              <button className="ctl" disabled={!frame} onClick={() => zoomBy(1 / 1.6)} title="zoom out" aria-label="zoom out">
+                －
+              </button>
+              <button className="ctl" onClick={() => setCamera(null)} disabled={!camera} title="zoom to fit (or double-click the view)">
+                fit {camera ? `(${camera.zoom.toFixed(1)}×)` : ''}
+              </button>
+            </span>
             <button className="ctl" disabled={!frame} onClick={exportViewPNG}>
               PNG
             </button>

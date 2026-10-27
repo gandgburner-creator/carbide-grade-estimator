@@ -109,7 +109,8 @@ await expectText('N_c = 1 (Universe A)');
 await button('LOAD').click();
 await page.waitForFunction(() => document.querySelector('.phase')?.textContent === 'LOADED');
 await button('RUN').click();
-await page.waitForTimeout(1500);
+// pause early: the quick instrument run takes about a second, so a long wait could outlast it
+await page.waitForTimeout(250);
 await button('PAUSE').click();
 await button('CHECKPOINT').click();
 await expectText('Checkpoint stored');
@@ -153,6 +154,35 @@ await expectText('Locked. UB-0 is preregistered and blind');
 if (await button('LOAD').count()) throw new Error('Universe B offers a LOAD button');
 await shot('6-universe-b-locked');
 step('Universe B is locked');
+
+// 4. phone-sized screen: the run controls must be on screen without scrolling, and a run must work by touch
+{
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  const ph = await ctx.newPage();
+  ph.on('pageerror', (e) => errors.push(`phone pageerror: ${e.message}`));
+  await ph.goto(url);
+  await ph.getByText('PFAD LABORATORY', { exact: false }).first().waitFor({ timeout: 10000 });
+  const onScreen = (label) =>
+    ph.evaluate((t) => {
+      const b = [...document.querySelectorAll('button')].find((x) => x.textContent.trim() === t);
+      if (!b) return false;
+      const r = b.getBoundingClientRect();
+      return r.top >= 0 && r.bottom <= innerHeight && r.width > 30 && r.height > 30;
+    }, label);
+  for (const label of ['LOAD', 'RUN', 'PAUSE', 'STOP']) {
+    if (!(await onScreen(label))) throw new Error(`phone: the ${label} button is not on screen`);
+  }
+  await ph.getByRole('button', { name: 'LOAD', exact: true }).tap();
+  await ph.waitForFunction(() => document.querySelector('.phase')?.textContent === 'LOADED');
+  await ph.getByRole('button', { name: 'RUN', exact: true }).tap();
+  await ph.waitForFunction(() => document.querySelector('.phase')?.textContent === 'FINISHED', null, { timeout: 180000 });
+  const sideways = await ph.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+  if (sideways > 1) throw new Error(`phone: the page scrolls sideways by ${sideways}px`);
+  await ph.evaluate(() => document.querySelector('.view-toolbar').scrollIntoView());
+  await ph.screenshot({ path: join(out, '8-phone.png') });
+  step('phone layout: controls on screen, run by touch, no sideways scroll');
+  await ctx.close();
+}
 
 await browser.close();
 if (errors.length) {

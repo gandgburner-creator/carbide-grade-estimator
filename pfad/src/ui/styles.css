@@ -78,12 +78,6 @@ body,
   min-height: 0;
 }
 
-@media (max-width: 1100px) {
-  .main {
-    grid-template-columns: 1fr;
-    overflow: auto;
-  }
-}
 
 .column {
   overflow: auto;
@@ -835,8 +829,155 @@ label.ctl {
   letter-spacing: 0.06em;
 }
 
+/* ---------------------------------------------------------------- narrow screens (tablet, phone)
+   One scrolling page instead of three independently scrolling columns. The left column
+   dissolves into the page (display: contents) so the run controls can be pinned to the
+   bottom of the screen while the page scrolls. */
 @media (max-width: 1100px) {
-  .column.center {
-    min-height: 720px;
+  html,
+  body,
+  #root {
+    height: auto;
+    min-height: 100%;
   }
+
+  .lab {
+    display: block;
+    height: auto;
+    padding-bottom: 150px; /* room for the pinned run bar */
+  }
+
+  .main {
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+  }
+
+  .column {
+    overflow: visible;
+    border-right: none;
+    padding: 8px;
+  }
+
+  .column:first-child {
+    display: contents;
+  }
+
+  .column:first-child > .section,
+  .column:first-child > details,
+  .column:first-child > .error,
+  .column:first-child > .info {
+    margin: 8px;
+  }
+
+  .column.center {
+    padding: 0;
+    overflow: visible;
+  }
+
+  .canvas-host {
+    flex: none;
+    height: min(100vw, 70vh);
+    min-height: 260px;
+  }
+
+  .view-wrap {
+    flex: none;
+  }
+
+  .analysis {
+    height: auto;
+    min-height: 240px;
+    overflow: visible;
+  }
+
+  .exp-list {
+    max-height: 230px;
+    overflow-y: auto;
+  }
+
+  .legend,
+  .perf {
+    position: static;
+    max-width: none;
+    margin: 6px 8px;
+    pointer-events: auto;
+  }
+
+  .view-wrap > .perf {
+    width: auto;
+  }
+
+  .topbar {
+    padding: 6px 10px;
+  }
+
+  .topbar h1 {
+    font-size: 12px;
+  }
+
+  .topbar .meta {
+    font-size: 9.5px;
+  }
+
+  /* the run controls: one compact bar pinned to the bottom edge of the screen */
+  .run-section {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    margin: 0 !important;
+    border-radius: 8px 8px 0 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    box-shadow: 0 -6px 16px rgba(0, 0, 0, 0.45);
+  }
+
+  .run-section h2,
+  .run-section .run-help {
+    display: none;
+  }
+
+  .run-section .controls {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+  }
+
+  .run-section button.ctl {
+    padding: 9px 2px;
+    font-size: 10.5px;
+    letter-spacing: 0.02em;
+    min-height: 38px;
+  }
+
+  .run-section .status-line {
+    margin-top: 5px;
+  }
+
+  .run-section .progress {
+    margin: 4px 0;
+  }
+
+  .run-section .error,
+  .run-section .warn,
+  .run-section .info {
+    max-height: 3.6em;
+    overflow-y: auto;
+    margin: 3px 0 0;
+  }
+
+  .view-toolbar button.ctl,
+  .toolbar button.ctl {
+    min-height: 30px;
+    padding: 4px 8px;
+  }
+}
+
+/* the touch pan/zoom buttons only make sense without a wheel */
+.zoom-buttons {
+  display: inline-flex;
+  gap: 4px;
 }

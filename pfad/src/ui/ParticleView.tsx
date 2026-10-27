@@ -337,6 +337,8 @@ export function ParticleView({ frame, options, selected, onPick, camera, onCamer
         onPointerUp={onUp}
         onPointerLeave={() => setProbe(null)}
         onDoubleClick={() => onCamera(null)}
+        // a touch drag scrolls the page until the view is zoomed; then it pans
+        style={{ touchAction: camera ? 'none' : 'pan-y' }}
         aria-label="Particle view: wheel to zoom, drag to pan, double-click to fit, click a particle to inspect it"
       />
       {readout && <div className="probe">{readout}</div>}
