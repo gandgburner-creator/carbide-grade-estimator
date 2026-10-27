@@ -23,6 +23,21 @@ For a production build, run `npm run build && npm run preview`, which serves
 run `npm run smoke -- http://localhost:4173/ smoke-out`. This needs Playwright
 with Chromium, which is not a project dependency.
 
+## Deployed version
+
+Live on GitHub Pages: https://gandgburner-creator.github.io/carbide-grade-estimator/pfad-lab/
+
+The live site is a static build stored in `pfad-lab/` on `main`, next to the
+EVERPADS report at the site root. Its top bar shows the commit it was built
+from.
+
+To redeploy:
+
+1. Run `npm run build` in `pfad/`.
+2. Replace the contents of `main:pfad-lab/` with `pfad/dist/`, keeping its
+   README.
+3. Push `main`. GitHub's "pages build and deployment" workflow publishes it.
+
 ## The screen
 
 | Area | What it holds |

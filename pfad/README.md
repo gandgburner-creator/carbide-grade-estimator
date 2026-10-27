@@ -11,7 +11,9 @@ UI keeps it locked until every Phase 0 criterion has passed its checks and
 convergence studies, and at present they have not (see
 [`docs/EXPERIMENT_LOG.md`](docs/EXPERIMENT_LOG.md)).
 
-**Run the laboratory application:** `cd pfad && npm install && npm start`, then
+**Run the laboratory application:** online at
+https://gandgburner-creator.github.io/carbide-grade-estimator/pfad-lab/, or
+locally with `cd pfad && npm install && npm start`, then
 open http://localhost:5173. User guide, what each display measures, exports
 and limits: [`docs/LAB_APP.md`](docs/LAB_APP.md).
 
