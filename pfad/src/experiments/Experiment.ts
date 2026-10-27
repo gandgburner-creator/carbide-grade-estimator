@@ -22,7 +22,8 @@ export type ExperimentType =
   | 'kutta'
   | 'scaling'
   | 'ab-test'
-  | 'ub-instrument';
+  | 'ub-instrument'
+  | 'flow-geometry';
 
 /**
  * Serializable experiment record (Master prompt §24, Bible §33).

@@ -10,6 +10,7 @@ import { SCALING_REFERENCE, ScalingExperiment, setScalingFactory, type ScalingPa
 import { SOUND_VALIDATION, SoundSpeedExperiment, type SoundParams } from './SoundSpeedExperiment';
 import { STATIC_BOX_REFERENCE, StaticBoxExperiment, type StaticBoxParams } from './StaticBoxExperiment';
 import { THERMAL_REFERENCE, ThermalExperiment, type ThermalParams } from './ThermalExperiment';
+import { FLOW_GEOMETRY_QUICK, FLOW_GEOMETRY_REFERENCE, FlowGeometryExperiment, type FlowGeometryParams } from './FlowGeometryExperiment';
 import { UB_INSTRUMENT_QUICK, UB_INSTRUMENT_REFERENCE, UBInstrumentExperiment, type UBInstrumentParams } from './UBInstrumentExperiment';
 import {
   WALL_ACCOMMODATION_REFERENCE,
@@ -313,6 +314,14 @@ const ubInstrument: ExperimentEntry<UBInstrumentParams> = {
   create: (p) => new UBInstrumentExperiment(p) as unknown as SequentialExperiment<unknown, unknown>,
 };
 
+const flowGeometry: ExperimentEntry<FlowGeometryParams> = {
+  type: 'flow-geometry',
+  title: 'Flow-guided geometry: near-surface flow of one body version (experimental)',
+  defaults: FLOW_GEOMETRY_REFERENCE,
+  quick: FLOW_GEOMETRY_QUICK,
+  create: (p) => new FlowGeometryExperiment(p) as unknown as SequentialExperiment<unknown, unknown>,
+};
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const EXPERIMENTS: Partial<Record<ExperimentType, ExperimentEntry<any>>> = {
   'static-box': staticBox,
@@ -331,11 +340,12 @@ export const EXPERIMENTS: Partial<Record<ExperimentType, ExperimentEntry<any>>> 
   kutta,
   scaling,
   'ub-instrument': ubInstrument,
+  'flow-geometry': flowGeometry,
 };
 
 setScalingFactory((type, params) => {
   const entry = EXPERIMENTS[type];
-  if (!entry || type === 'scaling' || type === 'ab-test' || type === 'ub-instrument') throw new Error(`cannot scale experiment type ${type}`);
+  if (!entry || type === 'scaling' || type === 'ab-test' || type === 'ub-instrument' || type === 'flow-geometry') throw new Error(`cannot scale experiment type ${type}`);
   return entry.create(params);
 });
 
