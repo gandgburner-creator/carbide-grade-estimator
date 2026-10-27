@@ -141,6 +141,22 @@ definitions, and the complete `config`.
   observables are first computed by the preregistered scripts after gate G5.
   Airfoil design stays locked until the Phase 0 criteria pass.
 
+## Flow-guided geometry (experimental)
+
+A second workspace in the same application ("FLOW-GUIDED GEOMETRY" tab):
+start from a flat plate, simulate it with the real particle engine, measure the
+near-wall flow on both sides, detect a candidate region of reduced or reversed
+flow, propose one small bounded increment of the surface over that region,
+watch the construction point trace it, accept or reject it, simulate the new
+surface and compare it with the old one, keeping the whole history. It is a
+measurement and visualisation foundation, **not** an optimiser and **not
+validated**: the detector is an experimental operational definition, the
+construction rule is a hypothesis generator, and the comparison reports
+trade-offs without a score. Details, definitions, thresholds, what is and is
+not supported (including curved bodies) and the open scientific questions are in
+[`docs/FLOW_GUIDED_GEOMETRY.md`](docs/FLOW_GUIDED_GEOMETRY.md). Universe B stays
+locked.
+
 ## Layout
 
 ```
@@ -149,13 +165,15 @@ src/core/          vectors, RNG (sfc32, named streams), particle store, domain, 
 src/gas/           initial conditions, reservoir inflow sampling
 src/walls/         planar Maxwell walls, open reservoir boundaries, polygon bodies
 src/occupancy/     occupancy field and the (optional, OFF by default) occupancy force
-src/measurements/  statistics, wall pressure, conservation, profiles, fields, pulse tracking
+src/measurements/  statistics, wall pressure, conservation, profiles, fields, pulse tracking,
+                   near-surface flow sampler, separation-region detector (experimental)
+src/geometry/      surface representation, construction rule, version history, comparison, exports
 src/benchmarks/    classical reference values (never used by a run)
 src/experiments/   one module per experiment, the registry, A/B and scaling meta-experiments
 src/validation/    statuses, convergence studies and verdicts
 src/app/           laboratory session (drives the registry experiments), field metadata, momentum-
                    transfer monitor, profiles, validation, exports, library (no physics)
-src/ui/, src/workers/  laboratory UI (React) and its simulation worker
+src/ui/, src/workers/  laboratory and flow-guided-geometry UI (React) and the simulation worker
 scripts/           headless runner, parallel runner, reference drivers, SVG plots
 tests/             unit, physics-property and architecture tests
 results/           reference records (JSON) and logs

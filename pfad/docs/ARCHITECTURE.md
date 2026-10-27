@@ -48,7 +48,12 @@ gas/           initial conditions, thermal statistics, parcel/reservoir models
 occupancy/     occupancy field + the F = -ks ∇φ hypothesis (switchable, default OFF)
 walls/         wall interaction models (specular / diffuse / Maxwell accommodation):
                planar walls, open reservoir boundaries, solid polygon bodies
-measurements/  estimators that only READ simulation state (pressure, energy, ...)
+measurements/  estimators that only READ simulation state (pressure, energy, ...),
+               including the near-surface flow sampler and the experimental
+               separation-region detector
+geometry/      surface representation and its limits, the flow-guided construction
+               rule, version history, comparison, exports (pure functions; no physics
+               of its own, only what the engine's polygon bodies can represent)
 experiments/   experiment definitions: setup + measurement + acceptance criteria
 benchmarks/    classical / kinetic-theory reference values — COMPARISON ONLY
 validation/    status system, convergence studies, regression checks
@@ -56,11 +61,11 @@ app/           laboratory session and presentation logic: drives registry experi
                labels fields, monitors wall momentum transfer, validates configurations,
                exports with provenance, keeps the run library — adds no physics
 workers/       simulation worker (thin adapter around app/LabSession)
-ui/            laboratory UI
+ui/            laboratory UI and the flow-guided geometry workspace
 ```
 
 Hard rule (Master prompt §2, Bible §3): `core/`, `gas/`, `occupancy/`, `walls/`
-and `measurements/` must never import from `benchmarks/`. Only experiment
+`measurements/` and `geometry/` must never import from `benchmarks/`. Only experiment
 *reporting* code may import benchmarks, and every benchmark value is written into
 the experiment record under a `benchmarks` key, separate from `results`. This is
 enforced by `tests/architecture.test.ts`, which also checks that `app/` and

@@ -685,3 +685,26 @@ are scale-converged. From the data above, the shortest path is:
 
 Until then, airfoil geometry (Master prompt Steps 16–20) is not started.
 
+
+## 15. Flow-guided geometry workspace (tooling, not an experimental result)
+
+Added after §14. No criterion, frozen input, preregistered plan or earlier
+conclusion in this log changed, and airfoil work in the sense of §14 is still
+not unlocked.
+
+- What exists: an interactive, experimental workspace for building a surface
+  step by step from measured near-wall flow (`FLOW_GUIDED_GEOMETRY.md`). Its
+  detector `wall-flux-detector/0` is an operational definition that has not
+  been validated; Item 3's INCONCLUSIVE separation result (§8.1) is not
+  retroactively promoted.
+- What the first real-engine runs showed (flat plate, 30 × 3 d, α = 65°, seeds
+  301–306, Universe A, not judged): backflow in this regime is weak, and a
+  significant, persistent reversal was not reached at the sizes a browser can
+  run. The QUICK preset (3 seeds, 240 τ) cannot reach CANDIDATE_SEPARATION by
+  design (too few near-wall samples per station); the EXTENDED preset
+  (6 seeds, 480 τ) reached REDUCED_FORWARD_VELOCITY on the upper side over
+  x ≈ 2–30 d, with a pooled flux Q_w ≈ −0.008 over x ≈ 8–20 d that is not
+  significant. These are exploratory observations on non-judged seeds.
+- The open questions this raises (regime, detector validation, reference
+  direction, construction rule) are listed at the end of
+  `FLOW_GUIDED_GEOMETRY.md`.

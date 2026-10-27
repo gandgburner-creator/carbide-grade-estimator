@@ -362,3 +362,9 @@ is unchanged. Criteria for the reruns were fixed beforehand in
 - **Classification:** a derived constant corrected to its own definition. A-16, the collision engine and the map's defining rule are unchanged. N_c = 1 (Universe A) is unaffected. No Universe B run of any kind had been made with either value.
 - **Evidence:** `tests/universeB.release.test.ts` (the real collider on 20 000 synthetic collisions per case: release = loss at T_kin = T_int with the map's ρ) and `tests/universeB.predictions.test.ts`.
 
+
+### Flow-guided geometry workspace (new tooling; no engine-rule change)
+
+- **Added:** a surface-normal flow sampler and an experimental near-wall reversal detector (`src/measurements/`), a surface representation, construction rule, history and comparison (`src/geometry/`), the `flow-geometry` registry experiment, and a second workspace in the application. Documented in `FLOW_GUIDED_GEOMETRY.md`.
+- **Engine:** `PolygonBody`, the collision law, the wall model and the open boundaries are used as they were. The body is a polygon built from the geometry for each run.
+- **Not a result:** nothing here is a preregistered experiment or a judged outcome. The detector's thresholds are conventions fixed before the feature's flow data were examined; its leeward reference direction was defined after a first look at data (recorded in `FLOW_GUIDED_GEOMETRY.md`). Item 3's INCONCLUSIVE separation finding is unchanged, and Universe B stays locked.

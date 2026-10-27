@@ -247,7 +247,11 @@ and export times, and units.
 ## Not available, or experimental
 
 - **Airfoil design and optimisation** stays locked until every Phase 0
-  criterion passes.
+  criterion passes. The **Flow-guided geometry** workspace (separate tab, see
+  [`FLOW_GUIDED_GEOMETRY.md`](FLOW_GUIDED_GEOMETRY.md)) is an experimental
+  measurement and visualisation foundation, not design or optimisation: its
+  detector is not validated, nothing it makes is called optimised, and it does
+  not unlock anything.
 - **Universe B** is locked (see above).
 - **Checkpoint and resume** work only with the UB-0 instrument. The Phase 0
   experiments do not serialise their state, so a closed page loses an
@@ -281,7 +285,14 @@ src/app/library.ts, libraryIdb.ts   library model, search, import/bundle, Indexe
 src/app/provenance.ts    code version (git commit stamped at build), model version, seeds, units
 src/experiments/UBInstrumentExperiment.ts   UB0Run + estimators as a registry experiment (N_c = 1 only)
 src/ui/                  React components: Lab (workstation), ParticleView, Chart, panels
+src/ui/AppShell.tsx      the two workspaces (Laboratory, Flow-guided geometry); both stay mounted
+src/ui/FlowGeometry.tsx, src/ui/flow/   the flow-guided geometry workspace (own simulation worker)
+src/app/projectStore.ts  flow-geometry projects in IndexedDB (library database version 2)
 ```
+
+The flow-guided geometry workspace (its geometry, sampler, detector, construction rule, history
+and comparison modules in `src/geometry/` and `src/measurements/`) is documented in
+[`FLOW_GUIDED_GEOMETRY.md`](FLOW_GUIDED_GEOMETRY.md).
 
 The engine (`src/core`, `src/walls`, `src/gas`, `src/measurements`,
 `src/universeB`) is used as it is. The application required three changes
@@ -304,6 +315,7 @@ there:
 | `tests/experiments.ubinstrument.test.ts` | The instrument, its lock, checkpoint and resume, and the browser base64 path |
 | `tests/architecture.test.ts` | The app layer imports no benchmarks and mentions no classical aerodynamic method |
 | `scripts/smoke-app.mjs` | Drives the built app in Chromium |
+| `scripts/smoke-flow.mjs` | Drives the flow-guided geometry workspace end to end in Chromium (flat plate → simulation → measurement → proposal → accept → re-simulation → comparison → undo → exports) |
 
 ## Performance
 
