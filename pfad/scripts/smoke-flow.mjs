@@ -144,8 +144,8 @@ await page.getByRole('button', { name: 'Comparison', exact: true }).click();
 await expectText('no single score', 10000).catch(() => {});
 await expectText('hypothesis');
 await shot('6-comparison');
-const cmpText = await page.locator('.section', { hasText: 'comparison' }).first().innerText();
-if (/lift|drag coefficient|L\/D|efficiency score/i.test(cmpText.replace(/not (a )?(lift|drag)[^.]*\./gi, ''))) console.log('  note: comparison text mentions lift/drag words; check wording:', cmpText.match(/.{40}(lift|drag|L\/D).{40}/i)?.[0]);
+const cmpText = await page.locator('.shell-body:visible .section', { hasText: 'comparison' }).first().innerText();
+if (!/no composite score/i.test(cmpText)) throw new Error('the comparison does not say that it has no composite score');
 step('comparison with the parent is shown');
 
 // 5. history, replay, exports
@@ -166,9 +166,16 @@ const svg = await download('GEOMETRY SVG');
 const csv = await download('SURFACE CSV');
 const p = JSON.parse(readFileSync(proj, 'utf8'));
 if (!p.versions || p.versions.length < 2) throw new Error('project JSON lacks the versions');
+const v0 = p.versions.find((v) => v.id === 'v0');
 const v1 = p.versions.find((v) => v.id === 'v1');
-if (!v1?.parent || !v1.reason || !v1.acceptance || !v1.proposal) throw new Error(`v1 history is incomplete: ${JSON.stringify(Object.keys(v1 ?? {}))}`);
-if (!p.versions[0].run?.runId || !p.versions[0].run?.conditions?.seeds && !p.conditions?.seeds) throw new Error('v0 run lacks the run id / seeds');
+if (v1?.parent !== 'v0' || !v1.construction?.reason || !v1.construction.hypothesis || !v1.construction.basis?.summary || !v1.construction.points?.length) throw new Error(`v1 history is incomplete: ${JSON.stringify(v1?.construction ? Object.keys(v1.construction) : Object.keys(v1 ?? {}))}`);
+if (!p.proposals?.some((e) => e.status === 'accepted' && e.acceptedVersion === 'v1')) throw new Error('the accepted proposal is not recorded');
+for (const v of [v0, v1]) {
+  const r = v?.run;
+  if (!r?.recordId || !r.seeds?.length || !r.codeVersion || !r.modelVersion || !r.integrity?.status || !r.analysis?.upper?.label) throw new Error(`${v?.id} run provenance is incomplete: ${JSON.stringify(Object.keys(r ?? {}))}`);
+}
+if (JSON.stringify(v0.run.seeds) !== JSON.stringify(v1.run.seeds)) throw new Error('v0 and v1 were not run with the same seeds');
+if (!Array.isArray(p.log) || !p.log.some((e) => e.type === 'accepted')) throw new Error('the event log lacks the acceptance');
 if (!/<svg/.test(readFileSync(svg, 'utf8'))) throw new Error('SVG export is not SVG');
 if (!/^# /m.test(readFileSync(csv, 'utf8'))) throw new Error('surface CSV lacks a provenance header');
 step(`exported project JSON (${p.versions.length} versions), SVG and surface CSV`);

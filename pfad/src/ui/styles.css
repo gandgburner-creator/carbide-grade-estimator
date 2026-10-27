@@ -1130,8 +1130,32 @@ label.ctl {
 
 .two-col {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 10px;
+}
+
+.two-col.pick .field,
+.two-col.pick select {
+  min-width: 0;
+  max-width: 100%;
+  text-overflow: ellipsis;
+}
+
+table.results.compare {
+  font-size: 10px;
+}
+
+table.results.compare td,
+table.results.compare th {
+  padding: 3px 2px;
+  white-space: nowrap;
+}
+
+table.results.compare td.q {
+  white-space: normal;
+  text-align: left;
+  min-width: 90px;
+  max-width: 120px;
 }
 
 .plot-grid {

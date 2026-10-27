@@ -48,7 +48,7 @@ export function FlowComparePanel({ project, a, b, onChange, getFields, side }: {
   const svg = va && vb ? geometrySVG([{ label: `${va.id} ${va.label}`, geometry: va.geometry, style: 'previous' }, { label: `${vb.id} ${vb.label}`, geometry: vb.geometry, style: 'current' }], { title: `${va.id} vs ${vb.id}`, widthPx: 520 }) : '';
   return (
     <div>
-      <div className="two-col">
+      <div className="two-col pick">
         {(
           [
             ['A (earlier)', a, (v: string) => onChange(v, b)],
@@ -89,7 +89,8 @@ export function FlowComparePanel({ project, a, b, onChange, getFields, side }: {
             </div>
           )}
           <h3 className="h3">Indicators (no composite score: each is reported on its own)</h3>
-          <table className="results">
+          <div style={{ overflowX: 'auto' }}>
+          <table className="results compare">
             <thead>
               <tr>
                 <th>quantity</th>
@@ -97,13 +98,12 @@ export function FlowComparePanel({ project, a, b, onChange, getFields, side }: {
                 <th>B</th>
                 <th>B − A ± se</th>
                 <th>z</th>
-                <th />
               </tr>
             </thead>
             <tbody>
               {[...(cmp.hypothesis?.delta ? [cmp.hypothesis.delta] : []), ...cmp.indicators].map((d) => (
                 <tr key={d.id} title={d.convention}>
-                  <td>{d.label}</td>
+                  <td className="q">{d.label}</td>
                   <td>
                     {fmt(d.a, 3)}±{fmt(d.seA, 1)}
                   </td>
@@ -113,12 +113,16 @@ export function FlowComparePanel({ project, a, b, onChange, getFields, side }: {
                   <td>
                     {fmt(d.diff, 3)}±{fmt(d.se, 2)}
                   </td>
-                  <td>{d.z === null ? '—' : d.z.toFixed(1)}</td>
-                  <td>{d.change}</td>
+                  <td>
+                    {d.z === null ? '—' : d.z.toFixed(1)}
+                    <br />
+                    <span className="note">{d.change}</span>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
           <div className="note">Hover a row for what “larger” means. Differences use √(se_A² + se_B²); |z| &lt; 2 is unresolved. Force rows are raw impulse rates (no lift or drag coefficient, no efficiency).</div>
           <h3 className="h3">Detector level</h3>
           <table className="results">
