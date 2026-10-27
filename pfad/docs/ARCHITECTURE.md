@@ -36,7 +36,7 @@ npm install
 npm test            # unit + physics tests
 npm run typecheck
 npm run exp -- <experiment> [--options]   # headless experiment → results/*.json
-npm run dev         # laboratory UI
+npm start           # laboratory application (docs/LAB_APP.md)
 npm run build
 ```
 
@@ -52,7 +52,10 @@ measurements/  estimators that only READ simulation state (pressure, energy, ...
 experiments/   experiment definitions: setup + measurement + acceptance criteria
 benchmarks/    classical / kinetic-theory reference values — COMPARISON ONLY
 validation/    status system, convergence studies, regression checks
-workers/       simulation worker
+app/           laboratory session and presentation logic: drives registry experiments,
+               labels fields, monitors wall momentum transfer, validates configurations,
+               exports with provenance, keeps the run library — adds no physics
+workers/       simulation worker (thin adapter around app/LabSession)
 ui/            laboratory UI
 ```
 
@@ -60,7 +63,8 @@ Hard rule (Master prompt §2, Bible §3): `core/`, `gas/`, `occupancy/`, `walls/
 and `measurements/` must never import from `benchmarks/`. Only experiment
 *reporting* code may import benchmarks, and every benchmark value is written into
 the experiment record under a `benchmarks` key, separate from `results`. This is
-enforced by `tests/architecture.test.ts`.
+enforced by `tests/architecture.test.ts`, which also checks that `app/` and
+`workers/` import no benchmarks and mention no classical aerodynamic method.
 
 ## Dimension
 

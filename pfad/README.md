@@ -11,6 +11,10 @@ UI keeps it locked until every Phase 0 criterion has passed its checks and
 convergence studies, and at present they have not (see
 [`docs/EXPERIMENT_LOG.md`](docs/EXPERIMENT_LOG.md)).
 
+**Run the laboratory application:** `cd pfad && npm install && npm start`, then
+open http://localhost:5173. User guide, what each display measures, exports
+and limits: [`docs/LAB_APP.md`](docs/LAB_APP.md).
+
 - Canonical specification: [`docs/PFAD_v0.2_Experimental_Physics_Bible.md`](docs/PFAD_v0.2_Experimental_Physics_Bible.md)
 - Build instructions it was built from: [`docs/PFAD_v0.2_Master_Build_Prompt.md`](docs/PFAD_v0.2_Master_Build_Prompt.md)
 - Architecture and layering rules: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
@@ -56,7 +60,9 @@ convergence studies, and at present they have not (see
 
 ```
 npm install
-npm run dev            # laboratory UI (Vite dev server)
+npm start              # laboratory application (Vite dev server, http://localhost:5173)
+npm run build && npm run preview   # production build, served on http://localhost:4173
+npm run smoke -- http://localhost:4173/ smoke-out   # browser smoke test (needs Playwright + Chromium)
 npm test               # unit, physics and architecture tests (vitest)
 npm run typecheck
 npm run build          # type-check + production build of the UI
@@ -98,23 +104,40 @@ measured value, status), `benchmarks`, the `assumptions` it relies on (IDs in
 `MODEL_ASSUMPTIONS.md`), `warnings` and safety flags, Re and Mach with their
 definitions, and the complete `config`.
 
-## Laboratory UI
+## Laboratory application
 
-`npm run dev`, then pick an experiment on the left. LOAD builds the initial
-state from its seed; RUN / PAUSE / STEP / STOP / RESET drive it in a Web Worker;
-EXPORT RECORD and EXPORT CONFIG download JSON; IMPORT RECORD shows a saved
-record (for example a headless reference run from `results/`) and counts its
-status toward the Phase 0 criteria. The view shows particles (or
-time-averaged fields: density, occupancy, velocity, temperature, with the
-particles-per-cell and snapshot count that set their noise), walls coloured by
-accommodation, solid bodies, and open reservoir boundaries dashed in blue. The
-right panel shows live measurements while running and, when every run has
-finished, the record's status, checks and measured-versus-benchmark table.
-The Phase 0 criteria list and the airfoil lock sit at the bottom left.
+`npm start`, then open http://localhost:5173. The full guide is
+[`docs/LAB_APP.md`](docs/LAB_APP.md).
 
-The UI starts on QUICK LOOK (reduced sizes that finish interactively, never
-used for reported results); REFERENCE loads the documented reference
-configuration. Reported results come from the headless reference runs.
+- **Choose and configure.** Pick Universe A, an experiment and a preset
+  (QUICK LOOK for interactive sizes, never used for reported results;
+  REFERENCE for the documented configuration). Edit the parameters: they are
+  validated against the experiment's documented parameter set, and the
+  effective configuration is shown.
+- **Run.** LOAD / RUN / PAUSE / STEP / STOP / RESET drive the experiment in a
+  Web Worker. RESET replays it from the same seeds. The UB-0 instrument also
+  supports CHECKPOINT and resume.
+- **Watch.** The view shows particles and coarse-grained fields: occupancy,
+  density, velocity components, momentum, temperature and particle stress.
+  Each field is labelled with its units, MEASURED or DERIVED, and
+  instantaneous or time-averaged. Zoom with the wheel, pan by dragging, and
+  click a particle to inspect it. The strip below holds:
+  - live time series;
+  - a near-wall profile over a chosen x window;
+  - wall and body momentum transfer (P = Σ normal impulse / (Δt L)).
+- **Inspect results.** A finished record opens in **Results**, split into
+  Measured, Reference (benchmarks, not measured), Imposed (configuration),
+  Assumptions and Validation.
+- **Library, comparison and export.**
+  - **Library:** every started run is kept in the browser library (completed,
+    stopped, failed, interrupted or checkpointed). It is searchable, takes
+    imported `results/*.json` records, and exports bundles.
+  - **Compare:** puts two records side by side, descriptively.
+  - **Exports:** CSV, JSON and PNG. Each carries its provenance: code commit,
+    model version, seeds, preset and units.
+- **Universe B is locked.** UB-0 is preregistered and blind, and Universe B
+  observables are first computed by the preregistered scripts after gate G5.
+  Airfoil design stays locked until the Phase 0 criteria pass.
 
 ## Layout
 
@@ -128,7 +151,9 @@ src/measurements/  statistics, wall pressure, conservation, profiles, fields, pu
 src/benchmarks/    classical reference values (never used by a run)
 src/experiments/   one module per experiment, the registry, A/B and scaling meta-experiments
 src/validation/    statuses, convergence studies and verdicts
-src/ui/, src/workers/  laboratory UI and its simulation worker
+src/app/           laboratory session (drives the registry experiments), field metadata, momentum-
+                   transfer monitor, profiles, validation, exports, library (no physics)
+src/ui/, src/workers/  laboratory UI (React) and its simulation worker
 scripts/           headless runner, parallel runner, reference drivers, SVG plots
 tests/             unit, physics-property and architecture tests
 results/           reference records (JSON) and logs
