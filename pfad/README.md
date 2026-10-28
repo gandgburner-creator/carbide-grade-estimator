@@ -156,7 +156,8 @@ trade-offs without a score. It is set up in plain units (plate length and
 thickness in cm, air temperature in °C, height in m, wind in km/h, angle in
 degrees) and says, next to the inputs, how far the simulated regime is from the
 real plate's (Mach, Reynolds and Knudsen numbers): same shape and angle, very
-different flow regime. Details, definitions, thresholds, what is and is
+different flow regime. An **auto-build** button repeats simulate, propose and accept
+on its own and stops when nothing is measured. Details, definitions, thresholds, what is and is
 not supported (including curved bodies) and the open scientific questions are in
 [`docs/FLOW_GUIDED_GEOMETRY.md`](docs/FLOW_GUIDED_GEOMETRY.md). Universe B stays
 locked.

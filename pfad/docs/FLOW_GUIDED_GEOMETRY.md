@@ -88,6 +88,7 @@ the wind, the air or the angle are applied to the open project and recorded in i
 | Separation-region detector `wall-flux-detector/0` | `src/measurements/SeparationDetector.ts` | **experimental, not validated** |
 | Construction rule and proposals | `src/geometry/Construction.ts`, `Basis.ts` | **experimental** |
 | Version history, undo, replay | `src/geometry/History.ts` | implemented, tested |
+| Auto-build (repeat simulate / propose / accept; stops when nothing is measured) | `src/geometry/AutoBuild.ts`, `src/ui/flow/AutoBuildPanel.tsx` | **experimental**, decision logic tested |
 | Comparison of two versions | `src/geometry/Compare.ts` | implemented (descriptive) |
 | Real-engine experiment `flow-geometry` | `src/experiments/FlowGeometryExperiment.ts` | implemented; a registry experiment like the others |
 | Exports (project JSON, SVG, CSV, run record) | `src/geometry/Export.ts`, `src/app/projectStore.ts` | implemented |
@@ -259,6 +260,38 @@ Two evidence modes:
   can produce. It exists so the loop can be exercised at the statistics a
   browser run affords. A proposal made this way is a hypothesis test, not a
   response to a detection.
+
+## Auto-build (experimental)
+
+The **Auto-build** card repeats *simulate → propose → accept* without clicking, and stops by itself when nothing is
+measured. It automates the clicking and nothing else: every step uses the construction rule above on the
+measurements of the last simulation.
+
+Each cycle:
+
+1. If the current version has not been simulated, simulate it (same seeds and conditions as always).
+2. If the run did not pass its numerical-integrity checks, stop (its measurements cannot be trusted).
+3. If the requested number of increments (1–10) has been added, stop: finished.
+4. Otherwise choose the next stretch (`src/geometry/AutoBuild.ts`, a pure function with tests): a **detector** region
+   (candidate separation or better) if either side has one, otherwise — only if "also build from weak measurements" is on —
+   an **exploratory** stretch. If several sides qualify, the one with the **strongest measured backflow** (most negative
+   region-mean `Q_w`) is chosen. If nothing qualifies, stop: nothing is measured.
+5. Propose the increment, trace the construction point along it on screen, accept all of it as a new version, and go back to 1.
+
+It also stops when an increment would break the geometry limits (thickness, slope, curvature) and when you press STOP
+(which also ends a running simulation). Repeating increments over the same stretch soon reaches the curvature limit, which
+is reported as a stop in plain words, with everything built so far kept.
+
+What it does **not** do: it has no objective, never compares versions to decide what to build, and calls nothing
+optimised. After each re-simulation the log reports the comparison's verdict on the prediction the increment stated in
+advance (supported / contradicted / unresolved), but the verdict does not steer. Weak-measurement increments are tagged
+EXPLORATORY in the history (as for hand-made ones): they respond to flux that is negative but not significantly so,
+which noise alone can produce, and the log says so each time. The decisions use the same experimental detector and the same
+unvalidated construction rule as the manual workflow.
+
+With the quick preset at 65° the detector does not reach a candidate region, so "detector evidence only" stops after the first
+simulation and builds nothing; with weak measurements allowed it builds small increments (about one particle diameter each).
+A cycle takes about as long as one simulation (a few minutes at the default size).
 
 ## Comparing versions
 
