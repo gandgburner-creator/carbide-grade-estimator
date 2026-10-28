@@ -307,6 +307,8 @@ class LiveBuildRun implements Run<LiveBuildRunResult> {
       front: l ? l.front : Number.NaN,
       maxGap: l ? l.maxGap : Number.NaN,
       meanGap: l ? l.meanGap : Number.NaN,
+      side: this.side ?? '',
+      shape: JSON.stringify({ u: this.geometry.upper.map((v) => Math.round(v * 1000) / 1000), l: this.geometry.lower.map((v) => Math.round(v * 1000) / 1000) }),
       energyError: this.sim.relativeEnergyResidual(),
     };
   }

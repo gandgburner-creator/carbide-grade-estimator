@@ -142,7 +142,7 @@ export function FlowComparePanel({ project, a, b, onChange, getFields, side }: {
             </tbody>
           </table>
           <h3 className="h3">Near-wall measurements along the {side} side</h3>
-          <StationPlots analysis={vb!.run!.analysis[side]} other={va!.run!.analysis[side]} otherLabel={`${va!.id} (A)`} selectedX={selX} onSelectX={setSelX} height={120} />
+          <StationPlots analysis={vb!.run!.analysis[side]} other={va!.run!.analysis[side]} otherLabel={`${va!.id} (A)`} wake={vb!.run!.wake?.[side] ?? null} otherWake={va!.run!.wake?.[side] ?? null} selectedX={selX} onSelectX={setSelX} height={120} />
           <div className="note">Dashed grey: A; blue: B; bands ± 1 SE.</div>
           <h3 className="h3">Integrity and reproducibility</h3>
           <table className="results">

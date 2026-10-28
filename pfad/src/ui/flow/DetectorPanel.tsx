@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { LEVEL_TEXT, LEVELS, type Level, type SurfaceFlowAnalysis } from '../../measurements/SeparationDetector';
+import type { WakeAnalysis } from '../../measurements/WakeVoid';
 import { Chart } from '../Chart';
 import { fmt } from '../Panels';
 import { StationChart, type StationSeries } from './StationChart';
@@ -212,6 +213,8 @@ export function StationPlots({
   analysis,
   other,
   otherLabel,
+  wake,
+  otherWake,
   selectedX,
   onSelectX,
   height = 130,
@@ -219,6 +222,9 @@ export function StationPlots({
   analysis: SurfaceFlowAnalysis | null;
   other?: SurfaceFlowAnalysis | null;
   otherLabel?: string;
+  /** do the particles touch the surface? (experimental), for this run and the one compared with */
+  wake?: WakeAnalysis | null;
+  otherWake?: WakeAnalysis | null;
   selectedX: number | null;
   onSelectX: (x: number) => void;
   height?: number;
@@ -239,6 +245,34 @@ export function StationPlots({
       <StationChart title="net near-wall flux Q_w (negative = backflow)" yLabel="Q_w" series={series((s) => s.qw)} region={region} selectedX={selectedX} onSelect={onSelectX} height={height} />
       <StationChart title="downstream wall shear τ (from wall impulses)" yLabel="τ [kT₀/d²]" series={series((s) => s.tau)} region={region} selectedX={selectedX} onSelect={onSelectX} height={height} />
       <StationChart title="dividing-streamline height h_ds (0 = no significant backflow)" yLabel="h_ds [d]" series={series((s) => ({ mean: s.hds.state === 'unknown' ? Number.NaN : s.hds.value, se: s.hds.state === 'attached' || !Number.isFinite(s.hds.se) ? 0 : s.hds.se }))} region={region} selectedX={selectedX} onSelect={onSelectX} height={height} />
+      {wake && (
+        <>
+          <StationChart
+            title="particles touching the surface: contact-layer density ÷ free stream (below 0.5 = unwetted)"
+            yLabel="θ₀"
+            series={[
+              ...(otherWake ? [{ label: otherLabel ?? 'other', color: '#8b98a5', x: otherWake.stations.map((q) => q.x), y: otherWake.stations.map((q) => (q.known ? q.contact.mean : Number.NaN)), se: otherWake.stations.map((q) => q.contact.se), dashed: true }] : []),
+              { label: 'this run', color: '#f0b429', x: wake.stations.map((q) => q.x), y: wake.stations.map((q) => (q.known ? q.contact.mean : Number.NaN)), se: wake.stations.map((q) => q.contact.se) },
+            ]}
+            region={wake.run ? { xLo: wake.run.xLo, xHi: wake.run.xHi, color: '#f85149', label: 'unwetted' } : null}
+            selectedX={selectedX}
+            onSelect={onSelectX}
+            height={height}
+          />
+          <StationChart
+            title="void: distance from the wall to the particle cloud [d] (12 = beyond the sampled window)"
+            yLabel="gap [d]"
+            series={[
+              ...(otherWake ? [{ label: otherLabel ?? 'other', color: '#8b98a5', x: otherWake.stations.map((q) => q.x), y: otherWake.stations.map((q) => (q.known ? q.gap : Number.NaN)), dashed: true }] : []),
+              { label: 'this run', color: '#f0b429', x: wake.stations.map((q) => q.x), y: wake.stations.map((q) => (q.known ? q.gap : Number.NaN)) },
+            ]}
+            region={wake.run ? { xLo: wake.run.xLo, xHi: wake.run.xHi, color: '#f85149', label: 'unwetted' } : null}
+            selectedX={selectedX}
+            onSelect={onSelectX}
+            height={height}
+          />
+        </>
+      )}
     </div>
   );
 }

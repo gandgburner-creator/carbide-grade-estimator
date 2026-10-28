@@ -26,6 +26,8 @@ export interface OverlayState {
   alphaDeg: number;
   /** a surface outline imported for comparison */
   references: SurfaceGeometry[];
+  /** a live fill in progress: where the particles stopped touching the surface, and how far the front has got */
+  live?: { side: Side; onset: number | null; front: number | null } | null;
 }
 
 const COLORS = { reversed: '#f85149', reduced: '#d29922', exploratory: '#d29922', proposal: '#f0b429', dividing: '#39c5cf', marker: '#ff4d4d' };
@@ -109,6 +111,55 @@ export function makeOverlay(st: OverlayState) {
         g.stroke();
         g.setLineDash([]);
         g.lineCap = 'butt';
+      }
+    }
+
+    // live fill: the stretch being filled, the separation point and the front
+    if (st.live && !st.replay) {
+      const { side, onset, front } = st.live;
+      const y = sideY(geo, side);
+      const sgn = side === 'upper' ? 1 : -1;
+      const at = (xq: number): [number, number] => {
+        const i = Math.max(0, Math.min(geo.stations - 1, Math.floor(xq / (geo.chord / geo.stations))));
+        const f = (xq - x[i]) / (x[i + 1] - x[i]);
+        return P(xq, y[i] + f * (y[i + 1] - y[i]) + sgn * 0.45);
+      };
+      if (onset !== null && front !== null && front > onset) {
+        const pts: [number, number][] = [];
+        for (let i = 0; i <= geo.stations; i++) if (x[i] >= onset && x[i] <= front) pts.push(P(x[i], y[i] + sgn * 0.45));
+        if (pts.length > 1) {
+          line(pts);
+          g.strokeStyle = COLORS.proposal;
+          g.lineWidth = 4;
+          g.lineCap = 'round';
+          g.stroke();
+          g.lineCap = 'butt';
+        }
+      }
+      g.font = '10px ui-monospace, monospace';
+      if (onset !== null) {
+        const [mx, my] = at(onset);
+        g.beginPath();
+        g.arc(mx, my, 5, 0, 2 * Math.PI);
+        g.fillStyle = COLORS.marker;
+        g.fill();
+        g.strokeStyle = '#fff';
+        g.lineWidth = 1.2;
+        g.stroke();
+        g.fillStyle = '#ffb3b3';
+        g.fillText('separation (particles stop touching)', mx + 8, my - 8);
+      }
+      if (front !== null) {
+        const [fx, fy] = at(front);
+        g.beginPath();
+        g.arc(fx, fy, 4, 0, 2 * Math.PI);
+        g.fillStyle = COLORS.proposal;
+        g.fill();
+        g.strokeStyle = '#fff';
+        g.lineWidth = 1.2;
+        g.stroke();
+        g.fillStyle = '#ffe08a';
+        g.fillText('front', fx + 7, fy - 6);
       }
     }
 

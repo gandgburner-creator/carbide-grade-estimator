@@ -10,6 +10,9 @@ import type { ExperimentRecord } from '../experiments/Experiment';
 import { FLOW_GEOMETRY_EXTENDED, FLOW_GEOMETRY_QUICK, placementFor, type FlowGeometryParams, type FlowGeometryResults, type PhysicalInputs } from '../experiments/FlowGeometryExperiment';
 import { DEFAULT_SCENARIO, describeScenario, parseScenario, scenarioToModel } from '../experiments/PhysicalScenario';
 import { nextAutoAction, type StopKind } from '../geometry/AutoBuild';
+import { DEFAULT_LIVE } from '../geometry/LiveFill';
+import { addLiveVersion } from '../geometry/LiveVersion';
+import type { LiveBuildResults } from '../experiments/FlowLiveBuildExperiment';
 import { basisFromAnalysis } from '../geometry/Basis';
 import { compareVersions, type FieldGrid } from '../geometry/Compare';
 import { DEFAULT_CONSTRUCTION, newProposalId, proposeIncrement, type AnalysisMode, type ConstructionConfig, type Proposal } from '../geometry/Construction';
@@ -32,12 +35,13 @@ import {
   type Project,
 } from '../geometry/History';
 import { runSummaryFromRecord } from '../geometry/RunSummary';
-import { flatPlate, type Side } from '../geometry/SurfaceGeometry';
+import { flatPlate, type Side, type SurfaceGeometry } from '../geometry/SurfaceGeometry';
 import { fieldScale } from './colors';
 import { downloadText } from './download';
 import { DetectorPanel, LevelBadge, ProfilePanel, StationPlots } from './flow/DetectorPanel';
 import { ConstructionPanel } from './flow/ConstructionPanel';
 import { AutoBuildPanel, EMPTY_AUTO, type AutoRun } from './flow/AutoBuildPanel';
+import { LiveFillPanel, type LiveSettings } from './flow/LiveFillPanel';
 import { ScenarioPanel, scenarioText, type ScenarioText } from './flow/ScenarioPanel';
 import { FlowComparePanel } from './flow/ComparePanel';
 import { FieldMap } from './flow/FieldMap';
@@ -152,6 +156,9 @@ export function FlowGeometry() {
   const [sText, setSText] = useState<ScenarioText>(() => scenarioText(DEFAULT_SCENARIO));
   const [draft, setDraft] = useState<Draft>(() => draftOf(project.conditions));
   const [draftReason, setDraftReason] = useState('');
+  const [liveSettings, setLiveSettings] = useState<LiveSettings>({ side: 'upper', interval: DEFAULT_LIVE.interval, relaxation: DEFAULT_LIVE.relaxation, maxStep: DEFAULT_LIVE.maxStep, frontSpeed: DEFAULT_LIVE.frontSpeed });
+  const [liveActive, setLiveActive] = useState(false);
+  const [liveResult, setLiveResult] = useState<string | null>(null);
   const [auto, setAuto] = useState<AutoRun>(EMPTY_AUTO);
   const [autoTarget, setAutoTarget] = useState(3);
   const [autoWeak, setAutoWeak] = useState(true);
@@ -179,6 +186,7 @@ export function FlowGeometry() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const records = useRef(new Map<string, ExperimentRecord>());
   const runningVersion = useRef<string | null>(null);
+  const liveBuilding = useRef(false);
   const libRef = useRef(lib);
   libRef.current = lib;
   const projectRef = useRef(project);
@@ -211,6 +219,50 @@ export function FlowGeometry() {
 
   // ---- simulation
   const onRecord = useCallback((record: ExperimentRecord, activeMs: number) => {
+    if (record.experimentType === 'flow-live-build') {
+      liveBuilding.current = false;
+      setLiveActive(false);
+      records.current.set(record.experimentId, record);
+      const r = record.results as unknown as LiveBuildResults;
+      try {
+        if (!r.side) throw new Error(`no side was filled (${r.stop.reason})`);
+        const out = addLiveVersion(projectRef.current, { recordId: record.experimentId, seed: r.seed, side: r.side, startGeometry: r.startGeometry, finalGeometry: r.finalGeometry, trajectory: r.trajectory, stop: r.stop, wakeStart: r.wakeStart, treated: r.treated, config: r.live });
+        setProject(out.project);
+        setViewId(out.version.id);
+        setCmp([out.version.parent!, out.version.id]);
+        setLiveResult(`Live fill finished (${r.stop.kind}: ${r.stop.reason}). New version ${out.version.id}, ${r.trajectory.filter((q) => q.added > 0).length} of ${r.trajectory.length} updates added material. It has not been measured: simulate it to see what the new surface does.`);
+        setMessage(`Live fill added ${out.version.id}.`);
+      } catch (e) {
+        setLiveResult(`Live fill finished without a new version: ${(e as Error).message}`);
+        setMessage(`Live fill finished without a new version: ${r.stop.reason}`);
+      }
+      const l0 = libRef.current;
+      if (l0) {
+        const p0 = record.config as unknown as FlowGeometryParams;
+        l0.store
+          .put(
+            {
+              id: entryId(record.experimentId),
+              title: `Flow-guided geometry — ${projectRef.current.name} live fill`,
+              experimentType: 'flow-live-build',
+              catalogKey: 'flow-live-build',
+              universe: 'A',
+              seeds: record.seeds,
+              createdAt: record.timestamp,
+              outcome: 'completed',
+              runtimeMs: activeMs,
+              status: record.status,
+              hasRecord: true,
+              config: p0,
+              provenance: makeProvenance({ experimentType: 'flow-live-build', universe: 'A', preset: `flow-guided project ${projectRef.current.id}, live fill`, seeds: record.seeds, createdAt: record.timestamp }),
+              summary: { particles: record.particleCount },
+            },
+            { record },
+          )
+          .catch(() => undefined);
+      }
+      return;
+    }
     const v = runningVersion.current;
     runningVersion.current = null;
     if (!v) return;
@@ -248,6 +300,11 @@ export function FlowGeometry() {
   const onEnd = useCallback((kind: 'stopped' | 'failed', text: string) => {
     const v = runningVersion.current;
     runningVersion.current = null;
+    if (liveBuilding.current) {
+      liveBuilding.current = false;
+      setLiveActive(false);
+      setLiveResult(`Live fill ${kind === 'failed' ? 'failed' : 'was stopped'}: ${text}. Nothing was kept.`);
+    }
     if (v) setProject((p) => logRunEnd(p, v, kind, text));
     setMessage(`${kind === 'stopped' ? 'Stopped' : 'Failed'}: ${text}`);
     // a simulation that ended without a result also ends auto-build (nothing to build on)
@@ -406,6 +463,49 @@ export function FlowGeometry() {
     }, 220);
     return () => clearInterval(t);
   }, [replaying, frames.length]);
+
+  // ---- live fill: the surface grows while one simulation runs (experiments/FlowLiveBuildExperiment.ts)
+  const startLive = () => {
+    const first = ((project.conditions.seeds as number[] | undefined) ?? [301])[0];
+    const builder = first + 100;
+    const bad = reservedSeedErrors([builder]);
+    if (bad.length) return setMessage(`Live fill: ${bad[0]}`);
+    const params = { ...paramsOf(head), seeds: [builder], live: { ...DEFAULT_LIVE, side: liveSettings.side, interval: liveSettings.interval, relaxation: liveSettings.relaxation, maxStep: liveSettings.maxStep, frontSpeed: liveSettings.frontSpeed } };
+    setMessage(null);
+    setLiveResult(null);
+    sim.load('flow-live-build', params);
+    sim.view('none', 25, true);
+    setLoadedKey(wantKey);
+    setViewId(head.id);
+    liveBuilding.current = true;
+    setLiveActive(true);
+    sim.run();
+  };
+  const stopLive = () => {
+    sim.stop();
+  };
+  const liveFrame = liveActive && sim.frame ? (sim.frame.live as Record<string, unknown>) : null;
+  const liveStatus = liveFrame
+    ? {
+        phase: String(liveFrame.phase ?? ''),
+        time: Number(liveFrame.time),
+        updates: String(liveFrame.updates ?? ''),
+        separationX: Number(liveFrame.separationX),
+        front: Number(liveFrame.front),
+        maxGap: Number(liveFrame.maxGap),
+        meanGap: Number(liveFrame.meanGap),
+      }
+    : null;
+  const liveShape: SurfaceGeometry | null = useMemo(() => {
+    const raw = liveFrame?.shape;
+    if (typeof raw !== 'string') return null;
+    try {
+      const j = JSON.parse(raw) as { u: number[]; l: number[] };
+      return { ...head.geometry, upper: j.u, lower: j.l };
+    } catch {
+      return null;
+    }
+  }, [liveFrame?.shape, head.geometry]);
 
   // ---- auto-build: the same simulate / propose / accept steps, driven by geometry/AutoBuild.ts
   const autoKey = useRef('');
@@ -586,8 +686,9 @@ export function FlowGeometry() {
     const showDividing = a && a.primary.stations.some((s) => (mode === 'exploratory' ? s.hdsRaw : s.hds).state === 'closed' || (mode === 'exploratory' ? s.hdsRaw : s.hds).state === 'open');
     const st = {
       placement: placementFor({ ...(project.conditions as unknown as Conditions), geometry: head.geometry }),
-      geometry: viewed.id === head.id ? head.geometry : viewed.geometry,
-      previous: viewed.id === head.id && head.parent ? version(project, head.parent).geometry : null,
+      geometry: liveShape ?? (viewed.id === head.id ? head.geometry : viewed.geometry),
+      previous: liveShape ? head.geometry : viewed.id === head.id && head.parent ? version(project, head.parent).geometry : null,
+      live: liveShape && liveFrame ? { side: (liveFrame.side === 'lower' ? 'lower' : liveFrame.side === 'upper' ? 'upper' : liveSettings.side === 'lower' ? 'lower' : 'upper') as Side, onset: Number.isFinite(Number(liveFrame.separationX)) ? Number(liveFrame.separationX) : null, front: Number.isFinite(Number(liveFrame.front)) ? Number(liveFrame.front) : null } : null,
       proposal,
       pointIdx,
       region,
@@ -603,7 +704,7 @@ export function FlowGeometry() {
       draw(g, T);
       drawStream(g, T, frame.domain, (project.conditions as unknown as Conditions).speed, st.alphaDeg);
     };
-  }, [analysis, side, mode, project, head, viewed, proposal, pointIdx, replayFrame, showStations, sim.frame]);
+  }, [analysis, side, mode, project, head, viewed, proposal, pointIdx, replayFrame, showStations, sim.frame, liveShape, liveFrame, liveSettings.side]);
 
   const underlay = useMemo(() => {
     if (fieldKind === 'none' || !grid) return undefined;
@@ -762,7 +863,21 @@ export function FlowGeometry() {
           </div>
 
           <div className="section">
-            <h2>4 · Auto-build (experimental)</h2>
+            <h2>4 · Live fill (experimental)</h2>
+            <LiveFillPanel
+              settings={liveSettings}
+              onSettings={setLiveSettings}
+              active={liveActive}
+              status={liveStatus}
+              onStart={startLive}
+              onStop={stopLive}
+              blocked={auto.active ? 'Auto-build is running.' : busy ? 'A simulation is running: wait for it to finish, or stop it.' : proposal ? 'Accept or reject the proposal on screen first.' : !draftCheck.ok || dirty ? 'The inputs have unapplied changes or errors: apply or fix them first.' : null}
+              lastResult={liveResult}
+            />
+          </div>
+
+          <div className="section">
+            <h2>5 · Auto-build (experimental)</h2>
             <AutoBuildPanel
               auto={auto}
               target={autoTarget}
@@ -777,7 +892,7 @@ export function FlowGeometry() {
           </div>
 
           <div className="section">
-            <h2>5 · Build by hand</h2>
+            <h2>6 · Build by hand</h2>
             <fieldset disabled={auto.active} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
               <ConstructionPanel
                 head={head}
@@ -902,7 +1017,7 @@ export function FlowGeometry() {
               )}
             </div>
             {!viewed.run && <div className="note">{viewed.id} has not been simulated: press SIMULATE to measure its near-wall flow. Until then there are no measurements, and none are drawn.</div>}
-            {viewed.run && bottomTab === 'stations' && <StationPlots analysis={analysis} other={parentAnalysis} otherLabel={parent ? `${parent.id} (parent)` : undefined} selectedX={selX} onSelectX={setSelX} />}
+            {viewed.run && bottomTab === 'stations' && <StationPlots analysis={analysis} other={parentAnalysis} otherLabel={parent ? `${parent.id} (parent)` : undefined} wake={viewed.run?.wake?.[side] ?? null} otherWake={parent?.run?.wake?.[side] ?? null} selectedX={selX} onSelectX={setSelX} />}
             {viewed.run && bottomTab === 'profile' && <ProfilePanel analysis={analysis} selectedX={selX} />}
             {viewed.run && bottomTab === 'mean' && (
               <div>

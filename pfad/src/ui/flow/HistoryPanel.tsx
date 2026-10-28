@@ -33,7 +33,7 @@ export function HistoryPanel(p: Props) {
   const onPath = new Set(activePath(p.project).map((v) => v.id));
   const fileProj = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const tag = (v: GeometryVersion) => (v.origin === 'initial' ? 'INITIAL' : v.construction?.mode === 'exploratory' ? 'CONSTRUCTED · EXPLORATORY' : 'CONSTRUCTED');
+  const tag = (v: GeometryVersion) => (v.origin === 'initial' ? 'INITIAL' : v.construction?.mode === 'exploratory' ? 'CONSTRUCTED · EXPLORATORY' : v.construction?.mode === 'live-fill' ? 'CONSTRUCTED · LIVE FILL' : 'CONSTRUCTED');
   return (
     <div>
       <h3 className="h3">Geometry versions</h3>
