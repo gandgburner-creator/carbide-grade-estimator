@@ -80,7 +80,7 @@ body,
 
 @media (min-width: 1450px) {
   .flow .main {
-    grid-template-columns: 300px minmax(0, 1fr) 500px;
+    grid-template-columns: 340px minmax(0, 1fr) 480px;
   }
 }
 
@@ -1233,4 +1233,54 @@ table.results tr.sel td {
   .flow .canvas-host {
     height: min(100vw, 62vh);
   }
+}
+
+/* plain-unit setup */
+.params.simple {
+  grid-template-columns: 1fr;
+  gap: 5px;
+}
+
+.params.simple label {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px;
+  align-items: center;
+  gap: 0 8px;
+  font-size: 11px;
+}
+
+.params.simple .hint {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 9.5px;
+  line-height: 1.25;
+}
+
+.scenario-box {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 8px;
+  margin: 6px 0;
+}
+
+.scenario-box ul.plain li {
+  margin: 4px 0;
+  line-height: 1.35;
+}
+
+.scenario-box table.compare {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.scenario-box table.compare td,
+.scenario-box table.compare th {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.scenario-box table.compare td.q {
+  max-width: none;
+  min-width: 0;
+  width: 38%;
 }

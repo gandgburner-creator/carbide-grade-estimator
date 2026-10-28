@@ -152,7 +152,11 @@ surface and compare it with the old one, keeping the whole history. It is a
 measurement and visualisation foundation, **not** an optimiser and **not
 validated**: the detector is an experimental operational definition, the
 construction rule is a hypothesis generator, and the comparison reports
-trade-offs without a score. Details, definitions, thresholds, what is and is
+trade-offs without a score. It is set up in plain units (plate length and
+thickness in cm, air temperature in °C, height in m, wind in km/h, angle in
+degrees) and says, next to the inputs, how far the simulated regime is from the
+real plate's (Mach, Reynolds and Knudsen numbers): same shape and angle, very
+different flow regime. Details, definitions, thresholds, what is and is
 not supported (including curved bodies) and the open scientific questions are in
 [`docs/FLOW_GUIDED_GEOMETRY.md`](docs/FLOW_GUIDED_GEOMETRY.md). Universe B stays
 locked.

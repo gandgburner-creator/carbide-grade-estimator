@@ -34,8 +34,30 @@ import { analyseSurfaceFlow, DETECTOR_SPEC, type DetectorSpec, type FlowData, ty
  * are fixed in that module. The detector is an EXPERIMENTAL operational definition: it
  * is not validated, and PFAD has not validated any separation detector.
  */
+/**
+ * What a person typed in plain units (see PhysicalScenario.ts). Recorded with the run for
+ * provenance only: the simulation reads none of it. The simulated values derived from it
+ * (chord, thickness, speed, angle) are ordinary parameters below.
+ */
+export interface PhysicalInputs {
+  /** plate length [cm] */
+  lengthCm: number;
+  /** plate thickness [cm] */
+  thicknessCm: number;
+  /** ambient air temperature [°C] */
+  tempC: number;
+  /** height above sea level [m] */
+  altitudeM: number;
+  /** wind speed relative to the plate [km/h] */
+  speedKmh: number;
+  /** angle of attack [°] */
+  alphaDeg: number;
+}
+
 export interface FlowGeometryParams {
   geometry: SurfaceGeometry;
+  /** the plain-unit description this setup was made from (provenance only; not read by the simulation) */
+  scenario?: PhysicalInputs;
   alphaDeg: number;
   length: number;
   height: number;

@@ -34,6 +34,51 @@ The workflow, one cycle:
    are listed next to it.
 7. Repeat, **undo**, or **replay** the history.
 
+## Setting up in plain units
+
+The first panel takes six numbers: **plate length [cm]**, **plate thickness [cm]**,
+**air temperature [°C]**, **height above sea level [m]**, **wind speed [km/h]** and
+**angle of attack [°]**. The model-unit controls (density, run length, seeds) are under
+"Advanced". Right under the inputs the screen says, in plain words, what the simulation
+will actually run and how far that is from the real plate.
+
+What each input does:
+
+| Input | What the simulation does with it |
+|---|---|
+| length, thickness | Only their **ratio** matters: the plate is drawn with the same length : thickness ratio, in particle diameters (30 d long by default). Ratios from 2 : 1 to 40 : 1 can be drawn; a thinner plate is drawn as 40 : 1 and the screen says so. Thin plates need a bigger model (a 40 : 1 plate is 80 × 2 d, about 16,000 particles, and a version takes many minutes). |
+| angle of attack | exactly |
+| wind speed | through the **Mach number**: wind ÷ speed of sound in the air you described, times this model's measured sound speed. The particle model needs its standard speed (Mach ≈ 0.55, the speed of every reference run) or more to show a signal above the random thermal motion, and it is only calibrated up to 3 d/τ. A slower wind is run at the slowest usable setting, and the screen says how much faster than yours that is. At sea level and 15 °C the model can follow a wind of about 680 km/h and up. |
+| temperature, height | They set the real air (density, speed of sound, viscosity, mean free path) and so the real plate's Mach, Reynolds and Knudsen numbers. They change the simulation **only** through the Mach number above; whenever the wind is below what the model can show, they change nothing in the run itself. |
+
+The comparison table shows Mach, Reynolds and Knudsen for your real plate and for the
+simulation:
+
+- Real air values are standard reference formulas (International Standard Atmosphere pressure,
+  ideal-gas density, Sutherland viscosity, kinetic-theory mean free path) in
+  `src/benchmarks/AirReference.ts`. They are comparison values: nothing inside the particle
+  dynamics uses them. The single place a reference value reaches the setup is the Mach
+  conversion of the wind speed in `src/experiments/PhysicalScenario.ts`, which is disclosed on
+  screen.
+- The simulation's values come from this repository's own measurements: sound speed
+  1.8076 d/τ (`results/sound-speed_sweeps.json`, case A φ = 0.1, 8 seeds) and effective viscosity
+  0.3326 m/(d·τ) (`results/viscosity_reference.json`, base case, 30 seeds). `tests/scenario.test.ts`
+  checks the constants against those files and reproduces the Mach and Reynolds numbers
+  recorded for the Kutta reference.
+
+**The honest limit.** A real plate of 10–100 cm in air has Knudsen number about 10⁻⁷ and
+Reynolds number 10⁴–10⁶. The simulation is a thin 2-D gas of hard disks with Knudsen ≈ 0.19 and
+Reynolds ≈ 10–40. The model cannot match all three similarity numbers, so the plain inputs give the
+**same shape and angle in a very different flow regime**. A result shows how this particle gas flows
+around a plate of that shape. It does not predict how air flows around the plate that was
+described, and it says nothing about lift, drag or performance. The screen states this next to
+every set of inputs, and the inputs are recorded with every run (`scenario` in the run
+configuration) for provenance only: the simulation reads none of them.
+
+Length and thickness are fixed when a project starts (they define the flat plate); changes to
+the wind, the air or the angle are applied to the open project and recorded in its history
+(`APPLY CHANGES TO THIS PROJECT`), and a comparison across such a change carries a warning.
+
 ## What is implemented
 
 | Part | Where | Status |
@@ -46,6 +91,7 @@ The workflow, one cycle:
 | Comparison of two versions | `src/geometry/Compare.ts` | implemented (descriptive) |
 | Real-engine experiment `flow-geometry` | `src/experiments/FlowGeometryExperiment.ts` | implemented; a registry experiment like the others |
 | Exports (project JSON, SVG, CSV, run record) | `src/geometry/Export.ts`, `src/app/projectStore.ts` | implemented |
+| Plain-unit inputs and the comparison with the real situation | `src/experiments/PhysicalScenario.ts`, `src/benchmarks/AirReference.ts`, `src/ui/flow/ScenarioPanel.tsx` | implemented, tested |
 | Workspace | `src/ui/FlowGeometry.tsx`, `src/ui/flow/` | implemented |
 
 The existing particle engine is used unchanged except for one new input: the

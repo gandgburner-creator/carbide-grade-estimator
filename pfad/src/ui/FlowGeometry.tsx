@@ -7,7 +7,8 @@ import { reservedSeedErrors } from '../app/seeds';
 import { CODE_VERSION, makeProvenance } from '../app/provenance';
 import { PFAD_MODEL_VERSION } from '../core/version';
 import type { ExperimentRecord } from '../experiments/Experiment';
-import { FLOW_GEOMETRY_EXTENDED, FLOW_GEOMETRY_QUICK, placementFor, type FlowGeometryParams, type FlowGeometryResults } from '../experiments/FlowGeometryExperiment';
+import { FLOW_GEOMETRY_EXTENDED, FLOW_GEOMETRY_QUICK, placementFor, type FlowGeometryParams, type FlowGeometryResults, type PhysicalInputs } from '../experiments/FlowGeometryExperiment';
+import { DEFAULT_SCENARIO, describeScenario, parseScenario, scenarioToModel } from '../experiments/PhysicalScenario';
 import { basisFromAnalysis } from '../geometry/Basis';
 import type { FieldGrid } from '../geometry/Compare';
 import { DEFAULT_CONSTRUCTION, newProposalId, proposeIncrement, type ConstructionConfig, type EvidenceMode, type Proposal } from '../geometry/Construction';
@@ -35,6 +36,7 @@ import { fieldScale } from './colors';
 import { downloadText } from './download';
 import { DetectorPanel, LevelBadge, ProfilePanel, StationPlots } from './flow/DetectorPanel';
 import { ConstructionPanel } from './flow/ConstructionPanel';
+import { ScenarioPanel, scenarioText, type ScenarioText } from './flow/ScenarioPanel';
 import { FlowComparePanel } from './flow/ComparePanel';
 import { FieldMap } from './flow/FieldMap';
 import { HistoryPanel } from './flow/HistoryPanel';
@@ -57,21 +59,22 @@ const FIELD_NOTE: Record<Exclude<FieldChoice, 'none'>, { label: string; units: s
 interface Setup {
   name: string;
   preset: 'quick' | 'extended';
-  chord: number;
-  thickness: number;
 }
-const DEFAULT_SETUP: Setup = { name: 'Flat plate study', preset: 'quick', chord: 30, thickness: 3 };
+const DEFAULT_SETUP: Setup = { name: 'Flat plate study', preset: 'quick' };
 
-function conditionsFor(s: Setup): Conditions {
+/** The simulation's own conditions for a plate set up from plain inputs (the plain inputs are kept for provenance only). */
+function conditionsFor(s: Setup, input: PhysicalInputs): Conditions {
   const base = s.preset === 'quick' ? FLOW_GEOMETRY_QUICK : FLOW_GEOMETRY_EXTENDED;
   const { geometry, ...c } = base;
   void geometry;
+  const m = scenarioToModel(input);
   // the domain scales with the chord as in the Kutta rig (6 chords × 3.33 chords)
-  return { ...c, length: Math.round(6 * s.chord), height: Math.round((10 * s.chord) / 3) };
+  return { ...c, length: Math.round(6 * m.chord), height: Math.round((10 * m.chord) / 3), alphaDeg: m.alphaDeg, speed: m.speed, scenario: input };
 }
 
-function makeProject(s: Setup): Project {
-  return newProject(s.name || 'Flat plate study', conditionsFor(s) as unknown as Record<string, unknown>, flatPlate(s.chord, s.thickness));
+function makeProject(s: Setup, input: PhysicalInputs): Project {
+  const m = scenarioToModel(input);
+  return newProject(s.name || 'Flat plate study', conditionsFor(s, input) as unknown as Record<string, unknown>, flatPlate(m.chord, m.thickness));
 }
 
 interface Draft {
@@ -94,7 +97,14 @@ const draftOf = (c: Record<string, unknown>): Draft => ({
 });
 
 /** Validate the editable conditions and return the new conditions object (or the errors). */
-function readDraft(d: Draft, base: Conditions): { ok: true; cond: Conditions; warnings: string[] } | { ok: false; errors: string[] } {
+/** Values fixed by the plain inputs (angle, simulated speed, the inputs themselves) instead of the model-unit fields. */
+interface PlainOverride {
+  alphaDeg: number;
+  speed: number;
+  scenario: PhysicalInputs;
+}
+
+function readDraft(d: Draft, base: Conditions, over: PlainOverride | null = null): { ok: true; cond: Conditions; warnings: string[] } | { ok: false; errors: string[] } {
   const errors: string[] = [];
   const warnings: string[] = [];
   const num = (name: string, v: string, lo: number, hi: number, integer = false) => {
@@ -104,9 +114,9 @@ function readDraft(d: Draft, base: Conditions): { ok: true; cond: Conditions; wa
     else if (integer && !Number.isInteger(x)) errors.push(`${name} must be an integer`);
     return x;
   };
-  const alphaDeg = num('angle of attack', d.alphaDeg, 0, 89);
+  const alphaDeg = over ? over.alphaDeg : num('angle of attack', d.alphaDeg, 0, 89);
   const areaFraction = num('area fraction φ', d.areaFraction, 0.02, 0.3);
-  const speed = num('stream speed', d.speed, 0.1, 3);
+  const speed = over ? over.speed : num('stream speed', d.speed, 0.1, 3);
   const startup = num('start-up time', d.startup, 20, 2000);
   const measure = num('measurement window', d.measure, 40, 5000);
   const blocks = num('time blocks', d.blocks, 4, 64, true);
@@ -121,7 +131,7 @@ function readDraft(d: Draft, base: Conditions): { ok: true; cond: Conditions; wa
   const N = (areaFraction * base.length * base.height) / (Math.PI * base.radius * base.radius);
   if (N > 8000) warnings.push(`about ${Math.round(N)} particles: a run will be slow in the browser`);
   if (errors.length) return { ok: false, errors };
-  return { ok: true, cond: { ...base, alphaDeg, areaFraction, speed, startup, measure, blocks, seeds }, warnings };
+  return { ok: true, cond: { ...base, alphaDeg, areaFraction, speed, startup, measure, blocks, seeds, ...(over ? { scenario: over.scenario } : {}) }, warnings };
 }
 
 const entryId = (recordId: string) => `fg-${recordId}`;
@@ -136,7 +146,8 @@ export function FlowGeometry() {
   const [projs, setProjs] = useState<{ store: ProjectStore; persistent: boolean } | null>(null);
   const [saved, setSaved] = useState<{ id: string; name: string; createdAt: string; versions: number; head: string }[]>([]);
   const [setup, setSetup] = useState<Setup>(DEFAULT_SETUP);
-  const [project, setProject] = useState<Project>(() => makeProject(DEFAULT_SETUP));
+  const [project, setProject] = useState<Project>(() => makeProject(DEFAULT_SETUP, DEFAULT_SCENARIO));
+  const [sText, setSText] = useState<ScenarioText>(() => scenarioText(DEFAULT_SCENARIO));
   const [draft, setDraft] = useState<Draft>(() => draftOf(project.conditions));
   const [draftReason, setDraftReason] = useState('');
   const [side, setSide] = useState<Side>('upper');
@@ -240,6 +251,15 @@ export function FlowGeometry() {
   const head = headVersion(project);
   const viewed = project.versions.some((v) => v.id === viewId) ? version(project, viewId) : head;
   const parent = viewed.parent ? version(project, viewed.parent) : null;
+  // the plain inputs (cm, °C, m, km/h, °) and what they make of the simulation
+  const projectScenario = (project.conditions as { scenario?: PhysicalInputs }).scenario ?? null;
+  const legacy = projectScenario === null;
+  const sCheck = parseScenario(sText);
+  const report = sCheck.ok ? describeScenario(sCheck.input) : null;
+  const over: PlainOverride | null =
+    !legacy && sCheck.ok && report ? { alphaDeg: sCheck.input.alphaDeg, speed: report.model.speed, scenario: { ...sCheck.input, lengthCm: projectScenario!.lengthCm, thicknessCm: projectScenario!.thicknessCm } } : null;
+  const readCheck = (d: Draft, base: Conditions) => (!legacy && !sCheck.ok ? { ok: false as const, errors: sCheck.errors } : readDraft(d, base, over));
+  const shapeDiffers = !!projectScenario && sCheck.ok && (sCheck.input.lengthCm !== projectScenario.lengthCm || sCheck.input.thicknessCm !== projectScenario.thicknessCm);
   const wantKey = `${project.id}|${head.id}|${JSON.stringify(project.conditions)}`;
   const [loadedKey, setLoadedKey] = useState('');
   const paramsOf = useCallback((v: typeof head): FlowGeometryParams => ({ ...(project.conditions as unknown as Conditions), geometry: v.geometry }), [project.conditions]);
@@ -255,9 +275,9 @@ export function FlowGeometry() {
 
   const busy = sim.phase === 'running' || sim.phase === 'paused';
   const run = () => {
-    const c = readDraft(draft, project.conditions as unknown as Conditions);
+    const c = readCheck(draft, project.conditions as unknown as Conditions);
     if (c.ok && JSON.stringify(c.cond) !== JSON.stringify(project.conditions)) {
-      setMessage('The conditions form has unapplied changes: apply them (they are recorded) or reset the form before simulating.');
+      setMessage('Some inputs have unapplied changes: press APPLY CHANGES (they are recorded in the history) or put them back before simulating.');
       return;
     }
     if (loadedKey !== wantKey || sim.phase === 'finished' || sim.phase === 'stopped' || sim.phase === 'failed' || sim.phase === 'idle') {
@@ -381,7 +401,7 @@ export function FlowGeometry() {
 
   // ---- conditions and projects
   const applyConditions = () => {
-    const c = readDraft(draft, project.conditions as unknown as Conditions);
+    const c = readCheck(draft, project.conditions as unknown as Conditions);
     if (!c.ok) return setMessage(`Conditions: ${c.errors.join('; ')}`);
     if (JSON.stringify(c.cond) === JSON.stringify(project.conditions)) return setMessage('The conditions are unchanged.');
     const hasRuns = project.versions.some((v) => v.run);
@@ -391,10 +411,11 @@ export function FlowGeometry() {
     setMessage(c.warnings.length ? `Conditions applied. Note: ${c.warnings.join('; ')}` : 'Conditions applied and recorded.');
   };
   const newProjectFromSetup = () => {
+    if (!sCheck.ok) return setMessage(`Conditions: ${sCheck.errors.join('; ')}`);
     if (project.versions.length > 1 || project.versions.some((v) => v.run)) {
       if (!window.confirm(`Start a new project? “${project.name}” stays in the saved projects of this browser.`)) return;
     }
-    const p = makeProject(setup);
+    const p = makeProject(setup, sCheck.input);
     setProject(p);
     setDraft(draftOf(p.conditions));
     setProposal(null);
@@ -411,6 +432,7 @@ export function FlowGeometry() {
     sim.unload();
     setProject(p);
     setDraft(draftOf(p.conditions));
+    setSText(scenarioText((p.conditions as { scenario?: PhysicalInputs }).scenario ?? { ...DEFAULT_SCENARIO, alphaDeg: Number(p.conditions.alphaDeg) }));
     setProposal(null);
     setPointIdx(-1);
     setViewId(p.head);
@@ -528,10 +550,10 @@ export function FlowGeometry() {
 
   const conds = project.conditions as unknown as Conditions;
   const dirty = (() => {
-    const c = readDraft(draft, conds);
+    const c = readCheck(draft, conds);
     return c.ok && JSON.stringify(c.cond) !== JSON.stringify(project.conditions);
   })();
-  const draftCheck = readDraft(draft, conds);
+  const draftCheck = readCheck(draft, conds);
   const canUndo = head.origin === 'constructed' && !proposal;
   const f = sim.frame;
   const stage = !head.run ? 'simulate the starting geometry' : proposal ? 'review the proposed increment' : head.origin === 'constructed' && !head.run ? 'simulate the new geometry' : 'propose an increment';
@@ -550,75 +572,76 @@ export function FlowGeometry() {
       <div className="main">
         <div className="column">
           <div className="section">
-            <h2>1 · Project</h2>
-            <div className="params">
-              <label className="wide">
-                name
-                <input value={setup.name} onChange={(e) => setSetup({ ...setup, name: e.target.value })} />
-              </label>
-              <label>
-                chord [d]
-                <input type="number" min={12} max={80} value={setup.chord} onChange={(e) => setSetup({ ...setup, chord: Number(e.target.value) })} />
-              </label>
-              <label>
-                thickness [d]
-                <input type="number" min={2} max={12} step={0.5} value={setup.thickness} onChange={(e) => setSetup({ ...setup, thickness: Number(e.target.value) })} />
-              </label>
-            </div>
+            <h2>1 · Your plate and the wind</h2>
+            <ScenarioPanel
+              text={sText}
+              onText={(k, v) => setSText((t) => ({ ...t, [k]: v }))}
+              errors={sCheck.ok ? null : sCheck.errors}
+              report={report}
+              disabled={busy}
+              legacy={legacy}
+              shapeDiffers={shapeDiffers}
+              preset={setup.preset}
+              onPreset={(k) => setSetup({ ...setup, preset: k })}
+            />
             <div className="seg" style={{ margin: '6px 0' }}>
-              {(['quick', 'extended'] as const).map((k) => (
-                <button key={k} className={`ctl ${setup.preset === k ? 'on' : ''}`} onClick={() => setSetup({ ...setup, preset: k })} title={k === 'quick' ? '3 seeds, 240 τ window: about a minute or two per version, weak statistics' : '6 seeds, 480 τ window: several minutes per version, a candidate region needs this much'}>
-                  {k === 'quick' ? 'QUICK (3 seeds)' : 'EXTENDED (6 seeds)'}
-                </button>
-              ))}
+              <button className="ctl primary" onClick={newProjectFromSetup} disabled={busy || !sCheck.ok} title="start again from a flat plate with these values">
+                START NEW PROJECT
+              </button>
+              <button className="ctl" onClick={applyConditions} disabled={busy || !dirty || !draftCheck.ok || legacy} title="change the wind, air or angle of the open project; the change is recorded in its history">
+                APPLY CHANGES TO THIS PROJECT
+              </button>
             </div>
-            <button className="ctl" onClick={newProjectFromSetup}>
-              NEW PROJECT (flat plate)
-            </button>
-            <div className="note" style={{ marginTop: 4 }}>
-              Starts from a flat plate: {project.versions[0].geometry.chord} × {fmt(project.versions[0].geometry.upper[0] - project.versions[0].geometry.lower[0])} d, blunt ends. No airfoil profile is built in. Open project: <b>{project.name}</b> · {project.versions.length} version{project.versions.length === 1 ? '' : 's'}.
+            {sCheck.ok && !draftCheck.ok && draftCheck.errors.map((e, i) => <div key={i} className="error">{e}</div>)}
+            <div className="note">
+              Starts from a flat plate ({project.versions[0].geometry.chord} × {fmt(project.versions[0].geometry.upper[0] - project.versions[0].geometry.lower[0])} particle diameters, blunt ends). No airfoil profile is built in. Open project: <b>{project.name}</b> · {project.versions.length} version
+              {project.versions.length === 1 ? '' : 's'}.
             </div>
           </div>
 
           <div className="section">
-            <h2>2 · Flow conditions</h2>
-            <div className="note" style={{ marginBottom: 4 }}>
-              Held fixed across versions so runs are comparable. A change is recorded in the history.
-            </div>
-            <div className="params">
-              {(
-                [
-                  ['alphaDeg', 'angle of attack [°]'],
-                  ['areaFraction', 'area fraction φ'],
-                  ['speed', 'stream speed [d/τ]'],
-                  ['startup', 'start-up [τ]'],
-                  ['measure', 'window [τ]'],
-                  ['blocks', 'time blocks'],
-                ] as const
-              ).map(([k, label]) => (
-                <label key={k}>
-                  {label}
-                  <input value={draft[k]} onChange={(e) => setDraft({ ...draft, [k]: e.target.value })} disabled={busy} />
-                </label>
-              ))}
-              <label className="wide">
-                seeds (independent samples)
-                <input value={draft.seeds} onChange={(e) => setDraft({ ...draft, seeds: e.target.value })} disabled={busy} />
-              </label>
-              <label className="wide">
-                reason (optional, kept in the history)
-                <input value={draftReason} onChange={(e) => setDraftReason(e.target.value)} disabled={busy} />
-              </label>
-            </div>
-            {!draftCheck.ok && draftCheck.errors.map((e, i) => <div key={i} className="error">{e}</div>)}
-            {draftCheck.ok && draftCheck.warnings.map((e, i) => <div key={i} className="warn">{e}</div>)}
-            <button className="ctl" onClick={applyConditions} disabled={busy || !dirty || !draftCheck.ok}>
-              APPLY CHANGES
-            </button>
+            <h2>2 · Advanced (model units)</h2>
             <details className="effective">
-              <summary>
-                Effective conditions — domain {conds.length} × {conds.height} d, {Math.round((conds.areaFraction * conds.length * conds.height) / (Math.PI * conds.radius ** 2))} particles, diffuse faces, open boundaries
-              </summary>
+              <summary>Run length, seeds, density and the exact conditions of the simulation</summary>
+              <div className="note" style={{ marginBottom: 4 }}>
+                Held fixed across versions so runs are comparable. A change is recorded in the history. Lengths are in particle diameters d, times in τ.
+              </div>
+              <div className="params">
+                <label className="wide">
+                  project name
+                  <input value={setup.name} onChange={(e) => setSetup({ ...setup, name: e.target.value })} />
+                </label>
+                {(
+                  [
+                    ['areaFraction', 'area fraction φ'],
+                    ['startup', 'start-up [τ]'],
+                    ['measure', 'window [τ]'],
+                    ['blocks', 'time blocks'],
+                    ...(legacy ? ([['alphaDeg', 'angle of attack [°]'], ['speed', 'stream speed [d/τ]']] as const) : []),
+                  ] as const
+                ).map(([k, label]) => (
+                  <label key={k}>
+                    {label}
+                    <input value={draft[k]} onChange={(e) => setDraft({ ...draft, [k]: e.target.value })} disabled={busy} />
+                  </label>
+                ))}
+                <label className="wide">
+                  seeds (independent samples)
+                  <input value={draft.seeds} onChange={(e) => setDraft({ ...draft, seeds: e.target.value })} disabled={busy} />
+                </label>
+                <label className="wide">
+                  reason for a change (optional, kept in the history)
+                  <input value={draftReason} onChange={(e) => setDraftReason(e.target.value)} disabled={busy} />
+                </label>
+              </div>
+              {!draftCheck.ok && draftCheck.errors.map((e, i) => <div key={i} className="error">{e}</div>)}
+              {draftCheck.ok && draftCheck.warnings.map((e, i) => <div key={i} className="warn">{e}</div>)}
+              <button className="ctl" onClick={applyConditions} disabled={busy || !dirty || !draftCheck.ok}>
+                APPLY CHANGES
+              </button>
+              <div className="note" style={{ marginTop: 4 }}>
+                Effective conditions — domain {conds.length} × {conds.height} d, {Math.round((conds.areaFraction * conds.length * conds.height) / (Math.PI * conds.radius ** 2))} particles, diffuse faces, open boundaries.
+              </div>
               <pre>{JSON.stringify({ ...conds, detector: conds.detector.id }, null, 1)}</pre>
             </details>
           </div>

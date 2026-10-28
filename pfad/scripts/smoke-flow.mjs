@@ -70,12 +70,25 @@ await expectText('NOT AN OPTIMISER');
 await expectText('Starts from a flat plate');
 step('workspace opens on a flat plate, labelled experimental / not an optimiser / not validated');
 
-// conditions: a large angle of attack, the only regime where this model shows any backflow
-const alpha = page.getByLabel('angle of attack [°]');
-if ((await alpha.inputValue()) !== '65') {
-  await alpha.fill('65');
-  await button('APPLY CHANGES').click();
-}
+// the plain-unit inputs: plate in cm, air in °C and m, wind in km/h, angle in degrees
+const field = (name) => page.locator('.shell-body:visible').getByLabel(name, { exact: true });
+if ((await field('plate length in cm').inputValue()) !== '20' || (await field('angle of attack in °').inputValue()) !== '65') throw new Error('unexpected default inputs');
+await expectText('What the simulation will run');
+await expectText('cannot show a wind that slow'); // 36 km/h is far below what the particle model can resolve
+await expectText('very different flow regime');
+await expectText('does not predict how air flows around your plate');
+// a wrong input is explained in plain words and blocks the start
+await field('plate thickness in cm').fill('15');
+await expectText('at least 2 times longer');
+if (await button('START NEW PROJECT').isEnabled()) throw new Error('START NEW PROJECT must be disabled for an impossible plate');
+await field('plate thickness in cm').fill('2');
+// a different air state and wind: still the same simulation when the wind is below what the model can show
+await field('air temperature in °C').fill('-5');
+await field('height above sea level in m').fill('1500');
+await field('wind speed in km/h').fill('50');
+await button('START NEW PROJECT').click();
+await expectText('Starts from a flat plate (30 × 3 particle diameters');
+step('plain inputs are checked, explained, and turned into the simulation setup (20 × 2 cm → 30 × 3 particle diameters)');
 await shot('1-v0-before');
 
 // 1. simulate v0 with the real engine
