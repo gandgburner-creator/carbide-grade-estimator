@@ -108,7 +108,7 @@ describe('the construction loop on real simulation output (flat → measured →
     expect(cmp.hypothesis!.side).toBe('upper');
     expect(['supported', 'contradicted', 'unresolved', 'not applicable']).toContain(cmp.hypothesis!.outcome);
     expect(cmp.sides.upper.stations.length).toBe(10);
-    expect(cmp.indicators.map((i) => i.id)).toEqual(['fx', 'fy', 'qw-upper', 'qw-lower']);
+    expect(cmp.indicators.map((i) => i.id)).toEqual(['fx', 'fy', 'qw-upper', 'qw-lower', 'contact-upper', 'contact-lower']);
     // the flow around the changed upper surface differs measurably from the original (the geometry matters to the measurement)
     expect(cmp.sides.upper.stations.some((s) => Math.abs(s.u1.diff) > 0 || Math.abs(s.qw.diff) > 0)).toBe(true);
 
