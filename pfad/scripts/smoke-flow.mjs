@@ -157,7 +157,7 @@ await page.getByRole('button', { name: 'Comparison', exact: true }).click();
 await expectText('no single score', 10000).catch(() => {});
 await expectText('hypothesis');
 await shot('6-comparison');
-const cmpText = await page.locator('.shell-body:visible .section', { hasText: 'comparison' }).first().innerText();
+const cmpText = await page.locator('.shell-body:visible .section', { has: page.getByRole('heading', { name: 'comparison', exact: true }) }).first().innerText();
 if (!/no composite score/i.test(cmpText)) throw new Error('the comparison does not say that it has no composite score');
 step('comparison with the parent is shown');
 
