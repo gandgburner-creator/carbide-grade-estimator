@@ -9,8 +9,9 @@ import { PFAD_MODEL_VERSION } from '../core/version';
 import type { ExperimentRecord } from '../experiments/Experiment';
 import { FLOW_GEOMETRY_EXTENDED, FLOW_GEOMETRY_QUICK, placementFor, type FlowGeometryParams, type FlowGeometryResults, type PhysicalInputs } from '../experiments/FlowGeometryExperiment';
 import { DEFAULT_SCENARIO, describeScenario, parseScenario, scenarioToModel } from '../experiments/PhysicalScenario';
+import { nextAutoAction, type StopKind } from '../geometry/AutoBuild';
 import { basisFromAnalysis } from '../geometry/Basis';
-import type { FieldGrid } from '../geometry/Compare';
+import { compareVersions, type FieldGrid } from '../geometry/Compare';
 import { DEFAULT_CONSTRUCTION, newProposalId, proposeIncrement, type ConstructionConfig, type EvidenceMode, type Proposal } from '../geometry/Construction';
 import { parseReferenceOutline, projectSVG, surfaceCSV } from '../geometry/Export';
 import {
@@ -36,6 +37,7 @@ import { fieldScale } from './colors';
 import { downloadText } from './download';
 import { DetectorPanel, LevelBadge, ProfilePanel, StationPlots } from './flow/DetectorPanel';
 import { ConstructionPanel } from './flow/ConstructionPanel';
+import { AutoBuildPanel, EMPTY_AUTO, type AutoRun } from './flow/AutoBuildPanel';
 import { ScenarioPanel, scenarioText, type ScenarioText } from './flow/ScenarioPanel';
 import { FlowComparePanel } from './flow/ComparePanel';
 import { FieldMap } from './flow/FieldMap';
@@ -150,6 +152,9 @@ export function FlowGeometry() {
   const [sText, setSText] = useState<ScenarioText>(() => scenarioText(DEFAULT_SCENARIO));
   const [draft, setDraft] = useState<Draft>(() => draftOf(project.conditions));
   const [draftReason, setDraftReason] = useState('');
+  const [auto, setAuto] = useState<AutoRun>(EMPTY_AUTO);
+  const [autoTarget, setAutoTarget] = useState(3);
+  const [autoWeak, setAutoWeak] = useState(true);
   const [side, setSide] = useState<Side>('upper');
   const [mode, setMode] = useState<EvidenceMode>('detector');
   const [cfg, setCfg] = useState<ConstructionConfig>(DEFAULT_CONSTRUCTION);
@@ -245,6 +250,8 @@ export function FlowGeometry() {
     runningVersion.current = null;
     if (v) setProject((p) => logRunEnd(p, v, kind, text));
     setMessage(`${kind === 'stopped' ? 'Stopped' : 'Failed'}: ${text}`);
+    // a simulation that ended without a result also ends auto-build (nothing to build on)
+    setAuto((a) => (a.active ? { ...a, active: false, stopped: { stop: kind === 'failed' ? 'failed' : 'user', reason: text }, log: [...a.log, { text: `Stopped (${kind === 'failed' ? 'the simulation failed' : 'the simulation was stopped'}): ${text}`, kind: 'stop' as const }] } : a));
   }, []);
   const sim = useSimulation(onRecord, onEnd);
 
@@ -274,6 +281,7 @@ export function FlowGeometry() {
   }, [wantKey, loadedKey, sim.phase, loadHead]);
 
   const busy = sim.phase === 'running' || sim.phase === 'paused';
+  const locked = busy || auto.active;
   const run = () => {
     const c = readCheck(draft, project.conditions as unknown as Conditions);
     if (c.ok && JSON.stringify(c.cond) !== JSON.stringify(project.conditions)) {
@@ -332,10 +340,10 @@ export function FlowGeometry() {
     setPlaying(false);
     setViewId(head.id);
   };
-  const accept = (all: boolean) => {
+  const accept = (all: boolean, note = '') => {
     if (!proposal) return;
     try {
-      const { project: np, version: v } = acceptProposal(project, proposal.id, all ? undefined : pointIdx);
+      const { project: np, version: v } = acceptProposal(project, proposal.id, all ? undefined : pointIdx, note);
       setProject(np);
       setProposal(null);
       setPointIdx(-1);
@@ -398,6 +406,76 @@ export function FlowGeometry() {
     }, 220);
     return () => clearInterval(t);
   }, [replaying, frames.length]);
+
+  // ---- auto-build: the same simulate / propose / accept steps, driven by geometry/AutoBuild.ts
+  const autoKey = useRef('');
+  const autoLogged = useRef(new Set<string>());
+  const logAuto = (text: string, kind: 'info' | 'warn' | 'stop' = 'info') => setAuto((a) => ({ ...a, log: [...a.log, { text, kind }] }));
+  const stopAuto = (stop: StopKind | 'user', reason: string) => {
+    const built = projectRef.current.versions.slice(auto.startCount);
+    const mix = built.length ? ` Built ${built.map((v) => v.id).join(', ')} (${built.filter((v) => v.construction?.mode === 'detector').length} from detector evidence, ${built.filter((v) => v.construction?.mode === 'exploratory').length} exploratory).` : ' Nothing was built.';
+    setAuto((a) => ({ ...a, active: false, stopped: { stop, reason }, log: [...a.log, { text: `Stopped (${stop === 'nothing-measured' ? 'nothing is measured' : stop}): ${reason}.${mix}`, kind: 'stop' as const }] }));
+    setPlaying(false);
+    setMessage(`Auto-build stopped: ${reason}`);
+  };
+  const startAuto = () => {
+    setMessage(null);
+    autoKey.current = '';
+    autoLogged.current = new Set();
+    setAuto({ ...EMPTY_AUTO, active: true, target: autoTarget, allowWeak: autoWeak, startCount: project.versions.length, log: [{ text: `Started: add up to ${autoTarget} increment${autoTarget === 1 ? '' : 's'} from ${head.id}${autoWeak ? ', weak measurements allowed' : ', detector evidence only'}.`, kind: 'info' }] });
+  };
+  const stopByUser = () => {
+    if (sim.phase === 'running' || sim.phase === 'paused') sim.stop();
+    stopAuto('user', 'you stopped it');
+  };
+  useEffect(() => {
+    if (!auto.active) return;
+    if (sim.phase === 'running' || sim.phase === 'paused' || runningVersion.current !== null) return;
+    if (proposal) return; // a proposal is being drawn; the accept step below takes over
+    const action = nextAutoAction({ target: auto.target, done: auto.done, allowWeak: auto.allowWeak, headRun: head.run ?? null, headId: head.id });
+    const key = `${head.id}|${head.run?.recordId ?? '-'}|${project.proposals.length}|${auto.done}|${action.kind}`;
+    if (autoKey.current === key) return;
+    autoKey.current = key;
+    // report what the last re-simulation said about the prediction that was stated in advance
+    if (head.run && head.parent && !autoLogged.current.has(head.id)) {
+      autoLogged.current.add(head.id);
+      try {
+        const c = compareVersions(version(project, head.parent), head);
+        if (c.hypothesis) logAuto(`${head.id} simulated. The stated prediction (less backflow over the treated stretch) is ${c.hypothesis.outcome}: ${c.hypothesis.detail}`);
+        else logAuto(`${head.id} simulated.`);
+      } catch {
+        logAuto(`${head.id} simulated (no comparison with its parent was possible).`, 'warn');
+      }
+    }
+    if (action.kind === 'simulate') {
+      logAuto(`Simulating ${head.id}…`);
+      run();
+      if (runningVersion.current === null) stopAuto('failed', 'the simulation could not be started (see the message above the run controls)');
+      return;
+    }
+    if (action.kind === 'stop') return stopAuto(action.stop, action.reason);
+    const { choice } = action;
+    const id = newProposalId(head.id, project.proposals.length + 1);
+    const r = proposeIncrement(head.geometry, choice.basis, choice.mode === 'exploratory' ? { ...cfg, shrink: 0 } : cfg, id);
+    if (!r.ok) return stopAuto('limit', r.reason);
+    setProject(recordProposal(project, r.proposal));
+    setProposal(r.proposal);
+    setSide(choice.side);
+    setMode(choice.mode);
+    setPointIdx(-1);
+    setPlaying(true);
+    setViewId(head.id);
+    logAuto(`Increment ${auto.done + 1} of ${auto.target}: ${choice.why}${choice.mode === 'exploratory' ? ' (EXPLORATORY, below the detector’s evidence)' : ''}. Drawing ${r.proposal.points.length} points, ${r.proposal.area.toFixed(1)} d² of material, from x = ${r.proposal.basis.region.xLo.toFixed(1)} d.`);
+  });
+  // when the construction point has traced the whole increment, accept it
+  useEffect(() => {
+    if (!auto.active || !proposal || playing || pointIdx < proposal.points.length - 1) return;
+    const t = setTimeout(() => {
+      accept(true, `auto-build increment ${auto.done + 1} of ${auto.target} (${proposal.mode}, ${proposal.side} side)`);
+      setAuto((a) => ({ ...a, done: a.done + 1, log: [...a.log, { text: `Accepted increment ${a.done + 1} of ${a.target} as a new version; simulating it next.`, kind: 'info' as const }] }));
+    }, 700);
+    return () => clearTimeout(t);
+  }, [auto.active, auto.done, auto.target, proposal, playing, pointIdx]);
 
   // ---- conditions and projects
   const applyConditions = () => {
@@ -578,17 +656,17 @@ export function FlowGeometry() {
               onText={(k, v) => setSText((t) => ({ ...t, [k]: v }))}
               errors={sCheck.ok ? null : sCheck.errors}
               report={report}
-              disabled={busy}
+              disabled={locked}
               legacy={legacy}
               shapeDiffers={shapeDiffers}
               preset={setup.preset}
               onPreset={(k) => setSetup({ ...setup, preset: k })}
             />
             <div className="seg" style={{ margin: '6px 0' }}>
-              <button className="ctl primary" onClick={newProjectFromSetup} disabled={busy || !sCheck.ok} title="start again from a flat plate with these values">
+              <button className="ctl primary" onClick={newProjectFromSetup} disabled={locked || !sCheck.ok} title="start again from a flat plate with these values">
                 START NEW PROJECT
               </button>
-              <button className="ctl" onClick={applyConditions} disabled={busy || !dirty || !draftCheck.ok || legacy} title="change the wind, air or angle of the open project; the change is recorded in its history">
+              <button className="ctl" onClick={applyConditions} disabled={locked || !dirty || !draftCheck.ok || legacy} title="change the wind, air or angle of the open project; the change is recorded in its history">
                 APPLY CHANGES TO THIS PROJECT
               </button>
             </div>
@@ -622,21 +700,21 @@ export function FlowGeometry() {
                 ).map(([k, label]) => (
                   <label key={k}>
                     {label}
-                    <input value={draft[k]} onChange={(e) => setDraft({ ...draft, [k]: e.target.value })} disabled={busy} />
+                    <input value={draft[k]} onChange={(e) => setDraft({ ...draft, [k]: e.target.value })} disabled={locked} />
                   </label>
                 ))}
                 <label className="wide">
                   seeds (independent samples)
-                  <input value={draft.seeds} onChange={(e) => setDraft({ ...draft, seeds: e.target.value })} disabled={busy} />
+                  <input value={draft.seeds} onChange={(e) => setDraft({ ...draft, seeds: e.target.value })} disabled={locked} />
                 </label>
                 <label className="wide">
                   reason for a change (optional, kept in the history)
-                  <input value={draftReason} onChange={(e) => setDraftReason(e.target.value)} disabled={busy} />
+                  <input value={draftReason} onChange={(e) => setDraftReason(e.target.value)} disabled={locked} />
                 </label>
               </div>
               {!draftCheck.ok && draftCheck.errors.map((e, i) => <div key={i} className="error">{e}</div>)}
               {draftCheck.ok && draftCheck.warnings.map((e, i) => <div key={i} className="warn">{e}</div>)}
-              <button className="ctl" onClick={applyConditions} disabled={busy || !dirty || !draftCheck.ok}>
+              <button className="ctl" onClick={applyConditions} disabled={locked || !dirty || !draftCheck.ok}>
                 APPLY CHANGES
               </button>
               <div className="note" style={{ marginTop: 4 }}>
@@ -649,7 +727,7 @@ export function FlowGeometry() {
           <div className="section run-section">
             <h2>3 · Simulate {head.id}</h2>
             <div className="controls">
-              <button className="ctl primary" disabled={busy || !!proposal || !draftCheck.ok || dirty} onClick={run} title="run the current geometry with the project's seeds">
+              <button className="ctl primary" disabled={locked || !!proposal || !draftCheck.ok || dirty} onClick={run} title="run the current geometry with the project's seeds">
                 SIMULATE
               </button>
               <button className="ctl" disabled={sim.phase !== 'running'} onClick={sim.pause}>
@@ -661,7 +739,7 @@ export function FlowGeometry() {
               <button className="ctl" disabled={!busy} onClick={sim.stop} title="end the run; no result is kept">
                 STOP
               </button>
-              <button className="ctl" disabled={sim.phase === 'running'} onClick={loadHead} title="rebuild the initial state">
+              <button className="ctl" disabled={sim.phase === 'running' || auto.active} onClick={loadHead} title="rebuild the initial state">
                 RESET
               </button>
             </div>
@@ -684,36 +762,53 @@ export function FlowGeometry() {
           </div>
 
           <div className="section">
-            <h2>4 · Construction</h2>
-            <ConstructionPanel
-              head={head}
-              side={side}
-              onSide={setSide}
-              mode={mode}
-              onMode={setMode}
-              cfg={cfg}
-              onCfg={setCfg}
-              analyses={head.run?.analysis ?? null}
-              proposal={proposal}
-              pointIdx={pointIdx}
-              playing={playing}
-              busy={busy}
-              canUndo={canUndo}
-              message={null}
-              onPropose={propose}
-              onAdvance={() => setPointIdx((i) => Math.min((proposal?.points.length ?? 1) - 1, i + 1))}
-              onBack={() => setPointIdx((i) => Math.max(-1, i - 1))}
-              onToEnd={() => setPointIdx((proposal?.points.length ?? 1) - 1)}
-              onPlay={() => {
-                if (!proposal) return;
-                if (!playing && pointIdx >= proposal.points.length - 1) setPointIdx(-1);
-                setPlaying(!playing);
-              }}
-              onAcceptUpTo={() => accept(false)}
-              onAcceptAll={() => accept(true)}
-              onReject={reject}
-              onUndo={doUndo}
+            <h2>4 · Auto-build (experimental)</h2>
+            <AutoBuildPanel
+              auto={auto}
+              target={autoTarget}
+              onTarget={setAutoTarget}
+              allowWeak={autoWeak}
+              onAllowWeak={setAutoWeak}
+              onStart={startAuto}
+              onStop={stopByUser}
+              blocked={busy ? 'A simulation is running: wait for it to finish, or stop it.' : proposal ? 'Accept or reject the proposal on screen first.' : !draftCheck.ok || dirty ? 'The inputs have unapplied changes or errors: apply or fix them first.' : null}
+              phaseText={busy ? `simulating ${head.id}` : proposal ? 'drawing the increment' : 'deciding'}
             />
+          </div>
+
+          <div className="section">
+            <h2>5 · Build by hand</h2>
+            <fieldset disabled={auto.active} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
+              <ConstructionPanel
+                head={head}
+                side={side}
+                onSide={setSide}
+                mode={mode}
+                onMode={setMode}
+                cfg={cfg}
+                onCfg={setCfg}
+                analyses={head.run?.analysis ?? null}
+                proposal={proposal}
+                pointIdx={pointIdx}
+                playing={playing}
+                busy={busy}
+                canUndo={canUndo}
+                message={null}
+                onPropose={propose}
+                onAdvance={() => setPointIdx((i) => Math.min((proposal?.points.length ?? 1) - 1, i + 1))}
+                onBack={() => setPointIdx((i) => Math.max(-1, i - 1))}
+                onToEnd={() => setPointIdx((proposal?.points.length ?? 1) - 1)}
+                onPlay={() => {
+                  if (!proposal) return;
+                  if (!playing && pointIdx >= proposal.points.length - 1) setPointIdx(-1);
+                  setPlaying(!playing);
+                }}
+                onAcceptUpTo={() => accept(false)}
+                onAcceptAll={() => accept(true)}
+                onReject={reject}
+                onUndo={doUndo}
+              />
+            </fieldset>
           </div>
         </div>
 
