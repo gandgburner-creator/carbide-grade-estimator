@@ -4,13 +4,13 @@ Live: https://gandgburner-creator.github.io/carbide-grade-estimator/pfad-lab/
 
 This folder is a static production build of the PFAD laboratory application
 (`npm run build` in `pfad/`). The build is from commit
-8c3138a6d5ae17475241312a7e892cd66c427c8c on branch
+9a4fb0b61b362c3366e150b35c93f2effaa0d3d2 on branch
 `claude/bible-master-build-prompt-xtrg6e`; the app shows that commit in its
 top bar and writes it into every export. Source, user guide and tests are on
 that branch, in `pfad/` (guide: `pfad/docs/LAB_APP.md`).
 
 The app has two workspaces: the **Laboratory** and, new in this build, the
-**Flow-guided geometry** workspace (experimental: the detector is not validated,
+**Flow-guided geometry** workspace, set up in plain units (cm, °C, m, km/h, degrees) (experimental: the detector is not validated,
 nothing is optimised; guide: `pfad/docs/FLOW_GUIDED_GEOMETRY.md`). Universe B is
 locked in both.
 
