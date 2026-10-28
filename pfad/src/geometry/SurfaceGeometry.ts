@@ -107,6 +107,21 @@ export function place(points: number[], p: Placement): number[] {
   return out;
 }
 
+/** The inverse of `place`: simulation-frame points into the body frame (x along the chord, y across it). */
+export function unplace(points: number[], p: Placement): number[] {
+  const a = (-p.alphaDeg * Math.PI) / 180;
+  const ca = Math.cos(a);
+  const sa = Math.sin(a);
+  const out = new Array<number>(points.length);
+  for (let k = 0; k < points.length; k += 2) {
+    const dx = points[k] - p.x;
+    const dy = points[k + 1] - p.y;
+    out[k] = dx * ca + dy * sa;
+    out[k + 1] = -dx * sa + dy * ca;
+  }
+  return out;
+}
+
 /** LE position so the mid-chord sits at (cx, cy) for this angle of attack. */
 export function placementAt(g: SurfaceGeometry, cx: number, cy: number, alphaDeg: number): Placement {
   const a = (alphaDeg * Math.PI) / 180;

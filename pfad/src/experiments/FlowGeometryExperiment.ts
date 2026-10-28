@@ -15,6 +15,7 @@ import type { ReservoirBoundaryConfig } from '../walls/ReservoirBoundary';
 import { PolygonBody, type PolygonBodyConfig } from '../walls/SolidBody';
 import { recordHeader, SequentialExperiment, type ExperimentRecord, type Run } from './Experiment';
 import { analyseSurfaceFlow, DETECTOR_SPEC, type DetectorSpec, type FlowData, type SurfaceFlowAnalysis } from '../measurements/SeparationDetector';
+import { analyseWake, type WakeAnalysis } from '../measurements/WakeVoid';
 
 /**
  * FLOW-GUIDED GEOMETRY (experimental).
@@ -192,6 +193,42 @@ export function bodyConfigFor(p: FlowGeometryParams): PolygonBodyConfig {
   };
 }
 
+/** The simulation of one body version in an open-boundary stream (shared by the measurement run and the live-construction run). */
+export function makeSimulation(p: FlowGeometryParams, seed: number): Simulation {
+  const bodyConfig = bodyConfigFor(p);
+  const probe = new PolygonBody(bodyConfig);
+  const domain: DomainSpec = { xmin: 0, xmax: p.length, ymin: 0, ymax: p.height, periodicX: false, periodicY: false };
+  const n0 = p.areaFraction / (Math.PI * p.radius * p.radius);
+  const N0 = Math.round(n0 * p.length * p.height);
+  const { store } = createGas({
+    count: N0,
+    radius: p.radius,
+    mass: p.mass,
+    kT: p.kT,
+    distribution: 'maxwell',
+    seed,
+    domain,
+    flow: { x: p.speed, y: 0 },
+    extraCapacity: N0,
+    exclude: (x, y, r) => probe.closest(x, y).d < r,
+  });
+  const res = { numberDensity: n0, kT: p.kT, mass: p.mass, radius: p.radius, velocity: { x: p.speed, y: 0 } };
+  const boundaries: ReservoirBoundaryConfig[] = (['left', 'right', 'bottom', 'top'] as const).map((side) => ({ side, ...res }));
+  return new Simulation(
+    {
+      domain,
+      walls: [],
+      boundaries,
+      bodies: [bodyConfig],
+      collision: { enabled: true, restitution: 1, contact: p.contact, dissipationTarget: 'external' },
+      timestep: p.timestep,
+      seed,
+      referenceKT: p.kT,
+    },
+    store,
+  );
+}
+
 class FlowGeometryRun implements Run<FlowRunResult> {
   readonly label: string;
   readonly sim: Simulation;
@@ -216,38 +253,7 @@ class FlowGeometryRun implements Run<FlowRunResult> {
     this.p = p;
     this.seed = seed;
     this.label = `flow-guided geometry, α = ${p.alphaDeg}°, seed ${seed}`;
-    const bodyConfig = bodyConfigFor(p);
-    const probe = new PolygonBody(bodyConfig);
-    const domain: DomainSpec = { xmin: 0, xmax: p.length, ymin: 0, ymax: p.height, periodicX: false, periodicY: false };
-    const n0 = p.areaFraction / (Math.PI * p.radius * p.radius);
-    const N0 = Math.round(n0 * p.length * p.height);
-    const { store } = createGas({
-      count: N0,
-      radius: p.radius,
-      mass: p.mass,
-      kT: p.kT,
-      distribution: 'maxwell',
-      seed,
-      domain,
-      flow: { x: p.speed, y: 0 },
-      extraCapacity: N0,
-      exclude: (x, y, r) => probe.closest(x, y).d < r,
-    });
-    const res = { numberDensity: n0, kT: p.kT, mass: p.mass, radius: p.radius, velocity: { x: p.speed, y: 0 } };
-    const boundaries: ReservoirBoundaryConfig[] = (['left', 'right', 'bottom', 'top'] as const).map((side) => ({ side, ...res }));
-    this.sim = new Simulation(
-      {
-        domain,
-        walls: [],
-        boundaries,
-        bodies: [bodyConfig],
-        collision: { enabled: true, restitution: 1, contact: p.contact, dissipationTarget: 'external' },
-        timestep: p.timestep,
-        seed,
-        referenceKT: p.kT,
-      },
-      store,
-    );
+    this.sim = makeSimulation(p, seed);
     this.body = this.sim.bodies[0];
     this.sampler = new SurfaceFlowSampler(this.body, samplerSidesFor(p.geometry, placementFor(p)), { radius: p.radius, normalWidth: p.normalWidth, normalBins: p.normalBins }, 0);
     this.conservation = new ConservationMonitor(this.sim);
@@ -386,6 +392,7 @@ export function flowDataOf(p: FlowGeometryParams, runs: FlowRunResult[]): FlowDa
     xs: Array.from({ length: n }, (_, k) => ((k + 0.5) * g.chord) / n),
     lengths: { upper: seg('upper'), lower: seg('lower') },
     runs: runs.map((r) => ({ seed: r.seed, blocks: r.blocks })),
+    ambientDensity: p.areaFraction / (Math.PI * p.radius * p.radius),
   };
 }
 
@@ -397,6 +404,8 @@ export interface FlowGeometryResults {
   alphaDeg: number;
   regime: { numberDensity: number; meanFreePath: number; knudsenChord: number; speed: number; note: string };
   surfaceFlow: Record<Side, SurfaceFlowAnalysis> | null;
+  /** do the particles touch the surface? (WakeVoid.ts; experimental) */
+  wake?: Record<Side, WakeAnalysis> | null;
   forces: { fx: Estimate; fy: Estimate; moment: Estimate; note: string };
   fields: { nx: number; ny: number; cell: number; ux: number[]; uy: number[]; density: number[]; kT: number[]; occupancy: number[] } | null;
   perSeed: { seed: number; particles: number; halted: boolean; forceX: number; forceY: number }[];
@@ -443,11 +452,15 @@ export class FlowGeometryExperiment extends SequentialExperiment<Spec, FlowRunRe
     // kinetic-theory estimate for 2-D hard disks (an ESTIMATE, not measured): λ = 1 / (√2 n d)
     const lambda = 1 / (Math.SQRT2 * n0 * 2 * p.radius);
     let surfaceFlow: Record<Side, SurfaceFlowAnalysis> | null = null;
+    let wake: Record<Side, WakeAnalysis> | null = null;
     let forces: FlowGeometryResults['forces'];
     let fields: FlowGeometryResults['fields'] = null;
     if (runs.length > 0) {
       const data = flowDataOf(p, runs);
       surfaceFlow = { upper: analyseSurfaceFlow(data, 'upper', p.detector), lower: analyseSurfaceFlow(data, 'lower', p.detector) };
+      const wu = analyseWake(data, 'upper');
+      const wl = analyseWake(data, 'lower');
+      wake = wu && wl ? { upper: wu, lower: wl } : null;
       const pool = (pick: (r: FlowRunResult) => number[]) => independentEstimate(runs.flatMap(pick), 'block-average');
       forces = {
         fx: pool((r) => r.forces.fx),
@@ -476,6 +489,7 @@ export class FlowGeometryExperiment extends SequentialExperiment<Spec, FlowRunRe
         note: 'Kinetic-theory ESTIMATES (λ = 1/(√2 n d), 2-D hard disks; Enskog corrections ignored), not measured. The flow is in the slip/transitional regime, not a continuum boundary layer.',
       },
       surfaceFlow,
+      wake,
       forces,
       fields,
       perSeed: this.results.map((r) => ({ seed: r.seed, particles: r.particles, halted: r.halted, forceX: r.forces.fx.length ? r.forces.fx.reduce((a, b) => a + b, 0) / r.forces.fx.length : Number.NaN, forceY: r.forces.fy.length ? r.forces.fy.reduce((a, b) => a + b, 0) / r.forces.fy.length : Number.NaN })),

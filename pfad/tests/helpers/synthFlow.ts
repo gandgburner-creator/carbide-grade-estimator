@@ -15,7 +15,8 @@ const BLOCK_T = 15;
 
 export interface Truth {
   seeds: number;
-  rho?: number;
+  /** count density per bin per snapshot: a number, or a function of (station, bin) for a density that varies */
+  rho?: number | ((k: number, j: number) => number);
   sigma?: number;
   /** mean u_t at station k, bin j (block b of run r) */
   u: (r: number, b: number, k: number, j: number) => number;
@@ -26,7 +27,7 @@ export interface Truth {
 
 export function synth(t: Truth, seed: number): FlowData {
   const rng = new Rng(seed);
-  const rho = t.rho ?? 0.127;
+  const rhoAt = (k: number, j: number) => (typeof t.rho === 'function' ? t.rho(k, j) : (t.rho ?? 0.127));
   const sigma = t.sigma ?? 1.1;
   const poisson = (lam: number) => {
     const L = Math.exp(-lam);
@@ -44,7 +45,7 @@ export function synth(t: Truth, seed: number): FlowData {
       const wall = new Array<number>(S * WALL).fill(0);
       for (let k = 0; k < S; k++) {
         for (let j = 0; j < NB; j++) {
-          const c = poisson(rho * SNAP);
+          const c = poisson(rhoAt(k, j) * SNAP);
           const u = t.u(r, b, k, j);
           const o = (k * NB + j) * SUMS;
           sums[o] = c;

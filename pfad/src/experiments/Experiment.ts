@@ -23,7 +23,8 @@ export type ExperimentType =
   | 'scaling'
   | 'ab-test'
   | 'ub-instrument'
-  | 'flow-geometry';
+  | 'flow-geometry'
+  | 'flow-live-build';
 
 /**
  * Serializable experiment record (Master prompt §24, Bible §33).

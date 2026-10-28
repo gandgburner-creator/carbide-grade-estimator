@@ -11,6 +11,7 @@ import { SOUND_VALIDATION, SoundSpeedExperiment, type SoundParams } from './Soun
 import { STATIC_BOX_REFERENCE, StaticBoxExperiment, type StaticBoxParams } from './StaticBoxExperiment';
 import { THERMAL_REFERENCE, ThermalExperiment, type ThermalParams } from './ThermalExperiment';
 import { FLOW_GEOMETRY_QUICK, FLOW_GEOMETRY_REFERENCE, FlowGeometryExperiment, type FlowGeometryParams } from './FlowGeometryExperiment';
+import { FlowLiveBuildExperiment, LIVE_BUILD_QUICK, type LiveBuildParams } from './FlowLiveBuildExperiment';
 import { UB_INSTRUMENT_QUICK, UB_INSTRUMENT_REFERENCE, UBInstrumentExperiment, type UBInstrumentParams } from './UBInstrumentExperiment';
 import {
   WALL_ACCOMMODATION_REFERENCE,
@@ -322,6 +323,14 @@ const flowGeometry: ExperimentEntry<FlowGeometryParams> = {
   create: (p) => new FlowGeometryExperiment(p) as unknown as SequentialExperiment<unknown, unknown>,
 };
 
+const flowLiveBuild: ExperimentEntry<LiveBuildParams> = {
+  type: 'flow-live-build',
+  title: 'Flow-guided geometry: live fill of the unwetted surface (experimental)',
+  defaults: { ...LIVE_BUILD_QUICK, ...FLOW_GEOMETRY_REFERENCE, seeds: [401], live: LIVE_BUILD_QUICK.live },
+  quick: LIVE_BUILD_QUICK,
+  create: (p) => new FlowLiveBuildExperiment(p) as unknown as SequentialExperiment<unknown, unknown>,
+};
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const EXPERIMENTS: Partial<Record<ExperimentType, ExperimentEntry<any>>> = {
   'static-box': staticBox,
@@ -341,11 +350,12 @@ export const EXPERIMENTS: Partial<Record<ExperimentType, ExperimentEntry<any>>> 
   scaling,
   'ub-instrument': ubInstrument,
   'flow-geometry': flowGeometry,
+  'flow-live-build': flowLiveBuild,
 };
 
 setScalingFactory((type, params) => {
   const entry = EXPERIMENTS[type];
-  if (!entry || type === 'scaling' || type === 'ab-test' || type === 'ub-instrument' || type === 'flow-geometry') throw new Error(`cannot scale experiment type ${type}`);
+  if (!entry || type === 'scaling' || type === 'ab-test' || type === 'ub-instrument' || type === 'flow-geometry' || type === 'flow-live-build') throw new Error(`cannot scale experiment type ${type}`);
   return entry.create(params);
 });
 

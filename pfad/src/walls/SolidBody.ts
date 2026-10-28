@@ -76,10 +76,10 @@ export class PolygonBody {
   readonly edges: EdgeGeometry[];
   readonly accommodation: number[];
   readonly totalBins: number;
-  readonly xmin: number;
-  readonly xmax: number;
-  readonly ymin: number;
-  readonly ymax: number;
+  xmin: number;
+  xmax: number;
+  ymin: number;
+  ymax: number;
   readonly momentOrigin: { x: number; y: number };
 
   // per edge bin (flat, see EdgeGeometry.binOffset)
@@ -155,6 +155,54 @@ export class PolygonBody {
 
   get vertexCount(): number {
     return this.edges.length;
+  }
+
+  /**
+   * Move the vertices without changing their number. Edge k keeps its measurement bins (their count and
+   * offsets are fixed at construction; a contact is binned by its position along the edge as it is now),
+   * and every cumulative tally continues. This exists for live construction, which only ever adds
+   * material in space the caller has checked is free of particles: it does NOT move or remove particles,
+   * and a particle left inside the new polygon would be counted by `insideDetections`.
+   */
+  reshape(vertices: number[]): void {
+    const n = this.edges.length;
+    if (vertices.length !== 2 * n) throw new Error(`reshape needs ${n} vertices, got ${vertices.length / 2}`);
+    if (!(polygonArea(vertices) > 0)) throw new Error('polygon vertices must be counter-clockwise with positive area');
+    const next: { ax: number; ay: number; bx: number; by: number; tx: number; ty: number; length: number }[] = [];
+    for (let k = 0; k < n; k++) {
+      const j = (k + 1) % n;
+      const ax = vertices[2 * k];
+      const ay = vertices[2 * k + 1];
+      const bx = vertices[2 * j];
+      const by = vertices[2 * j + 1];
+      const L = Math.hypot(bx - ax, by - ay);
+      if (!(L > 0)) throw new Error('polygon has a zero-length edge');
+      next.push({ ax, ay, bx, by, tx: (bx - ax) / L, ty: (by - ay) / L, length: L });
+    }
+    next.forEach((q, k) => {
+      const e = this.edges[k];
+      e.ax = q.ax;
+      e.ay = q.ay;
+      e.bx = q.bx;
+      e.by = q.by;
+      e.tx = q.tx;
+      e.ty = q.ty;
+      e.nx = q.ty;
+      e.ny = -q.tx;
+      e.length = q.length;
+    });
+    let x0 = Infinity;
+    let x1 = -Infinity;
+    let y0 = Infinity;
+    let y1 = -Infinity;
+    for (let k = 0; k < n; k++) {
+      x0 = Math.min(x0, vertices[2 * k]);
+      x1 = Math.max(x1, vertices[2 * k]);
+      y0 = Math.min(y0, vertices[2 * k + 1]);
+      y1 = Math.max(y1, vertices[2 * k + 1]);
+    }
+    [this.xmin, this.xmax, this.ymin, this.ymax] = [x0, x1, y0, y1];
+    this.config.vertices = vertices.slice();
   }
 
   /** Point-in-polygon (crossing number). */

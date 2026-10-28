@@ -143,6 +143,8 @@ export interface FlowData {
    * measured outer flow as its reference.
    */
   reference?: Record<SideName, { leeward: boolean[]; streamAlong: number[] }>;
+  /** free-stream number density the experiment imposes (used only by the wake-void measure, WakeVoid.ts) */
+  ambientDensity?: number;
   /** body-frame chord position of each segment's centre (shared by both sides) */
   xs: number[];
   lengths: Record<SideName, number[]>;
