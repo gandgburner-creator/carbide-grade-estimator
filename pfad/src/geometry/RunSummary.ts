@@ -29,6 +29,7 @@ export function runSummaryFromRecord(record: ExperimentRecord, meta: { codeVersi
       insideDetections: Number(record.acceptance.find((c) => c.id === 'no-penetration')?.measured ?? Number.NaN),
     },
     analysis: r.surfaceFlow,
+    ...(r.wake ? { wake: r.wake } : {}),
     forces: { fx: r.forces.fx, fy: r.forces.fy, moment: r.forces.moment },
   };
 }

@@ -182,3 +182,120 @@ describe('the geometry limits are applied locally', () => {
     if ('geometry' in r) expect(sideY(r.geometry, 'upper').every((v, i) => v === sideY(thick, 'upper')[i] || v - sideY(thick, 'upper')[i] < 0.11)).toBe(true);
   });
 });
+
+// ---- the live-grown shape as a version of the project
+import { compareVersions } from '../src/geometry/Compare';
+import { acceptProposal, attachRun, headVersion, newProject, parseProject, projectToJSON, replayFrames, undo, version, type Project, type RunSummary } from '../src/geometry/History';
+import { addLiveVersion } from '../src/geometry/LiveVersion';
+import type { LiveBuildSummary, LiveStep } from '../src/geometry/LiveFill';
+import { analyseSurfaceFlow } from '../src/measurements/SeparationDetector';
+import { attached, synth } from './helpers/synthFlow';
+
+/** a wake analysis with contact-layer density `th` from segment k0 on (everything else touched) */
+function wakeWith(k0: number, th: number, bins = 12): WakeAnalysis {
+  const S = 30;
+  const counts: number[] = [];
+  for (let k = 0; k < S; k++) for (let j = 0; j < bins; j++) counts.push(k >= k0 && j < 6 ? 100 * th : 100);
+  return wakeFromTotals({ stations: S, bins, counts, exposure: new Array(S).fill(800), xs: Array.from({ length: S }, (_, k) => k + 0.5), ambient: 0.125, dn: 1 }, 'upper', { ...WAKE_SPEC, pool: 1 });
+}
+
+function runWithWake(wk: WakeAnalysis, seed = 5): RunSummary {
+  const d = synth({ seeds: 3, u: (_r, _b, _k, j) => attached(j) }, seed);
+  return {
+    recordId: `r${seed}`, experimentId: `r${seed}`, seeds: [1, 2, 3], finishedAt: 't', activeMs: 1, codeVersion: 'abc', modelVersion: '0.2', conditions: { alphaDeg: 30 },
+    integrity: { status: 'PASSED', maxEnergyResidual: 1e-14, maxMomentumResidual: 1e-15, halted: 0, insideDetections: 0 },
+    analysis: { upper: analyseSurfaceFlow(d, 'upper'), lower: analyseSurfaceFlow(d, 'lower') },
+    wake: { upper: wk, lower: wakeWith(99, 1) },
+    forces: { fx: { mean: 5, se: 0.1, n: 48 }, fy: { mean: 2, se: 0.1, n: 48 }, moment: { mean: 0, se: 1, n: 48 } },
+  };
+}
+
+function liveSummary(over: Partial<LiveBuildSummary> = {}): LiveBuildSummary {
+  const w = wakeWith(8, 0.2);
+  const plan = planIncrement(g0, w, DEFAULT_LIVE, 28)!;
+  const fit = fitToLimits(g0, 'upper', plan.delta, DEFAULT_LIVE.limits);
+  if (!('geometry' in fit)) throw new Error('no fit');
+  const step = (n: number): LiveStep => ({ update: n, t: 100 + 40 * n, onset: plan.onset, front: plan.front, maxGap: plan.maxGap, meanGap: plan.meanGap, added: 0.5, area: 3, capped: 0, scale: 1, note: 'material added' });
+  return { recordId: 'live1', seed: 401, side: 'upper', startGeometry: g0, finalGeometry: fit.geometry, trajectory: [step(1), step(2), step(3)], stop: { kind: 'stalled', reason: 'it stalled' }, wakeStart: w, treated: { xLo: plan.onset, xHi: 28 }, config: DEFAULT_LIVE, ...over };
+}
+
+describe('a live-grown shape is a version like any other', () => {
+  const base = (): Project => attachRun(newProject('live', { alphaDeg: 30 }, g0), 'v0', runWithWake(wakeWith(8, 0.2), 5));
+
+  it('becomes a child of the head, tagged live-fill, with the story of the fill, and has no run yet', () => {
+    const { project, version: v } = addLiveVersion(base(), liveSummary());
+    expect(v.id).toBe('v1');
+    expect(v.parent).toBe('v0');
+    expect(v.origin).toBe('constructed');
+    expect(v.run).toBeNull();
+    expect(v.construction!.mode).toBe('live-fill');
+    expect(v.construction!.live!.trajectory.length).toBe(3);
+    expect(v.construction!.live!.stop.kind).toBe('stalled');
+    expect(v.construction!.basis.detector).toBe('wake-void/0');
+    expect(v.construction!.hypothesis).toMatch(/Untested/);
+    expect(v.construction!.points.length).toBeGreaterThan(5);
+    expect(v.label).toMatch(/live fill, upper side/);
+    expect(project.head).toBe('v1');
+    expect(project.log[project.log.length - 1].detail).toMatch(/live fill/);
+    expect(validateGeometry(v.geometry, DEFAULT_LIVE.limits)).toEqual([]);
+  });
+
+  it('refuses a fill that started from another geometry, or that added nothing', () => {
+    expect(() => addLiveVersion(base(), liveSummary({ startGeometry: flatPlate(30, 4) }))).toThrow(/different geometry/);
+    expect(() => addLiveVersion(base(), liveSummary({ finalGeometry: g0 }))).toThrow(/added no material/);
+  });
+
+  it('can be undone (and stays in the record), replayed, and saved and loaded again', () => {
+    const { project } = addLiveVersion(base(), liveSummary());
+    const back = undo(project);
+    expect(back.head).toBe('v0');
+    expect(version(back, 'v1').undone).not.toBeNull();
+    const frames = replayFrames(project);
+    expect(frames.length).toBeGreaterThan(1);
+    const again = parseProject(projectToJSON(project)).project;
+    expect(headVersion(again).construction!.mode).toBe('live-fill');
+    expect(headVersion(again).construction!.live!.seed).toBe(401);
+    expect(headVersion(again).geometry).toEqual(headVersion(project).geometry);
+  });
+
+  it('is compared on the prediction it stated: the particles touch the new surface more', () => {
+    let { project } = addLiveVersion(base(), liveSummary());
+    project = attachRun(project, 'v1', runWithWake(wakeWith(8, 0.9), 6));
+    const c = compareVersions(version(project, 'v0'), version(project, 'v1'));
+    expect(c.hypothesis!.outcome).toBe('supported');
+    expect(c.hypothesis!.delta!.id).toBe('contact-treated');
+    expect(c.hypothesis!.detail).toMatch(/does not show the shape is better/);
+    expect(c.indicators.some((d) => d.id === 'contact-upper')).toBe(true);
+  });
+
+  it('reports a contradicted or unresolved prediction just as plainly, and "not applicable" where there was no void', () => {
+    const mk = (after: WakeAnalysis, before = wakeWith(8, 0.2)) => {
+      let p = attachRun(newProject('live', { alphaDeg: 30 }, g0), 'v0', runWithWake(before, 5));
+      p = addLiveVersion(p, liveSummary({ wakeStart: before })).project;
+      p = attachRun(p, 'v1', runWithWake(after, 6));
+      return compareVersions(version(p, 'v0'), version(p, 'v1')).hypothesis!;
+    };
+    expect(mk(wakeWith(8, 0.05)).outcome).toBe('contradicted');
+    expect(mk(wakeWith(8, 0.21)).outcome).toBe('unresolved');
+    expect(mk(wakeWith(8, 0.9), wakeWith(99, 1)).outcome).toBe('not applicable');
+  });
+
+  it('says so when a run has no wake measurement', () => {
+    let p = newProject('live', { alphaDeg: 30 }, g0);
+    const old = runWithWake(wakeWith(8, 0.2), 5);
+    delete old.wake;
+    p = attachRun(p, 'v0', old);
+    p = addLiveVersion(p, liveSummary()).project;
+    p = attachRun(p, 'v1', runWithWake(wakeWith(8, 0.9), 6));
+    const h = compareVersions(version(p, 'v0'), version(p, 'v1')).hypothesis!;
+    expect(h.outcome).toBe('not applicable');
+    expect(h.detail).toMatch(/no wake-void measurement/);
+  });
+
+  it('the proposal workflow still works next to it', () => {
+    // a hand-made increment can follow a live one: the history keeps both kinds
+    const { project } = addLiveVersion(base(), liveSummary());
+    expect(() => acceptProposal(project, 'none')).toThrow(/not open/);
+    expect(project.versions.map((v) => v.construction?.mode ?? 'initial')).toEqual(['initial', 'live-fill']);
+  });
+});

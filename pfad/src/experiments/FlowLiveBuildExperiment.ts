@@ -1,5 +1,5 @@
 import { Simulation } from '../core/Simulation';
-import { applyDelta, capByParticles, DEFAULT_LIVE, fitToLimits, planIncrement, type LiveFillConfig } from '../geometry/LiveFill';
+import { applyDelta, capByParticles, DEFAULT_LIVE, fitToLimits, planIncrement, type LiveFillConfig, type LiveStep, type LiveStop } from '../geometry/LiveFill';
 import { sideY, unplace, validateGeometry, type Placement, type Side, type SurfaceGeometry } from '../geometry/SurfaceGeometry';
 import { ConservationMonitor } from '../measurements/EnergyMonitor';
 import { SurfaceFlowSampler } from '../measurements/SurfaceFlowSampler';
@@ -34,24 +34,7 @@ export interface LiveBuildParams extends FlowGeometryParams {
 
 export const LIVE_BUILD_QUICK: LiveBuildParams = { ...FLOW_GEOMETRY_QUICK, seeds: [401], live: DEFAULT_LIVE };
 
-export type LiveStop = 'converged' | 'stalled' | 'wetted' | 'max-updates' | 'blocked' | 'limit' | 'failed';
-
-export interface LiveStep {
-  update: number;
-  t: number;
-  /** the separation point of this update (body-frame chord position), or null when every station is touched */
-  onset: number | null;
-  front: number;
-  maxGap: number;
-  meanGap: number;
-  /** largest material added at a station [d], and the area added [d²] */
-  added: number;
-  area: number;
-  /** stations whose increment a particle capped, and the scale the geometry limits forced (1 = none) */
-  capped: number;
-  scale: number;
-  note: string;
-}
+export type { LiveStep, LiveStop };
 
 export interface LiveBuildRunResult {
   seed: number;

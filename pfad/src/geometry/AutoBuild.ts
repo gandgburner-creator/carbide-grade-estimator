@@ -1,6 +1,6 @@
 import type { SurfaceFlowAnalysis } from '../measurements/SeparationDetector';
 import { basisFromAnalysis } from './Basis';
-import type { ConstructionBasis, EvidenceMode } from './Construction';
+import type { AnalysisMode, ConstructionBasis } from './Construction';
 import type { RunSummary } from './History';
 import type { Side } from './SurfaceGeometry';
 
@@ -33,7 +33,7 @@ import type { Side } from './SurfaceGeometry';
  */
 export interface AutoChoice {
   side: Side;
-  mode: EvidenceMode;
+  mode: AnalysisMode;
   basis: ConstructionBasis;
   /** region-mean near-wall flux Q_w of the stretch chosen (more negative = more backflow) */
   strength: number;

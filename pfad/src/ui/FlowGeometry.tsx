@@ -12,7 +12,7 @@ import { DEFAULT_SCENARIO, describeScenario, parseScenario, scenarioToModel } fr
 import { nextAutoAction, type StopKind } from '../geometry/AutoBuild';
 import { basisFromAnalysis } from '../geometry/Basis';
 import { compareVersions, type FieldGrid } from '../geometry/Compare';
-import { DEFAULT_CONSTRUCTION, newProposalId, proposeIncrement, type ConstructionConfig, type EvidenceMode, type Proposal } from '../geometry/Construction';
+import { DEFAULT_CONSTRUCTION, newProposalId, proposeIncrement, type AnalysisMode, type ConstructionConfig, type Proposal } from '../geometry/Construction';
 import { parseReferenceOutline, projectSVG, surfaceCSV } from '../geometry/Export';
 import {
   acceptProposal,
@@ -156,7 +156,7 @@ export function FlowGeometry() {
   const [autoTarget, setAutoTarget] = useState(3);
   const [autoWeak, setAutoWeak] = useState(true);
   const [side, setSide] = useState<Side>('upper');
-  const [mode, setMode] = useState<EvidenceMode>('detector');
+  const [mode, setMode] = useState<AnalysisMode>('detector');
   const [cfg, setCfg] = useState<ConstructionConfig>(DEFAULT_CONSTRUCTION);
   const [proposal, setProposal] = useState<Proposal | null>(null);
   const [pointIdx, setPointIdx] = useState(-1);

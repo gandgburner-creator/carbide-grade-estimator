@@ -1,5 +1,5 @@
 import { LEVELS, type SurfaceFlowAnalysis } from '../../measurements/SeparationDetector';
-import type { ConstructionConfig, EvidenceMode, Proposal } from '../../geometry/Construction';
+import type { AnalysisMode, ConstructionConfig, Proposal } from '../../geometry/Construction';
 import type { GeometryVersion } from '../../geometry/History';
 import type { Side } from '../../geometry/SurfaceGeometry';
 import { fmt } from '../Panels';
@@ -9,8 +9,8 @@ export interface ConstructionProps {
   head: GeometryVersion;
   side: Side;
   onSide: (s: Side) => void;
-  mode: EvidenceMode;
-  onMode: (m: EvidenceMode) => void;
+  mode: AnalysisMode;
+  onMode: (m: AnalysisMode) => void;
   cfg: ConstructionConfig;
   onCfg: (c: ConstructionConfig) => void;
   analyses: Record<Side, SurfaceFlowAnalysis> | null;

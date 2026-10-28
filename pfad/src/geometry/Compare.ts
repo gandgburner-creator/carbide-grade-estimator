@@ -1,4 +1,5 @@
 import type { Est, StationRow } from '../measurements/SeparationDetector';
+import { WAKE_SPEC, type WakeAnalysis } from '../measurements/WakeVoid';
 import type { GeometryVersion, RunSummary } from './History';
 import type { Side } from './SurfaceGeometry';
 
@@ -49,6 +50,14 @@ export function regionMean(stations: StationRow[], pick: (s: StationRow) => Est,
   const mean = sel.reduce((a, s) => a + pick(s).mean * s.length, 0) / L;
   const se = sel.reduce((a, s) => a + pick(s).se * s.length, 0) / L;
   return { mean, se, stations: sel.length };
+}
+
+
+/** Mean contact-layer density (relative to the free stream) of the stations of a wake analysis whose centre lies in [xLo, xHi]; SE added linearly. */
+export function wakeContactMean(w: WakeAnalysis, xLo: number, xHi: number): { mean: number; se: number; stations: number } {
+  const sel = w.stations.filter((s) => s.known && s.x >= xLo - 1e-9 && s.x <= xHi + 1e-9);
+  if (!sel.length) return { mean: Number.NaN, se: Number.NaN, stations: 0 };
+  return { mean: sel.reduce((a, s) => a + s.contact.mean, 0) / sel.length, se: sel.reduce((a, s) => a + s.contact.se, 0) / sel.length, stations: sel.length };
 }
 
 export interface StationDelta {
@@ -133,10 +142,43 @@ export function compareVersions(va: GeometryVersion, vb: GeometryVersion): Compa
     indicators.push(delta(`qw-${side}`, `mean near-wall flux Q_w over the whole ${side} side`, 'm/(d·τ)', 'larger = less backflow', qa, qb));
   }
 
+  // do the particles touch the surface? (only when both runs measured it)
+  if (ra.wake && rb.wake) {
+    for (const side of ['upper', 'lower'] as const) {
+      const all = [0, ra.wake[side].stations[ra.wake[side].stations.length - 1]?.x ?? 0] as const;
+      indicators.push(delta(`contact-${side}`, `mean contact-layer density over the whole ${side} side (relative to the free stream)`, '× free stream', 'larger = the particles touch the surface more', wakeContactMean(ra.wake[side], all[0], all[1]), wakeContactMean(rb.wake[side], all[0], all[1])));
+    }
+  }
+
   // the one stated prediction: backflow over the treated stretch is reduced
   let hypothesis: Comparison['hypothesis'] = null;
   const c = vb.construction;
-  if (c) {
+  if (c && c.mode === 'live-fill') {
+    const { xLo, xHi } = c.basis.region;
+    if (!ra.wake || !rb.wake) {
+      hypothesis = { stated: c.hypothesis, side: c.side, xLo, xHi, outcome: 'not applicable', detail: 'One of the two runs has no wake-void measurement (it was made before that measure existed): simulate both again to test the prediction.', delta: null };
+    } else {
+      const ma = wakeContactMean(ra.wake[c.side], xLo, xHi);
+      const mb = wakeContactMean(rb.wake[c.side], xLo, xHi);
+      const d = delta('contact-treated', `mean contact-layer density over the treated stretch (${c.side}, x = ${xLo.toFixed(1)}–${xHi.toFixed(1)} d)`, '× free stream', 'larger = the particles touch the surface more', ma, mb);
+      let outcome: NonNullable<Comparison['hypothesis']>['outcome'];
+      let detail: string;
+      if (!(ma.mean < WAKE_SPEC.wetThreshold)) {
+        outcome = 'not applicable';
+        detail = `The particles already touched the old surface over this stretch (contact-layer density ${ma.mean.toFixed(2)} of the free stream, not below ${WAKE_SPEC.wetThreshold}), so there was no void to close.`;
+      } else if (d.z !== null && d.z >= Z_SCALE) {
+        outcome = 'supported';
+        detail = `The contact-layer density over the stretch rose from ${ma.mean.toFixed(2)} to ${mb.mean.toFixed(2)} of the free stream (z = ${d.z.toFixed(1)}): the particles touch the new surface more, as predicted. This does not show the shape is better, only that this prediction held in this run.`;
+      } else if (d.z !== null && d.z <= -Z_SCALE) {
+        outcome = 'contradicted';
+        detail = `The contact-layer density over the stretch fell from ${ma.mean.toFixed(2)} to ${mb.mean.toFixed(2)} of the free stream (z = ${d.z.toFixed(1)}): the particles touch the new surface less, opposite to the prediction.`;
+      } else {
+        outcome = 'unresolved';
+        detail = `The contact-layer density over the stretch went from ${ma.mean.toFixed(2)} to ${mb.mean.toFixed(2)} of the free stream (z = ${d.z === null ? 'n/a' : d.z.toFixed(1)}), within the noise at |z| < ${Z_SCALE}: neither supported nor contradicted at this statistical power.`;
+      }
+      hypothesis = { stated: c.hypothesis, side: c.side, xLo, xHi, outcome, detail, delta: d };
+    }
+  } else if (c) {
     const sa = ra.analysis[c.side].primary.stations;
     const sb = rb.analysis[c.side].primary.stations;
     const { xLo, xHi } = c.basis.region;

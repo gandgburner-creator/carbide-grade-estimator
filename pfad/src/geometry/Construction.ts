@@ -32,7 +32,10 @@ import { cloneGeometry, DEFAULT_LIMITS, sideY, stationX, validateGeometry, type 
  * them it is scaled down uniformly, and if even a tiny scale violates them there is no proposal.
  * Everything is a pure function: the same inputs give the same proposal.
  */
-export type EvidenceMode = 'detector' | 'exploratory';
+/** what a measurement-based proposal rests on: the detector's region, or a weaker point estimate (see Basis.ts) */
+export type AnalysisMode = 'detector' | 'exploratory';
+/** how an increment came about: from an analysis of a finished run, or grown live while a simulation ran (LiveFill.ts) */
+export type EvidenceMode = AnalysisMode | 'live-fill';
 
 export interface BasisStation {
   /** body-frame chord position of the analysis station's centre */

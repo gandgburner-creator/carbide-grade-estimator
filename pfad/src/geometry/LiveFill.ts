@@ -22,6 +22,41 @@ import { cloneGeometry, DEFAULT_LIMITS, sideY, stationX, validateGeometry, type 
  * Safety: material is only added where no particle centre is within its radius (+ `clearance`) of the new
  * surface (`capByParticles`), so the engine never has a particle inside the body.
  */
+export type LiveStop = 'converged' | 'stalled' | 'wetted' | 'max-updates' | 'blocked' | 'limit' | 'failed';
+
+/** One update of a live fill. */
+export interface LiveStep {
+  update: number;
+  t: number;
+  /** the separation point of this update (body-frame chord position), or null when every station is touched */
+  onset: number | null;
+  front: number;
+  maxGap: number;
+  meanGap: number;
+  /** largest material added at a station [d], and the area added [d²] */
+  added: number;
+  area: number;
+  /** stations whose increment a particle capped, and the fraction of the planned material the geometry limits let through (1 = all) */
+  capped: number;
+  scale: number;
+  note: string;
+}
+
+/** What a finished live fill hands to the project history. */
+export interface LiveBuildSummary {
+  recordId: string;
+  seed: number;
+  side: Side;
+  startGeometry: SurfaceGeometry;
+  finalGeometry: SurfaceGeometry;
+  trajectory: LiveStep[];
+  stop: { kind: LiveStop; reason: string };
+  /** the first measurement of how far the particle cloud stood off the surface */
+  wakeStart: WakeAnalysis | null;
+  treated: { xLo: number; xHi: number } | null;
+  config: LiveFillConfig;
+}
+
 export interface LiveFillConfig {
   /** which side to fill; 'auto' chooses at the first update the side with the larger unwetted stretch × gap */
   side: Side | 'auto';

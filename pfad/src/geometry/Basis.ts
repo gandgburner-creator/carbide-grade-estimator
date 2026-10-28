@@ -1,5 +1,5 @@
 import { LEVELS, type SurfaceFlowAnalysis } from '../measurements/SeparationDetector';
-import type { BasisStation, ConstructionBasis, EvidenceMode } from './Construction';
+import type { AnalysisMode, BasisStation, ConstructionBasis } from './Construction';
 
 /**
  * Turn a detector analysis of one side into the basis of a construction proposal.
@@ -12,7 +12,7 @@ import type { BasisStation, ConstructionBasis, EvidenceMode } from './Constructi
  */
 export function basisFromAnalysis(
   a: SurfaceFlowAnalysis,
-  mode: EvidenceMode,
+  mode: AnalysisMode,
   source: { recordId: string | null; versionId: string | null },
 ): { ok: true; basis: ConstructionBasis } | { ok: false; reason: string } {
   const st = a.primary.stations;

@@ -1,5 +1,7 @@
 import type { SurfaceFlowAnalysis } from '../measurements/SeparationDetector';
 import type { Est } from '../measurements/SeparationDetector';
+import type { WakeAnalysis } from '../measurements/WakeVoid';
+import type { LiveFillConfig, LiveStep, LiveStop } from './LiveFill';
 import type { ValidationStatus } from '../validation/Status';
 import { applyProposal, partialSurface, type PathPoint, type Proposal } from './Construction';
 import { cloneGeometry, type Side, type SurfaceGeometry } from './SurfaceGeometry';
@@ -26,6 +28,8 @@ export interface RunSummary {
   conditions: Record<string, unknown>;
   integrity: { status: ValidationStatus; maxEnergyResidual: number; maxMomentumResidual: number; halted: number; insideDetections: number };
   analysis: Record<Side, SurfaceFlowAnalysis>;
+  /** do the particles touch the surface? (WakeVoid.ts); absent in summaries made before it existed */
+  wake?: Record<Side, WakeAnalysis>;
   forces: { fx: Est; fy: Est; moment: Est };
 }
 
@@ -45,6 +49,8 @@ export interface ConstructionInfo {
   scale: number;
   /** the accepted points, in construction order */
   points: PathPoint[];
+  /** present when the increment was grown live during a simulation (LiveFill.ts) instead of proposed and accepted */
+  live?: { recordId: string; seed: number; stop: { kind: LiveStop; reason: string }; updates: number; config: LiveFillConfig; trajectory: LiveStep[] };
 }
 
 export interface GeometryVersion {
