@@ -58,7 +58,9 @@ step('plate 20 × 2 cm at 30°, 2000 km/h (Mach 1.6): project started');
 await button('SIMULATE').click();
 await phaseIs('FINISHED', 600000);
 step(`v0 simulated (${lap()})`);
-await vis.getByText('particles touching the surface').first().waitFor({ timeout: 10000 });
+// the charts are canvases: look for them by their accessible name
+await vis.locator('canvas[aria-label*="particles touching the surface"]').first().waitFor({ timeout: 10000 });
+await vis.locator('canvas[aria-label*="void: distance from the wall"]').first().waitFor({ timeout: 10000 });
 await shot('1-v0-measured');
 step('the measurement panel shows the contact-layer density and the void along the surface');
 
