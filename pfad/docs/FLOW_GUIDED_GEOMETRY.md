@@ -88,6 +88,8 @@ the wind, the air or the angle are applied to the open project and recorded in i
 | Separation-region detector `wall-flux-detector/0` | `src/measurements/SeparationDetector.ts` | **experimental, not validated** |
 | Construction rule and proposals | `src/geometry/Construction.ts`, `Basis.ts` | **experimental** |
 | Version history, undo, replay | `src/geometry/History.ts` | implemented, tested |
+| Wake void (do the particles touch the surface?) | `src/measurements/WakeVoid.ts` | **experimental**, tested on synthetic data |
+| Live fill (the surface grows during one simulation) | `src/geometry/LiveFill.ts`, `src/experiments/FlowLiveBuildExperiment.ts`, `src/walls/SolidBody.ts` (`reshape`) | **experimental**, tested on the real engine |
 | Auto-build (repeat simulate / propose / accept; stops when nothing is measured) | `src/geometry/AutoBuild.ts`, `src/ui/flow/AutoBuildPanel.tsx` | **experimental**, decision logic tested |
 | Comparison of two versions | `src/geometry/Compare.ts` | implemented (descriptive) |
 | Real-engine experiment `flow-geometry` | `src/experiments/FlowGeometryExperiment.ts` | implemented; a registry experiment like the others |
@@ -260,6 +262,72 @@ Two evidence modes:
   can produce. It exists so the loop can be exercised at the statistics a
   browser run affords. A proposal made this way is a hypothesis test, not a
   response to a detection.
+
+## Live fill: grow the surface while the simulation runs (experimental)
+
+The backflow detector answers "is there a reversed-flow region?". That is too narrow for separation: classically backflow
+starts *downstream* of the separation point, and at a sharp edge the flow leaves the surface with no backflow at all. A
+second, simpler question is asked here: **do the particles still touch the surface?**
+
+**The measure `wake-void/0`** (`src/measurements/WakeVoid.ts`, experimental, not validated). From the strip counts the
+sampler already collects, for each station: the number density of the layer right at the wall (the first 1 d bin)
+relative to the free stream's, the *contact density* θ₀, and the density profile θ(n) with distance from the wall. A
+station is **unwetted** when θ₀ is under 0.5 (half the free stream), there is enough exposure to tell (at least 24 counts
+expected at free-stream density, pooled over 3 neighbouring stations) and the void is at least 0.5 d. The **gap** is the
+distance from the wall to where the density first reaches 0.5 of the free stream: how far the particle cloud stands off
+the surface. The **separation point** of this definition is the first station of a run of at least 2 adjacent unwetted
+stations, counted from the leading edge. It needs no backflow. The free-stream density is the one the experiment
+imposes at its open boundaries (a configuration value, not a classical result). The threshold 0.5 was chosen as the
+midpoint after a probe of a flat plate at 30° and 65° (lee density 0.15–0.4 of the free stream against 1–3 on the
+windward side); that is recorded here, not hidden. It is an occupancy definition: a fast stream past an inclined plate
+leaves a rarefied lee that it calls unwetted, whether or not a classical analysis would call it separated.
+
+**The rule** (`src/geometry/LiveFill.ts`). Every `interval` (40 τ) of simulation time, from the separation point to a *front*
+that starts at the separation point and advances 1.5 d per update until it meets the trailing edge:
+
+```
+δ(x) = min(maxStep, η · max(0, gap(x) − margin)) · w_on(x) · w_front(x)
+```
+
+with η = 0.4, maxStep = 0.5 d, margin = 0.3 d, smoothstep ramps (3 d) so the new surface leaves and rejoins the old one
+tangentially, and the last 2 d before the trailing edge never touched (it stays where it is: the fill *converges to* it).
+Only the gap is filled, so as the surface advances into the void the particles touch it again and the gap closes. Nothing
+here knows an airfoil, a Kutta condition or a target shape; the result is the envelope of the particle cloud.
+
+**Safety, so the engine stays honest** (`PolygonBody.reshape`, `capByParticles`, `fitToLimits`):
+
+- The running polygon is reshaped *in place* (same vertex count, so every measurement tally continues). Particles are
+  never moved or removed: material is only added where no particle centre lies within its radius (+ 0.1 d) of the new
+  surface. Each particle caps the increment above it, and the real new polygon is checked against every particle before it
+  is applied (halving the increment if needed, skipping the update if particles are in the way).
+- The thickness, slope and curvature limits are applied **locally** (slope projected exactly, curvature and thickness by
+  local reduction), so one tight spot does not stop the rest of the update.
+- Integrity checks are part of the record: no particle ever inside the body, the energy and momentum ledgers closed
+  (about 1e-14 in tests), the trailing edge unmoved, the other side untouched, the final geometry within its limits.
+
+**The run** (`flow-live-build`, `src/experiments/FlowLiveBuildExperiment.ts`): one builder seed (the first seed + 100), a
+start-up on the starting geometry until the wake has developed, then the live updates. It stops when the void has closed,
+when nothing was ever unwetted, when it **stalls** (the front is at the trailing edge and almost nothing more fits: the
+limits or the particles allow no more while a void is still left), when particles block it for several updates, when the
+limits leave no room, or at the update limit (30). The output is a **geometry and the story of how it grew**, not a flow
+measurement of it. One seed builds the shape, so another seed can give a slightly different one.
+
+**In the workspace**: the *Live fill* card starts it; you watch the body grow in the particle view, with the separation
+point (red) and the front (amber) marked, and a status table (updates, separation point, front, gap). On completion the
+shape becomes a new version tagged `live-fill`, with every update kept in the history. It has **no run yet**: simulate it
+(three seeds, as for any version) to measure what the new surface does. The comparison with its parent then reports the
+prediction the fill stated — *the particles touch the new surface more over the treated stretch* — as supported,
+contradicted, unresolved or not applicable, and lists the contact-layer density of both sides. The measurement panel shows
+the contact density and the void along the surface for every simulated version. STOP discards the run (the shape grown so
+far is not kept).
+
+**What it did in the first real runs** (flat plate 30 × 3 d at 30°, stream 2.95 d/τ = Mach 1.6, builder seed 401; one
+seed, not judged): the lee side was unwetted from the leading edge on, with the cloud standing 7–12 d off the surface
+(12 d is the edge of the sampled window); the fill grew a convex fairing on the upper side, up to about +4 d at 10 d from
+the leading edge, flat to about 21 d and back to the trailing edge, in about 20 updates (75 s on a server core). It
+**stalls at the curvature limit** with a large void still behind it: the limits (thickness ≤ 12 d, slope ≤ 0.5) do not let the
+surface reach the particle cloud there. All integrity checks passed. Whether the resulting shape reduces the void in a fresh
+simulation is exactly what the next simulation and the comparison decide.
 
 ## Auto-build (experimental)
 
