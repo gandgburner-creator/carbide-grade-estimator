@@ -285,8 +285,9 @@ src/app/library.ts, libraryIdb.ts   library model, search, import/bundle, Indexe
 src/app/provenance.ts    code version (git commit stamped at build), model version, seeds, units
 src/experiments/UBInstrumentExperiment.ts   UB0Run + estimators as a registry experiment (N_c = 1 only)
 src/ui/                  React components: Lab (workstation), ParticleView, Chart, panels
-src/ui/AppShell.tsx      the two workspaces (Laboratory, Flow-guided geometry); both stay mounted
-src/ui/FlowGeometry.tsx, src/ui/flow/   the flow-guided geometry workspace (own simulation worker)
+src/ui/AppShell.tsx      the three workspaces (Laboratory, Flow-guided geometry A · particles, B · CFD); all stay mounted
+src/ui/FlowGeometry.tsx, src/ui/flow/   the flow-guided geometry workspace A (own simulation worker)
+src/ui/CfdGeometry.tsx, src/ui/flow/Cfd*.tsx, src/workers/cfd.worker.ts   the CFD workspace B (own worker; conventional CFD in src/cfd/, separate from the particle engine)
 src/app/projectStore.ts  flow-geometry projects in IndexedDB (library database version 2)
 ```
 
@@ -315,6 +316,8 @@ there:
 | `tests/experiments.ubinstrument.test.ts` | The instrument, its lock, checkpoint and resume, and the browser base64 path |
 | `tests/architecture.test.ts` | The app layer imports no benchmarks and mentions no classical aerodynamic method |
 | `scripts/smoke-app.mjs` | Drives the built app in Chromium |
+| `scripts/smoke-cfd.mjs` | Drives the CFD workspace in Chromium (real lattice Boltzmann run at the quick resolution → integrity, wall shear and separation, lift and drag with the scaled estimate → streamlines → pointer by hand and by one measured step → comparison → undo → export) |
+| `scripts/smoke-pointer.mjs` | Drives the rounded plate and the construction pointer in the particle workspace (candidate checks, placing, simulation, streamlines, one measured step, project JSON, undo) |
 | `scripts/smoke-flow.mjs` | Drives the flow-guided geometry workspace end to end in Chromium (flat plate → simulation → measurement → proposal → accept → re-simulation → comparison → undo → exports) |
 
 ## Performance

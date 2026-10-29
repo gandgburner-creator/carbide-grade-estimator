@@ -7,9 +7,12 @@ visualisation foundation for a research question, not a design tool.** Nothing i
 it is validated, no geometry it produces is optimised, and it says nothing about
 airfoil performance.
 
-Open it from the application with the **FLOW-GUIDED GEOMETRY** tab (`npm start`,
+Open it from the application with the **FLOW-GUIDED GEOMETRY A · PARTICLES** tab (`npm start`,
 then http://localhost:5173). Universe A only; Universe B stays locked and no
-judged Universe B experiment can be started from here.
+judged Universe B experiment can be started from here. A second tab, **FLOW-GUIDED
+GEOMETRY B · CFD**, runs the same construction with a conventional CFD solver instead of the
+particle engine; it is described at the end of this document and shares nothing with the
+particle research.
 
 ## What the question is
 
@@ -19,7 +22,7 @@ judged Universe B experiment can be started from here.
 
 The workflow, one cycle:
 
-1. **Simulate** the current geometry (first: a flat plate) with the real
+1. **Simulate** the current geometry (first: the rounded plate) with the real
    particle engine, the same seeds and the same flow conditions every time.
 2. **Measure** the near-surface flow on both sides (below).
 3. **Detect** whether a region of reduced or reversed near-wall flow exists,
@@ -76,7 +79,7 @@ reliable about the lift, drag or performance of the real plate. The screen state
 every set of inputs, and the inputs are recorded with every run (`scenario` in the run
 configuration) for provenance only: the simulation reads none of them.
 
-Length and thickness are fixed when a project starts (they define the flat plate); changes to
+Length and thickness are fixed when a project starts (they define the plate); changes to
 the wind, the air or the angle are applied to the open project and recorded in its history
 (`APPLY CHANGES TO THIS PROJECT`), and a comparison across such a change carries a warning.
 
@@ -362,6 +365,64 @@ With the quick preset at 65° the detector does not reach a candidate region, so
 simulation and builds nothing; with weak measurements allowed it builds small increments (about one particle diameter each).
 A cycle takes about as long as one simulation (a few minutes at the default size).
 
+## The rounded plate and the construction pointer
+
+**The starting body is a slot shape, not a rectangle.** Both ends are half-circles: the
+*thickness* is the diameter of the two end circles and the *length* is the distance between their
+centres plus one diameter (a 20 × 2 cm plate has 2 cm end circles with centres 18 cm apart). In
+the particle simulation (30 × 3 particle diameters by default) the round ends are made of several
+short straight edges, so a shoulder drawn in centimetres is resolved only to about one particle
+diameter (`src/geometry/Pointer.ts`, `plateGeometry`). Projects made before this change keep their
+flat plates and open as before.
+
+**The pointer.** Construction always starts at the leading edge. A pointer starts on top of the
+leading circle (plate frame: origin at the centre of the leading circle, `x` along the plate, `y`
+the height above the plate's own surface) and moves along the plate and outward. Material is only
+added: the pointer never goes below the plate, and it only moves forward. Every position it has
+been placed at is kept. The drawn curve passes through them, joined by cubic curves with equal
+tangents, so the surface has no corner at the pointer.
+
+**The tether.** From the pointer a straight line (the tether) runs to the *anchor*, the top of the
+trailing circle, where its flat edge meets the circle. At every pointer position the curve arrives
+and leaves tangent to the tether. Where the pointer has not been, the surface is the tether itself,
+so the body is always a complete closed shape and the trailing end never moves. With the pointer
+on the plate (the start) nothing has been added. The anchor is a construction constraint chosen by
+the user (the plate's own trailing-edge geometry), not a flow law: no Kutta condition, circulation
+or airfoil family is built in, and nothing about the flow decides it.
+
+**Who moves the pointer.** By hand (position along the plate and height, with a preview), by one
+**automatic step**, or by a **sweep** that repeats simulate → step → simulate until the pointer
+reaches the anchor. The rule (`planPointerStep`) is stated, not tuned: the pointer advances a fixed
+step along the plate, and rises above the *current* surface there by a fraction of the measured
+gap between that surface and the flow (at most a fixed rise per step), and not at all where
+nothing is measured, in which case the curve follows the surface already there. In the particle
+workspace the gap is the wake void (`wake-void/0`, experimental); in the CFD workspace it is the
+height of the dividing streamline of the time-mean flow. The rule has no goal, never compares
+shapes, and is a hypothesis generator like the older construction rules: each pointer version states
+a prediction (the particles touch the surface more, or the reversed-flow region is thinner, over the
+stretch just drawn) and the next simulation decides.
+
+**Geometry representation.** The body is still two graph curves over the chord, now with non-uniform
+stations (closer around the round ends), the two sides meeting in a single point at each tip (no end
+faces), and a *free range* of stations (the straight stretch between the circles) that the older
+increment rules (proposals, live fill, auto-build) may change; those rules leave the round ends alone.
+A version drawn by the pointer remembers its plate and pointer paths; after an older-rule increment the
+geometry is no longer plate-plus-paths and the pointer panel says so.
+
+**What is not claimed.** The pointer path is not an optimum, no shape it makes is optimised, and
+nothing about it has been validated.
+
+## Streamlines of the mean flow
+
+Both workspaces can draw streamlines of the time-mean flow of the viewed version
+(`src/measurements/Streamlines.ts`): lines everywhere tangent to the seed- and time-averaged cell
+velocity, integrated with a fourth-order Runge–Kutta step through the bilinearly interpolated field and
+laid out evenly (a seed too close to an existing line is dropped; a line ends at the body, at stagnation,
+where it meets another line, or where it closes on itself). In the particle workspace this is the
+"average particle path traced": the path of the *mean* motion. A single particle does not follow it (it
+moves thermally and collides), and where a cell holds few samples a line wanders; the screen says so. The
+CFD workspace uses the same tracer on its time-mean velocity.
+
 ## Lift and drag (measured in the simulation, scaled for orientation only)
 
 **What is measured.** The body is fixed in a stream along +x and every particle that hits it hands
@@ -464,6 +525,62 @@ database) and survive a reload.
 - A chord of 30 d in a 180 × 100 d box. Larger chords cost more than linearly.
 - Each version needs a fresh simulation before the next increment.
 - Statistical power is the limiting factor, not rendering (see above).
+
+## Flow-guided geometry B: conventional CFD (separate from the particle research)
+
+The second construction workspace computes the flow with a **conventional CFD solver** instead of the
+particle engine. It was added at the user's explicit request ("forget our universes and use actual fluid
+mechanics"); it does **not** replace the particle engine, which is unchanged, and it shares no code with
+it (`src/cfd/` imports nothing from `core`, `gas`, `walls`, `occupancy` or `benchmarks`;
+`tests/cfd.guards.test.ts`). It has no particles, no model units and no Universe A or B, and its results
+are not evidence about the particle model or the UB-0 plan. Universe B stays locked.
+
+**What it solves.** The incompressible Navier–Stokes equations on a square lattice by the lattice
+Boltzmann method (D2Q9, two-relaxation-time collision with the "magic" parameter 3/16, kinematic viscosity
+ν = (τ − ½)/3; `src/cfd/Lbm.ts`). Walls are no-slip with the linear-interpolation bounce-back of Bouzidi,
+Firdaouss and Lallemand, so a tilted or curved wall sits where the polygon puts it (the fraction of every
+wall link is computed from the geometry, `Raster.ts`). The force on the body is the momentum exchanged with
+its surface. Boundaries: Zou–He velocity inflow at the free-stream speed, zero-gradient outflow, slip walls at
+top and bottom (a channel of 6 plate lengths height: the blockage of the body is reported, and 15 % at 65°).
+Nothing that decides the flow is imposed: no Kutta condition, no circulation, no separation point.
+
+**Measurements** (`CfdRun.ts`, `Walls.ts`). After a start-up of 10–14 flow-throughs of the plate, a window
+of 20–26 more is split into 8 time blocks. Per block: the mean force (momentum exchange), the mean fields,
+and, for each station of both sides, the velocity profile along the surface normal. From the profiles:
+the wall shear C_f = τ / (½ρU²) along the downstream tangent (one-sided second-order difference through
+u(0) = 0), the pressure coefficient beside the wall, and the *dividing streamline*: the height where the
+flux along the surface returns to zero after a reversed stretch (a lower bound where it does not return
+within the sampled height). **Separation** is read from the sign of C_f: a stagnation point where it turns
+positive after a reversed stretch at the leading edge, separation where it turns significantly negative
+(|z| ≥ 2 on the block spread) after forward flow, reattachment where it turns positive again. Uncertainties
+are standard errors of the block means; the solver is deterministic, so there is no seed.
+
+**Reynolds number.** The plain inputs give the Reynolds number of your plate in your air,
+Re = ρUL/μ, from the standard-atmosphere air at your temperature and height (comparison and scaling only).
+The run uses it exactly if the resolution can run it (ν ≥ 0.0075 in lattice units, below which the scheme was
+found unstable here; 384 / 512 / 768 for 48 / 64 / 96 cells along the plate at the lattice speed 0.06) and
+otherwise the largest it can. A 20 cm plate in 36 km/h air has Re ≈ 1.4 × 10⁵, so the run is at Re = 384 …
+768 and the screen says how much lower that is. At the real Reynolds number the boundary layer is turbulent
+and the flow can separate elsewhere; **a result is the flow of a fluid at the run's Reynolds number, in
+two dimensions, not the flow around your plate.** Lift and drag are scaled to newtons for your wing depth and
+your air exactly as in the particle workspace, and are labelled a scaled estimate, not a prediction.
+
+**What was checked** (`tests/cfd.lbm.test.ts`, `tests/cfd.run.test.ts`).
+- Poiseuille flow between two walls follows the parabola to four digits with the walls halfway between nodes,
+  and to 3 % with walls cut at a fifth of a link.
+- Mass is conserved in a periodic box; a fluid at rest stays at rest.
+- The circular cylinder at Re = 20 is steady with C_d = 2.28 (published, unconfined: about 2.05; the box has 7 %
+  blockage). At Re = 100 it sheds vortices at Strouhal number 0.174–0.176 and has C_d = 1.50–1.53 in the same box,
+  1.46 at 3.6 % blockage (published, unconfined: 0.165 and 1.34). The values do not change with resolution
+  (10, 16, 24 cells across the cylinder give C_d = 1.51, 1.53, 1.50): the differences from the published
+  values are the confinement of the slip walls and the outflow condition, not the resolution.
+- **Not validated:** the amplitude of the fluctuating lift of the cylinder (0.5 against the published 0.33,
+  with slow modulations); any flat-plate or inclined-plate result against measurements; any Reynolds number
+  above the cap; turbulence (none is modelled). The cylinder checks say the solver solves the equations it
+  claims to; they do not say that the plate results are right.
+
+**Status.** Experimental. The forces and the wall measurements of a plate are computed numbers with
+the stated limits, no more.
 
 ## What remains unvalidated, and open scientific questions
 

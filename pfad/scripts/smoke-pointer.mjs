@@ -65,7 +65,7 @@ const lap = () => `${((Date.now() - t0) / 1000).toFixed(0)} s`;
 
 await page.goto(url);
 await expectText('PFAD LABORATORY');
-await page.getByRole('button', { name: /FLOW-GUIDED GEOMETRY/ }).click();
+await page.getByRole('button', { name: /FLOW-GUIDED GEOMETRY A/ }).click();
 await expectText('FLOW-GUIDED GEOMETRY · EXPERIMENTAL');
 const field = (name) => page.locator('.shell-body:visible').getByLabel(name, { exact: true });
 

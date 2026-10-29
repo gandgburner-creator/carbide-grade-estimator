@@ -45,7 +45,7 @@ const log = () => vis.locator('ul.auto-log').innerText();
 const waitStopped = (timeout) => vis.locator('ul.auto-log li.stop').first().waitFor({ timeout });
 
 await page.goto(url);
-await page.getByRole('button', { name: /FLOW-GUIDED GEOMETRY/ }).click();
+await page.getByRole('button', { name: /FLOW-GUIDED GEOMETRY A/ }).click();
 await vis.getByText('4 · Auto-build (experimental)').waitFor({ timeout: 10000 });
 await vis.getByText('stops by itself when nothing is measured').first().waitFor();
 step('the auto-build card is there and says what it does');

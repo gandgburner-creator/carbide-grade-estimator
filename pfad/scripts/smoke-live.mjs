@@ -45,7 +45,7 @@ const lap = () => `${((Date.now() - t0) / 1000).toFixed(0)} s`;
 const phaseIs = (ph, timeout) => page.waitForFunction((x) => [...document.querySelectorAll('.phase')].some((e) => e.offsetParent !== null && e.textContent === x), ph, { timeout });
 
 await page.goto(url);
-await page.getByRole('button', { name: /FLOW-GUIDED GEOMETRY/ }).click();
+await page.getByRole('button', { name: /FLOW-GUIDED GEOMETRY A/ }).click();
 await vis.getByText('4 · Live fill (experimental)').waitFor({ timeout: 10000 });
 await field('angle of attack in °').fill('30');
 await field('wind speed in km/h').fill('2000');

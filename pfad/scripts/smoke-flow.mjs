@@ -64,7 +64,7 @@ const lap = () => `${((Date.now() - t0) / 1000).toFixed(0)} s`;
 
 await page.goto(url);
 await expectText('PFAD LABORATORY');
-await page.getByRole('button', { name: /FLOW-GUIDED GEOMETRY/ }).click();
+await page.getByRole('button', { name: /FLOW-GUIDED GEOMETRY A/ }).click();
 await expectText('FLOW-GUIDED GEOMETRY · EXPERIMENTAL');
 await expectText('NOT AN OPTIMISER');
 await expectText('Starts from a rounded plate');
@@ -229,7 +229,7 @@ step('Universe B is locked');
   const ph = await ctx.newPage();
   ph.on('pageerror', (e) => errors.push(`phone pageerror: ${e.message}`));
   await ph.goto(url);
-  await ph.getByRole('button', { name: /FLOW-GUIDED GEOMETRY/ }).tap();
+  await ph.getByRole('button', { name: /FLOW-GUIDED GEOMETRY A/ }).tap();
   await ph.getByText('NOT AN OPTIMISER', { exact: false }).first().waitFor({ timeout: 10000 });
   const sideways = await ph.evaluate(() => document.documentElement.scrollWidth - innerWidth);
   if (sideways > 1) throw new Error(`phone: the page scrolls sideways by ${sideways}px`);

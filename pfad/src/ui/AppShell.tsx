@@ -1,13 +1,14 @@
 import { useState } from 'react';
+import { CfdGeometry } from './CfdGeometry';
 import { FlowGeometry } from './FlowGeometry';
 import { Lab } from './Lab';
 
 /**
- * Two workspaces side by side. Both stay mounted (each owns its own simulation worker), so
+ * Three workspaces side by side: the laboratory, the particle flow-guided geometry (A) and the CFD flow-guided geometry (B). All stay mounted (each owns its own worker), so
  * switching does not interrupt a run or lose state.
  */
 export function AppShell() {
-  const [mode, setMode] = useState<'lab' | 'flow'>('lab');
+  const [mode, setMode] = useState<'lab' | 'flow' | 'cfd'>('lab');
   return (
     <div className="shell">
       <nav className="shell-nav" aria-label="workspace">
@@ -15,7 +16,10 @@ export function AppShell() {
           LABORATORY
         </button>
         <button className={mode === 'flow' ? 'on' : ''} onClick={() => setMode('flow')}>
-          FLOW-GUIDED GEOMETRY <span className="tag imposed">EXPERIMENTAL</span>
+          FLOW-GUIDED GEOMETRY A · PARTICLES <span className="tag imposed">EXPERIMENTAL</span>
+        </button>
+        <button className={mode === 'cfd' ? 'on' : ''} onClick={() => setMode('cfd')}>
+          FLOW-GUIDED GEOMETRY B · CFD <span className="tag imposed">EXPERIMENTAL</span>
         </button>
       </nav>
       <div className="shell-body" style={{ display: mode === 'lab' ? undefined : 'none' }}>
@@ -23,6 +27,9 @@ export function AppShell() {
       </div>
       <div className="shell-body" style={{ display: mode === 'flow' ? undefined : 'none' }}>
         <FlowGeometry />
+      </div>
+      <div className="shell-body" style={{ display: mode === 'cfd' ? undefined : 'none' }}>
+        <CfdGeometry />
       </div>
     </div>
   );

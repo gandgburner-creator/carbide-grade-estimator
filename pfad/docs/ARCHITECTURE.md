@@ -51,7 +51,8 @@ walls/         wall interaction models (specular / diffuse / Maxwell accommodati
 measurements/  estimators that only READ simulation state (pressure, energy, ...),
                including the near-surface flow sampler and the experimental
                separation-region detector
-geometry/      surface representation and its limits, the flow-guided construction
+cfd/           conventional CFD (lattice Boltzmann Navier–Stokes solver, rasteriser, runs, wall analysis); imports nothing from the particle engine
+geometry/      surface representation and its limits, the rounded plate and pointer, the flow-guided construction
                rule, version history, comparison, exports (pure functions; no physics
                of its own, only what the engine's polygon bodies can represent)
 experiments/   experiment definitions: setup + measurement + acceptance criteria
@@ -61,7 +62,7 @@ app/           laboratory session and presentation logic: drives registry experi
                labels fields, monitors wall momentum transfer, validates configurations,
                exports with provenance, keeps the run library — adds no physics
 workers/       simulation worker (thin adapter around app/LabSession)
-ui/            laboratory UI and the flow-guided geometry workspace
+ui/            laboratory UI and the flow-guided geometry workspaces (particles and CFD)
 ```
 
 Hard rule (Master prompt §2, Bible §3): `core/`, `gas/`, `occupancy/`, `walls/`

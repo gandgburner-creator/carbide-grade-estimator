@@ -166,6 +166,16 @@ not supported (including curved bodies) and the open scientific questions are in
 [`docs/FLOW_GUIDED_GEOMETRY.md`](docs/FLOW_GUIDED_GEOMETRY.md). Universe B stays
 locked.
 
+Projects now start from a **rounded plate** (half-circle ends) with a **construction pointer**: it
+starts on top of the leading circle, moves along the plate and outward, and a straight tether runs from
+it to the top of the trailing circle; the surface is a smooth curve through where the pointer has been
+(add-only), placed by hand, by one measured step or by a sweep. Both workspaces draw **streamlines** of
+the time-mean flow. A second workspace, **flow-guided geometry B · CFD**, does the same with a
+conventional lattice-Boltzmann Navier–Stokes solver, separate from the particle engine (no particles, no
+model units, no Universe A or B); it runs at the highest Reynolds number the resolution allows, says
+how far that is from your plate in your air, and is validated only on the channel and cylinder cases
+listed in the docs.
+
 ## Layout
 
 ```
@@ -176,13 +186,14 @@ src/walls/         planar Maxwell walls, open reservoir boundaries, polygon bodi
 src/occupancy/     occupancy field and the (optional, OFF by default) occupancy force
 src/measurements/  statistics, wall pressure, conservation, profiles, fields, pulse tracking,
                    near-surface flow sampler, separation-region detector (experimental)
-src/geometry/      surface representation, construction rule, version history, comparison, exports
+src/geometry/      surface representation, rounded plate and pointer, construction rule, version history, comparison, exports
+src/cfd/           conventional CFD (lattice Boltzmann solver, rasteriser, run, wall analysis): separate from the particle engine
 src/benchmarks/    classical reference values (never used by a run)
 src/experiments/   one module per experiment, the registry, A/B and scaling meta-experiments
 src/validation/    statuses, convergence studies and verdicts
 src/app/           laboratory session (drives the registry experiments), field metadata, momentum-
                    transfer monitor, profiles, validation, exports, library (no physics)
-src/ui/, src/workers/  laboratory and flow-guided-geometry UI (React) and the simulation worker
+src/ui/, src/workers/  laboratory and flow-guided-geometry UIs (particle and CFD, React) and the simulation and CFD workers
 scripts/           headless runner, parallel runner, reference drivers, SVG plots
 tests/             unit, physics-property and architecture tests
 results/           reference records (JSON) and logs
