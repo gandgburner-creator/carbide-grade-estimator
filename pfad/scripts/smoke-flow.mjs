@@ -86,6 +86,11 @@ await field('plate thickness in cm').fill('2');
 await field('air temperature in °C').fill('-5');
 await field('height above sea level in m').fill('1500');
 await field('wind speed in km/h').fill('50');
+// the wing depth only scales lift and drag; a depth outside 1 cm - 50 m is explained and blocks the start
+await field('wing depth in cm').fill('0');
+await expectText('between 1 and 5000 cm');
+if (await button('START NEW PROJECT').isEnabled()) throw new Error('START NEW PROJECT must be disabled for an impossible wing depth');
+await field('wing depth in cm').fill('150');
 await button('START NEW PROJECT').click();
 await expectText('Starts from a flat plate (30 × 3 particle diameters');
 step('plain inputs are checked, explained, and turned into the simulation setup (20 × 2 cm → 30 × 3 particle diameters)');
@@ -127,6 +132,15 @@ const detectorText = await page.locator('.section', { hasText: 'near-wall measur
 if (!/provisional|experimental/i.test(detectorText)) throw new Error('detector panel does not label itself provisional/experimental');
 if (/(an?|the|is) optimi[sz]ed (geometry|airfoil|shape|profile)|validated airfoil|separation (is )?confirmed/i.test(detectorText)) throw new Error('detector panel makes an optimisation/validation/confirmation claim');
 step('measurements and the detector label are shown');
+await expectText('Lift and drag of v0');
+await expectText('SCALED ESTIMATE');
+await expectText('NOT A PREDICTION');
+const forcesText = await page.locator('.shell-body:visible .forces').first().innerText();
+if (!/Drag/.test(forcesText) || !/Lift/.test(forcesText) || !/ N\b/.test(forcesText) || !/150 cm/.test(forcesText)) throw new Error(`the lift and drag table is incomplete: ${forcesText.slice(0, 300)}`);
+const quality = forcesText.replace(/nothing here is optimi[sz]ed/i, '').match(/.{0,40}(\b(better|best|optimal|optimi[sz]ed)\b|\befficien).{0,40}/i);
+if (quality) throw new Error(`the lift and drag panel makes a quality claim: ${quality[0]}`);
+await page.locator('.shell-body:visible .forces').first().screenshot({ path: join(out, '2b-forces.png') });
+step('lift and drag of v0 are shown as measured, as coefficients and as a scaled estimate for a 150 cm deep wing, labelled not a prediction');
 
 // 2. propose an increment (exploratory) and trace it
 await page.getByText('Exploratory', { exact: true }).first().click();
@@ -159,6 +173,8 @@ await expectText('hypothesis');
 await shot('6-comparison');
 const cmpText = await page.locator('.shell-body:visible .section', { has: page.getByRole('heading', { name: 'comparison', exact: true }) }).first().innerText();
 if (!/no composite score/i.test(cmpText)) throw new Error('the comparison does not say that it has no composite score');
+if (!/Lift and drag of A and B/i.test(cmpText) || !/drag coefficient/i.test(cmpText) || !/lift on your wing/i.test(cmpText) || !/no lift-to-drag ranking/i.test(cmpText)) throw new Error(`the comparison lacks the lift and drag table or its no-ranking statement: ${cmpText.slice(0, 400)}`);
+await page.locator('.shell-body:visible table.compare').last().screenshot({ path: join(out, '6b-compare-forces.png') });
 step('comparison with the parent is shown');
 
 // 5. history, replay, exports
@@ -179,6 +195,7 @@ const svg = await download('GEOMETRY SVG');
 const csv = await download('SURFACE CSV');
 const p = JSON.parse(readFileSync(proj, 'utf8'));
 if (!p.versions || p.versions.length < 2) throw new Error('project JSON lacks the versions');
+if (p.wingDepthCm !== 150) throw new Error(`the wing depth was not saved in the project (got ${p.wingDepthCm})`);
 const v0 = p.versions.find((v) => v.id === 'v0');
 const v1 = p.versions.find((v) => v.id === 'v1');
 if (v1?.parent !== 'v0' || !v1.construction?.reason || !v1.construction.hypothesis || !v1.construction.basis?.summary || !v1.construction.points?.length) throw new Error(`v1 history is incomplete: ${JSON.stringify(v1?.construction ? Object.keys(v1.construction) : Object.keys(v1 ?? {}))}`);

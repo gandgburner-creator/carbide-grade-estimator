@@ -1,15 +1,26 @@
 import { useEffect, useMemo, useState } from 'react';
 import { compareVersions, fieldDifference, type Comparison, type FieldGrid } from '../../geometry/Compare';
 import { geometrySVG } from '../../geometry/Export';
+import { measuredForces, type ForceMeasure } from '../../geometry/Forces';
 import type { Project } from '../../geometry/History';
+import type { PhysicalInputs } from '../../experiments/FlowGeometryExperiment';
+import { wingForces } from '../../experiments/PhysicalScenario';
+import type { Est } from '../../measurements/SeparationDetector';
 import { fmt } from '../Panels';
 import { LevelBadge, StationPlots } from './DetectorPanel';
 import { FieldMap } from './FieldMap';
 
 const FIELD_UNITS: Record<string, string> = { ux: 'd/τ', uy: 'd/τ', density: 'm/d²', kT: 'kT₀', occupancy: '1' };
 
+/** B − A of two estimates with the standard error of a difference of independent means, and its z. */
+function difference(a: Est, b: Est) {
+  const diff = b.mean - a.mean;
+  const se = Math.hypot(a.se, b.se);
+  return { diff, se, z: se > 0 ? diff / se : null };
+}
+
 /** Two simulated versions side by side: geometry overlay, the stated prediction, every indicator, station curves and field differences. */
-export function FlowComparePanel({ project, a, b, onChange, getFields, side }: { project: Project; a: string; b: string; onChange: (a: string, b: string) => void; getFields: (recordId: string) => Promise<FieldGrid | null>; side: 'upper' | 'lower' }) {
+export function FlowComparePanel({ project, a, b, onChange, getFields, side, scenario, depthCm }: { project: Project; a: string; b: string; onChange: (a: string, b: string) => void; getFields: (recordId: string) => Promise<FieldGrid | null>; side: 'upper' | 'lower'; scenario: PhysicalInputs | null; depthCm: number }) {
   const withRuns = project.versions.filter((v) => v.run);
   const va = project.versions.find((v) => v.id === a);
   const vb = project.versions.find((v) => v.id === b);
@@ -43,6 +54,11 @@ export function FlowComparePanel({ project, a, b, onChange, getFields, side }: {
       return null;
     }
   }, [fa, fb, field]);
+
+  const fA: ForceMeasure | null = va?.run ? measuredForces(va.run, va.geometry.chord) : null;
+  const fB: ForceMeasure | null = vb?.run ? measuredForces(vb.run, vb.geometry.chord) : null;
+  const wA = fA && scenario ? wingForces(fA, scenario, depthCm) : null;
+  const wB = fB && scenario ? wingForces(fB, scenario, depthCm) : null;
 
   if (withRuns.length < 2) return <div className="note">Comparison needs two simulated versions. Simulate the starting geometry, accept an increment, simulate that too, then compare.</div>;
   const svg = va && vb ? geometrySVG([{ label: `${va.id} ${va.label}`, geometry: va.geometry, style: 'previous' }, { label: `${vb.id} ${vb.label}`, geometry: vb.geometry, style: 'current' }], { title: `${va.id} vs ${vb.id}`, widthPx: 520 }) : '';
@@ -123,7 +139,68 @@ export function FlowComparePanel({ project, a, b, onChange, getFields, side }: {
             </tbody>
           </table>
           </div>
-          <div className="note">Hover a row for what “larger” means. Differences use √(se_A² + se_B²); |z| &lt; 2 is unresolved. Force rows are raw impulse rates (no lift or drag coefficient, no efficiency).</div>
+          <div className="note">Hover a row for what “larger” means. Differences use √(se_A² + se_B²); |z| &lt; 2 is unresolved. The two force rows above are the raw impulse rates; the table below gives them as coefficients and in newtons.</div>
+          {fA && fB && (
+            <>
+              <h3 className="h3">Lift and drag of A and B</h3>
+              <div style={{ overflowX: 'auto' }}>
+                <table className="results compare">
+                  <thead>
+                    <tr>
+                      <th>quantity</th>
+                      <th>A</th>
+                      <th>B</th>
+                      <th>B − A ± se</th>
+                      <th>z</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(
+                      [
+                        ['drag coefficient', fA.dragCoeff, fB.dragCoeff, ''],
+                        ['lift coefficient', fA.liftCoeff, fB.liftCoeff, ''],
+                        ...(wA && wB
+                          ? ([
+                              ['drag on your wing', wA.drag, wB.drag, ' N'],
+                              ['lift on your wing', wA.lift, wB.lift, ' N'],
+                            ] as const)
+                          : []),
+                      ] as const
+                    ).map(([label, ea, eb, unit]) => {
+                      const d = difference(ea, eb);
+                      return (
+                        <tr key={label}>
+                          <td className="q">{label}</td>
+                          <td>
+                            {fmt(ea.mean, 3)}±{fmt(ea.se, 1)}
+                            {unit}
+                          </td>
+                          <td>
+                            {fmt(eb.mean, 3)}±{fmt(eb.se, 1)}
+                            {unit}
+                          </td>
+                          <td>
+                            {fmt(d.diff, 3)}±{fmt(d.se, 2)}
+                            {unit}
+                          </td>
+                          <td>
+                            {d.z === null ? '—' : d.z.toFixed(1)}
+                            <br />
+                            <span className="note">{d.z === null ? '' : Math.abs(d.z) < 2 ? 'unresolved' : d.diff > 0 ? 'larger in B' : 'smaller in B'}</span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="note">
+                <span className="tag measured">MEASURED</span> in the simulation, per unit depth; coefficients divide by the simulation’s own ½ρU²·chord.{' '}
+                {wA && <><span className="tag imposed">SCALED ESTIMATE</span> the newtons scale those coefficients to your wing and your air; they are not a prediction for the real wing. </>}
+                Lift and drag are reported separately: there is no lift-to-drag ranking and no “better” geometry is declared.
+              </div>
+            </>
+          )}
           <h3 className="h3">Detector level</h3>
           <table className="results">
             <tbody>

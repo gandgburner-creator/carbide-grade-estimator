@@ -1,4 +1,6 @@
 import { airReference, similarityNumbers, type AirState } from '../benchmarks/AirReference';
+import type { ForceMeasure } from '../geometry/Forces';
+import type { Est } from '../measurements/SeparationDetector';
 import type { PhysicalInputs } from './FlowGeometryExperiment';
 
 /**
@@ -198,8 +200,58 @@ export function describeScenario(input: PhysicalInputs): ScenarioReport {
   lines.push(
     `Regime: your plate is in dense air (Knudsen ${sci(real.knudsen)}, Reynolds ${sci(real.reynolds)}). The simulation is a thin gas of hard disks (Knudsen ${sci(simulated.knudsen)}, Reynolds ${sci(simulated.reynolds)}). Same shape and angle, very different flow regime.`,
   );
-  cautions.push('A result therefore shows how this particle gas flows around a plate of that shape. It does not predict how air flows around your plate, and it says nothing about lift, drag or performance.');
+  cautions.push('A result therefore shows how this particle gas flows around a plate of that shape. It does not predict how air flows around your plate. The lift and drag it reports are those of the particle gas; they are scaled to your air only to give them units, and they say nothing reliable about the lift, drag or performance of the real plate.');
   if (input.alphaDeg < 55) cautions.push('In this model, reversed flow near the surface has only been seen at large angles (roughly 55° and above). At small angles expect the detector to report nothing.');
   if (particles > 8000) cautions.push(`This plate needs a large simulation (about ${particles.toLocaleString('en')} particles); each version will take many minutes.`);
   return { air, windMs, real, model, simulated, particles, lines, cautions };
+}
+
+// ---- lift and drag on a wing of a given depth, in the air that was described
+
+/** The simulation is two-dimensional (a wing of unit depth); this is the depth asked for by default [cm]. */
+export const DEFAULT_DEPTH_CM = 100;
+
+export function parseDepth(text: string): { ok: true; depthCm: number } | { ok: false; error: string } {
+  const x = Number(text);
+  if (text.trim() === '' || !Number.isFinite(x)) return { ok: false, error: 'wing depth: please enter a number' };
+  if (x < 1 || x > 5000) return { ok: false, error: 'wing depth must be between 1 and 5000 cm' };
+  return { ok: true, depthCm: x };
+}
+
+export interface WingForces {
+  /** the simulation's drag and lift coefficients applied to the wing in the described air [N] */
+  drag: Est;
+  lift: Est;
+  /** ½ ρ U² of the described air and wind [Pa], the wing area chord × depth [m²], and the depth : chord ratio */
+  dynamicPressure: number;
+  area: number;
+  aspectRatio: number;
+  chordM: number;
+  depthM: number;
+  /** N per unit of the simulation's force: multiply a difference of simulated forces by this to scale it too */
+  newtonsPerUnit: number;
+  air: AirState;
+}
+
+/**
+ * The SIMULATION'S coefficients applied to the wing and the air that were described:
+ *
+ *     F = C · ½ ρ_air U_wind² · (chord × depth)
+ *
+ * with ρ_air the reference density at the given temperature and height (benchmarks/AirReference.ts), U_wind the wind
+ * speed, chord the plate length and depth the wing depth. This is a SCALING, not a prediction: the coefficients were
+ * measured in a thin 2-D gas at its own Reynolds, Mach and Knudsen numbers (see describeScenario), and a real wing of
+ * finite depth has end effects the 2-D simulation does not have. It exists to put the measured numbers in units a
+ * person can picture; the screen says so wherever it is shown.
+ */
+export function wingForces(m: ForceMeasure, input: PhysicalInputs, depthCm: number): WingForces {
+  const air = airReference(input.tempC, input.altitudeM);
+  const windMs = input.speedKmh / 3.6;
+  const chordM = input.lengthCm / 100;
+  const depthM = depthCm / 100;
+  const q = 0.5 * air.density * windMs * windMs;
+  const area = chordM * depthM;
+  const k = q * area;
+  const sc = (e: Est): Est => ({ mean: e.mean * k, se: Math.abs(k) * e.se, n: e.n });
+  return { drag: sc(m.dragCoeff), lift: sc(m.liftCoeff), dynamicPressure: q, area, aspectRatio: depthM / chordM, chordM, depthM, newtonsPerUnit: k / m.reference, air };
 }

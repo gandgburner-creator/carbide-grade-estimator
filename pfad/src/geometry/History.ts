@@ -107,6 +107,8 @@ export interface Project {
   proposals: ProposalEntry[];
   references: ReferenceGeometry[];
   log: HistoryEvent[];
+  /** wing depth [cm] used only to scale the 2-D forces to a wing of that depth (not part of the simulation) */
+  wingDepthCm?: number;
 }
 
 const now = () => new Date().toISOString();
@@ -335,6 +337,11 @@ export function replayFrames(p: Project): ReplayFrame[] {
 /** Plain-JSON export of a project (optionally with the full run records embedded). */
 export function projectToJSON(p: Project, records: Record<string, unknown> = {}): string {
   return JSON.stringify({ ...p, records }, null, 1);
+}
+
+/** The wing depth the forces are scaled to. It does not change any simulation, so it is not a flow condition and is not logged as one. */
+export function setWingDepth(p: Project, cm: number): Project {
+  return { ...p, wingDepthCm: cm };
 }
 
 export function parseProject(text: string): { project: Project; records: Record<string, unknown> } {

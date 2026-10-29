@@ -4,6 +4,8 @@ import { LevelBadge } from './DetectorPanel';
 
 interface Props {
   project: Project;
+  /** one line of lift and drag for a simulated version (coefficients, and scaled newtons when the wing was described) */
+  forceLine?: (v: GeometryVersion) => string | null;
   viewId: string;
   onView: (id: string) => void;
   onCompare: (a: string, b: string) => void;
@@ -68,6 +70,7 @@ export function HistoryPanel(p: Props) {
               ) : (
                 <div className="note">not simulated</div>
               )}
+              {r && p.forceLine && p.forceLine(v) && <div className="note">{p.forceLine(v)}</div>}
               <div className="seg">
                 {v.parent && v.run && p.project.versions.find((x) => x.id === v.parent)?.run && (
                   <button className="ctl" onClick={() => p.onCompare(v.parent!, v.id)}>

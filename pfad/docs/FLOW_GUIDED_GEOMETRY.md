@@ -71,7 +71,8 @@ Reynolds number 10⁴–10⁶. The simulation is a thin 2-D gas of hard disks wi
 Reynolds ≈ 10–40. The model cannot match all three similarity numbers, so the plain inputs give the
 **same shape and angle in a very different flow regime**. A result shows how this particle gas flows
 around a plate of that shape. It does not predict how air flows around the plate that was
-described, and it says nothing about lift, drag or performance. The screen states this next to
+described; the lift and drag it reports (below) are those of the particle gas and say nothing
+reliable about the lift, drag or performance of the real plate. The screen states this next to
 every set of inputs, and the inputs are recorded with every run (`scenario` in the run
 configuration) for provenance only: the simulation reads none of them.
 
@@ -361,11 +362,61 @@ With the quick preset at 65° the detector does not reach a candidate region, so
 simulation and builds nothing; with weak measurements allowed it builds small increments (about one particle diameter each).
 A cycle takes about as long as one simulation (a few minutes at the default size).
 
+## Lift and drag (measured in the simulation, scaled for orientation only)
+
+**What is measured.** The body is fixed in a stream along +x and every particle that hits it hands
+it momentum. The force on the body is the measured momentum-transfer rate (the body's own impulse
+tallies per unit time, already conserved against the particles' momentum; see `walls/SolidBody`),
+averaged over the measurement window and the seeds:
+
+- **drag**: the force along the stream (+x, downstream);
+- **lift**: the force across the stream (+y; for a body at a positive angle of attack this is
+  upward).
+
+The simulation is **two-dimensional**, so both are forces **per unit depth** (`src/geometry/Forces.ts`).
+No pressure distribution is integrated and no classical formula is used. A force is made
+dimensionless only with the simulation's own reference force, the dynamic pressure of the stream the
+experiment imposes times the chord,
+
+    F_ref = ½ · ρ∞ · U∞² · c,   ρ∞ = n∞ m = (φ / π r²) m,   U∞ = the imposed stream speed,
+
+giving a *drag coefficient* and a *lift coefficient of this simulated gas* (± 1 standard error).
+They are measurements of this particle gas at its own Reynolds, Mach and Knudsen numbers, and need
+not carry over to any other regime.
+
+**Wing depth.** The inputs ask for the depth (span) of the wing in cm. It does not enter the
+simulation (the engine is 2-D); it only multiplies the per-unit-depth numbers. It is stored in the
+project (`wingDepthCm`, default 100 cm) and changing it is not a change of conditions.
+
+**Atmospheric air.** The air state comes from the entered temperature and height through the
+International Standard Atmosphere (`src/benchmarks/AirReference.ts`, a comparison and scaling aid; it
+is never used by the dynamics). The scaled values are
+
+    F = C · ½ · ρ_air · U_wind² · (plate length × wing depth),
+
+for each of lift and drag, with the plate length and wind from the plain inputs. They are labelled
+**SCALED ESTIMATE · NOT A PREDICTION**: they put the simulation's coefficients into units one can
+picture (newtons), no more.
+
+**Why it is not a prediction.** The coefficients come from a gas with Reynolds number about 11,
+Knudsen number about 0.19 and Mach number about 0.55, while the real wing is at Reynolds number
+10⁴–10⁶ and Knudsen number about 10⁻⁷. A 2-D simulation also has no end effects, which a real wing of
+finite depth does. A force coefficient measured in one regime is not a force coefficient in another.
+No composite score and no lift-to-drag ranking is made; nothing is optimised.
+
+Where it is shown: the *Measurements* tab (table: measured, coefficient, your wing in your air), one
+line per simulated version in the *History* tab, and *Lift and drag of A and B* in the comparison
+(each with B − A ± se and z; |z| < 2 is unresolved). The force numbers are part of the stored run
+(`forces` and `conditions`), so they are reproducible from the same configuration and seeds.
+`tests/forces.test.ts` checks the definitions, the scaling (a 36 km/h wind in 15 °C air on a 20 × 100
+cm wing at C = 1 gives 12.25 N), the linearity in depth and wind speed squared, and that thin air
+gives less.
+
 ## Comparing versions
 
 For parent → child: station-by-station changes of `u₁`, `Q_w`, wall shear and
-wall pressure (difference, SE, z); the tracked force on the body (the measured
-impulse rate, **not** lift or drag coefficients); the mean `Q_w` of each side;
+wall pressure (difference, SE, z); the force on the body along and across the stream (the measured
+impulse rate, plus its coefficients; see *Lift and drag*); the mean `Q_w` of each side;
 the detector level and region of each; the integrity status and momentum/energy
 residuals of both runs; the mean density, velocity and temperature fields of
 both runs and their difference; and notes for anything that weakens the
@@ -376,8 +427,9 @@ reported as *unresolved*.
 
 There is **no composite score** and no "better". The only judgement made is on
 the single prediction the construction step stated in advance: **supported**,
-**contradicted**, **unresolved** or **not applicable**. Lift, drag and L/D are
-not computed and nothing is optimised; no geometry is called optimised.
+**contradicted**, **unresolved** or **not applicable**. Lift and drag are reported
+separately, with no lift-to-drag ratio or ranking; nothing is optimised and no geometry is called
+optimised.
 
 ## History and reproducibility
 

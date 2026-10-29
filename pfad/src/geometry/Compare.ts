@@ -130,8 +130,8 @@ export function compareVersions(va: GeometryVersion, vb: GeometryVersion): Compa
   }
 
   const indicators: Delta[] = [
-    delta('fx', 'force on the body, lab x (impulse rate)', 'm·d/τ²', 'larger = more force along the stream; the raw momentum-transfer rate, not a coefficient', ra.forces.fx, rb.forces.fx),
-    delta('fy', 'force on the body, lab y (impulse rate)', 'm·d/τ²', 'larger = more force toward +y (upward, for a nose-up body)', ra.forces.fy, rb.forces.fy),
+    delta('fx', 'drag: force on the body along the stream (per unit depth)', 'm·d/τ²', 'larger = more force along the stream (downstream); the measured momentum-transfer rate', ra.forces.fx, rb.forces.fx),
+    delta('fy', 'lift: force on the body across the stream (per unit depth)', 'm·d/τ²', 'larger = more force toward +y (upward, for a nose-up body); the measured momentum-transfer rate', ra.forces.fy, rb.forces.fy),
   ];
   for (const side of ['upper', 'lower'] as const) {
     const sa = ra.analysis[side].primary.stations;

@@ -8,7 +8,8 @@ import { CODE_VERSION, makeProvenance } from '../app/provenance';
 import { PFAD_MODEL_VERSION } from '../core/version';
 import type { ExperimentRecord } from '../experiments/Experiment';
 import { FLOW_GEOMETRY_EXTENDED, FLOW_GEOMETRY_QUICK, placementFor, type FlowGeometryParams, type FlowGeometryResults, type PhysicalInputs } from '../experiments/FlowGeometryExperiment';
-import { DEFAULT_SCENARIO, describeScenario, parseScenario, scenarioToModel } from '../experiments/PhysicalScenario';
+import { DEFAULT_DEPTH_CM, DEFAULT_SCENARIO, describeScenario, parseDepth, parseScenario, scenarioToModel, wingForces } from '../experiments/PhysicalScenario';
+import { measuredForces } from '../geometry/Forces';
 import { nextAutoAction, type StopKind } from '../geometry/AutoBuild';
 import { DEFAULT_LIVE } from '../geometry/LiveFill';
 import { addLiveVersion } from '../geometry/LiveVersion';
@@ -30,6 +31,7 @@ import {
   recordProposal,
   rejectProposal,
   replayFrames,
+  setWingDepth,
   undo,
   version,
   type Project,
@@ -42,6 +44,7 @@ import { DetectorPanel, LevelBadge, ProfilePanel, StationPlots } from './flow/De
 import { ConstructionPanel } from './flow/ConstructionPanel';
 import { AutoBuildPanel, EMPTY_AUTO, type AutoRun } from './flow/AutoBuildPanel';
 import { LiveFillPanel, type LiveSettings } from './flow/LiveFillPanel';
+import { ForcesPanel } from './flow/ForcesPanel';
 import { ScenarioPanel, scenarioText, type ScenarioText } from './flow/ScenarioPanel';
 import { FlowComparePanel } from './flow/ComparePanel';
 import { FieldMap } from './flow/FieldMap';
@@ -154,6 +157,7 @@ export function FlowGeometry() {
   const [setup, setSetup] = useState<Setup>(DEFAULT_SETUP);
   const [project, setProject] = useState<Project>(() => makeProject(DEFAULT_SETUP, DEFAULT_SCENARIO));
   const [sText, setSText] = useState<ScenarioText>(() => scenarioText(DEFAULT_SCENARIO));
+  const [depthText, setDepthText] = useState(String(DEFAULT_DEPTH_CM));
   const [draft, setDraft] = useState<Draft>(() => draftOf(project.conditions));
   const [draftReason, setDraftReason] = useState('');
   const [liveSettings, setLiveSettings] = useState<LiveSettings>({ side: 'upper', interval: DEFAULT_LIVE.interval, relaxation: DEFAULT_LIVE.relaxation, maxStep: DEFAULT_LIVE.maxStep, frontSpeed: DEFAULT_LIVE.frontSpeed });
@@ -324,6 +328,10 @@ export function FlowGeometry() {
     !legacy && sCheck.ok && report ? { alphaDeg: sCheck.input.alphaDeg, speed: report.model.speed, scenario: { ...sCheck.input, lengthCm: projectScenario!.lengthCm, thicknessCm: projectScenario!.thicknessCm } } : null;
   const readCheck = (d: Draft, base: Conditions) => (!legacy && !sCheck.ok ? { ok: false as const, errors: sCheck.errors } : readDraft(d, base, over));
   const shapeDiffers = !!projectScenario && sCheck.ok && (sCheck.input.lengthCm !== projectScenario.lengthCm || sCheck.input.thicknessCm !== projectScenario.thicknessCm);
+  // lift and drag: the project's wing depth (kept apart from the flow conditions: it changes no simulation)
+  const depthCm = project.wingDepthCm ?? DEFAULT_DEPTH_CM;
+  const depthCheck = parseDepth(depthText);
+  const forcesOf = (v: { run: Parameters<typeof measuredForces>[0] | null; geometry: { chord: number } }) => (v.run ? measuredForces(v.run, v.geometry.chord) : null);
   const wantKey = `${project.id}|${head.id}|${JSON.stringify(project.conditions)}`;
   const [loadedKey, setLoadedKey] = useState('');
   const paramsOf = useCallback((v: typeof head): FlowGeometryParams => ({ ...(project.conditions as unknown as Conditions), geometry: v.geometry }), [project.conditions]);
@@ -590,10 +598,11 @@ export function FlowGeometry() {
   };
   const newProjectFromSetup = () => {
     if (!sCheck.ok) return setMessage(`Conditions: ${sCheck.errors.join('; ')}`);
+    if (!depthCheck.ok) return setMessage(depthCheck.error);
     if (project.versions.length > 1 || project.versions.some((v) => v.run)) {
       if (!window.confirm(`Start a new project? “${project.name}” stays in the saved projects of this browser.`)) return;
     }
-    const p = makeProject(setup, sCheck.input);
+    const p = setWingDepth(makeProject(setup, sCheck.input), depthCheck.depthCm);
     setProject(p);
     setDraft(draftOf(p.conditions));
     setProposal(null);
@@ -611,6 +620,7 @@ export function FlowGeometry() {
     setProject(p);
     setDraft(draftOf(p.conditions));
     setSText(scenarioText((p.conditions as { scenario?: PhysicalInputs }).scenario ?? { ...DEFAULT_SCENARIO, alphaDeg: Number(p.conditions.alphaDeg) }));
+    setDepthText(String(p.wingDepthCm ?? DEFAULT_DEPTH_CM));
     setProposal(null);
     setPointIdx(-1);
     setViewId(p.head);
@@ -762,9 +772,16 @@ export function FlowGeometry() {
               shapeDiffers={shapeDiffers}
               preset={setup.preset}
               onPreset={(k) => setSetup({ ...setup, preset: k })}
+              depthText={depthText}
+              onDepth={(v) => {
+                setDepthText(v);
+                const d = parseDepth(v);
+                if (d.ok) setProject((p) => setWingDepth(p, d.depthCm));
+              }}
+              depthError={depthCheck.ok ? null : depthCheck.error}
             />
             <div className="seg" style={{ margin: '6px 0' }}>
-              <button className="ctl primary" onClick={newProjectFromSetup} disabled={locked || !sCheck.ok} title="start again from a flat plate with these values">
+              <button className="ctl primary" onClick={newProjectFromSetup} disabled={locked || !sCheck.ok || !depthCheck.ok} title="start again from a flat plate with these values">
                 START NEW PROJECT
               </button>
               <button className="ctl" onClick={applyConditions} disabled={locked || !dirty || !draftCheck.ok || legacy} title="change the wind, air or angle of the open project; the change is recorded in its history">
@@ -1060,27 +1077,16 @@ export function FlowGeometry() {
               </h2>
               <DetectorPanel analysis={analysis} window={win} onSelectX={(x) => (setSelX(x), setBottomTab('profile'))} selectedX={selX} />
               {viewed.run && (
-                <div className="kv" style={{ marginTop: 8 }}>
-                  <div className="row">
-                    <span className="k">force on the body, lab x</span>
-                    <span>
-                      {fmt(viewed.run.forces.fx.mean, 4)} ± {fmt(viewed.run.forces.fx.se, 2)}
-                    </span>
-                  </div>
-                  <div className="row">
-                    <span className="k">force on the body, lab y</span>
-                    <span>
-                      {fmt(viewed.run.forces.fy.mean, 4)} ± {fmt(viewed.run.forces.fy.se, 2)}
-                    </span>
-                  </div>
-                  <div className="row">
-                    <span className="k">integrity</span>
-                    <span>
-                      {viewed.run.integrity.status} (E {Number(viewed.run.integrity.maxEnergyResidual).toExponential(1)}, p {Number(viewed.run.integrity.maxMomentumResidual).toExponential(1)})
-                    </span>
-                  </div>
-                  <div className="note">
-                    Forces are the measured impulse rate delivered to the body (<span className="tag measured">MEASURED</span>, momentum transfer), not coefficients. No lift, drag or efficiency figure is computed or optimised, because this model has not yet shown which of them it measures reliably.
+                <div style={{ marginTop: 8 }}>
+                  <h3 className="h3">Lift and drag of {viewed.id}</h3>
+                  <ForcesPanel forces={forcesOf(viewed)} scenario={(project.conditions as { scenario?: PhysicalInputs }).scenario ?? null} depthCm={depthCheck.ok ? depthCheck.depthCm : depthCm} />
+                  <div className="kv" style={{ marginTop: 6 }}>
+                    <div className="row">
+                      <span className="k">integrity</span>
+                      <span>
+                        {viewed.run.integrity.status} (E {Number(viewed.run.integrity.maxEnergyResidual).toExponential(1)}, p {Number(viewed.run.integrity.maxMomentumResidual).toExponential(1)})
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1089,7 +1095,7 @@ export function FlowGeometry() {
           {rightTab === 'compare' && (
             <div className="section">
               <h2>comparison</h2>
-              <FlowComparePanel project={project} a={cmp[0]} b={cmp[1]} onChange={(a, b) => setCmp([a, b])} getFields={getGrid} side={side} />
+              <FlowComparePanel project={project} a={cmp[0]} b={cmp[1]} onChange={(a, b) => setCmp([a, b])} getFields={getGrid} side={side} scenario={(project.conditions as { scenario?: PhysicalInputs }).scenario ?? null} depthCm={depthCm} />
             </div>
           )}
           {rightTab === 'history' && (
@@ -1097,6 +1103,15 @@ export function FlowGeometry() {
               <h2>history</h2>
               <HistoryPanel
                 project={project}
+                forceLine={(v) => {
+                  const f = forcesOf(v);
+                  if (!f) return null;
+                  const sc = (project.conditions as { scenario?: PhysicalInputs }).scenario;
+                  const base = `drag ${fmt(f.dragCoeff.mean, 2)} · lift ${fmt(f.liftCoeff.mean, 2)} (coefficients of this simulation)`;
+                  if (!sc) return base;
+                  const w = wingForces(f, sc, depthCm);
+                  return `${base} → ${fmt(w.drag.mean, 3)} N and ${fmt(w.lift.mean, 3)} N on your ${depthCm} cm wing in your air (scaled estimate, not a prediction)`;
+                }}
                 viewId={viewed.id}
                 onView={(id) => {
                   setViewId(id);

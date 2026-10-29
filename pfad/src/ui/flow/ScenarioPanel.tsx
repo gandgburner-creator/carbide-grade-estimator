@@ -28,6 +28,10 @@ export function ScenarioPanel(p: {
   shapeDiffers: boolean;
   preset: 'quick' | 'extended';
   onPreset: (k: 'quick' | 'extended') => void;
+  /** wing depth (span) in cm: scales the 2-D forces; not a flow condition */
+  depthText: string;
+  onDepth: (v: string) => void;
+  depthError: string | null;
 }) {
   const r = p.report;
   return (
@@ -41,6 +45,14 @@ export function ScenarioPanel(p: {
           </label>
         ))}
       </div>
+      <div className="params simple" style={{ marginTop: 4 }}>
+        <label title="the simulation is two-dimensional; this scales its forces to a wing this deep">
+          wing depth (span) [cm]
+          <input inputMode="decimal" value={p.depthText} onChange={(e) => p.onDepth(e.target.value)} aria-label="wing depth in cm" />
+          <span className="hint">only scales lift and drag to a wing this deep (the simulation is 2-D); it does not change the simulation</span>
+        </label>
+      </div>
+      {p.depthError && <div className="error">{p.depthError}</div>}
       <div className="seg" style={{ margin: '6px 0' }}>
         {(['quick', 'extended'] as const).map((k) => (
           <button key={k} className={`ctl ${p.preset === k ? 'on' : ''}`} disabled={p.disabled} onClick={() => p.onPreset(k)} title={k === 'quick' ? 'about 2 minutes per version; weak statistics' : 'about 4 minutes per version or more; stronger statistics'}>
