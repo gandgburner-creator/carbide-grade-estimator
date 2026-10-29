@@ -4,17 +4,20 @@ Live: https://gandgburner-creator.github.io/carbide-grade-estimator/pfad-lab/
 
 This folder is a static production build of the PFAD laboratory application
 (`npm run build` in `pfad/`). The build is from commit
-4087d058c8c5d204cd9daca4db4c61b31aeaf0eb on branch
+310c9dad64206843f466bc8f2cd5e081ad0436fa on branch
 `claude/bible-master-build-prompt-xtrg6e`; the app shows that commit in its
 top bar and writes it into every export. Source, user guide and tests are on
 that branch, in `pfad/` (guide: `pfad/docs/LAB_APP.md`).
 
-The app has two workspaces: the **Laboratory** and, new in this build, the
-**Flow-guided geometry** workspace, set up in plain units (cm, °C, m, km/h, degrees), with a live fill that grows the surface while the simulation runs, an auto-build button, and the lift and drag on the plate (measured from the particles' momentum, per unit depth, with a wing depth you enter; scaled to your air as an estimate that is not a prediction) (experimental: the detector is not validated,
-nothing is optimised; guide: `pfad/docs/FLOW_GUIDED_GEOMETRY.md`). Universe B is
-locked in both.
+The app has three workspaces: the **Laboratory**, and two experimental construction workspaces (guide: `pfad/docs/FLOW_GUIDED_GEOMETRY.md`):
+**Flow-guided geometry A · particles**, set up in plain units (cm, °C, m, km/h, degrees), which starts from a rounded plate (half-circle ends) and a
+construction pointer with a straight tether to the trailing edge (by hand, one measured step, or a sweep), also with a live fill, an auto-build button,
+streamlines of the mean flow, and the lift and drag on the plate (a scaled estimate that is not a prediction); and **Flow-guided geometry B · CFD**, the same
+plate and pointer with a conventional lattice-Boltzmann Navier–Stokes solver instead of particles (separate from the particle research, no Universes, run at the highest
+Reynolds number its resolution allows, validated only on channel flow and the circular cylinder). Both are experimental and not validated for airfoil performance;
+nothing is optimised. Universe B is locked in all three.
 
-The app runs entirely in the browser. Simulations run in a Web Worker, and the
+The app runs entirely in the browser. Simulations (particles and CFD) run in Web Workers, and the
 run library is stored in the browser's IndexedDB. Nothing is sent to a server.
 
 To redeploy, run `npm run build` in `pfad/` on the source branch, then replace
