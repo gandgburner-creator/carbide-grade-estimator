@@ -2,6 +2,7 @@ import type { Proposal } from '../../geometry/Construction';
 import type { ReplayFrame } from '../../geometry/History';
 import { bodyPolygon, place, segmentAt, sideY, stationX, type Placement, type Side, type SurfaceGeometry } from '../../geometry/SurfaceGeometry';
 import type { StationRow } from '../../measurements/SeparationDetector';
+import { arrowsOf, type Streamline } from '../../measurements/Streamlines';
 import type { transformOf } from '../ParticleView';
 
 type T = ReturnType<typeof transformOf>;
@@ -29,6 +30,8 @@ export interface OverlayState {
   /** a live fill in progress: where the particles stopped touching the surface, and how far the front has got */
   live?: { side: Side; onset: number | null; front: number | null } | null;
   /** the construction pointer: where it is, the anchor its tether runs to (body frame; y outward on `side`), and an unplaced candidate */
+  /** streamlines of the measured mean flow, in simulation coordinates */
+  streams?: { lines: Streamline[]; arrowEvery: number } | null;
   pointer?: { side: Side; at: { x: number; y: number }; anchor: { x: number; y: number }; preview: SurfaceGeometry | null; previewAt: { x: number; y: number } | null } | null;
 }
 
@@ -56,6 +59,35 @@ export function makeOverlay(st: OverlayState) {
       g.beginPath();
       pts.forEach(([x, y], i) => (i === 0 ? g.moveTo(x, y) : g.lineTo(x, y)));
     };
+
+    // streamlines of the measured mean flow (paths of the mean motion, not of single particles)
+    if (st.streams) {
+      g.lineWidth = 1.2;
+      g.strokeStyle = 'rgba(150,215,255,0.8)';
+      g.fillStyle = 'rgba(150,215,255,0.9)';
+      for (const l of st.streams.lines) {
+        g.beginPath();
+        for (let k = 0; k < l.points.length; k += 2) {
+          const px = T.X(l.points[k]);
+          const py = T.Y(l.points[k + 1]);
+          if (k === 0) g.moveTo(px, py);
+          else g.lineTo(px, py);
+        }
+        g.stroke();
+        for (const [ax, ay, ang] of arrowsOf(l, st.streams.arrowEvery)) {
+          const px = T.X(ax);
+          const py = T.Y(ay);
+          // screen y runs down, so the angle flips
+          const a = -ang;
+          g.beginPath();
+          g.moveTo(px + 5 * Math.cos(a), py + 5 * Math.sin(a));
+          g.lineTo(px + 5 * Math.cos(a + 2.5), py + 5 * Math.sin(a + 2.5));
+          g.lineTo(px + 5 * Math.cos(a - 2.5), py + 5 * Math.sin(a - 2.5));
+          g.closePath();
+          g.fill();
+        }
+      }
+    }
 
     // imported references and the previous version: faint outlines
     for (const r of st.references) {

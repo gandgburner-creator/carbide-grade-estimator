@@ -102,6 +102,12 @@ await button('SIMULATE').click();
 await page.waitForFunction(() => [...document.querySelectorAll('.phase')].some((e) => e.offsetParent !== null && e.textContent === 'RUNNING'), null, { timeout: 30000 });
 await finished();
 step(`v1 simulated (${lap()})`);
+// the streamlines of the measured mean flow
+await page.locator('.shell-body:visible').getByLabel('show streamlines', { exact: true }).check();
+await expectText('streamlines of the mean flow of v1');
+await page.waitForTimeout(500);
+await shot('2c-streamlines');
+step('streamlines of the mean flow of v1 are drawn, labelled as the path of the mean motion');
 await button('ONE AUTOMATIC STEP').click();
 await expectText('The measurement moved the pointer: v2');
 await shot('3-auto-step');

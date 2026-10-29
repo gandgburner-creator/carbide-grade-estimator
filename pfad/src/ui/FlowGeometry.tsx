@@ -40,7 +40,8 @@ import { runSummaryFromRecord } from '../geometry/RunSummary';
 import { addPointerPoint, anchorOf, DEFAULT_POINTER_STEP, initialPaths, outwardHeight, plateGeometry, pointerOf, radiusOf, type PointerStepConfig } from '../geometry/Pointer';
 import { measuredPointerStep } from '../geometry/PointerMeasure';
 import { addPointerVersion } from '../geometry/PointerVersion';
-import type { Side, SurfaceGeometry } from '../geometry/SurfaceGeometry';
+import { bodyPolygon, place, type Side, type SurfaceGeometry } from '../geometry/SurfaceGeometry';
+import { insidePolygon, smoothField, traceStreamlines } from '../measurements/Streamlines';
 import { fieldScale } from './colors';
 import { downloadText } from './download';
 import { DetectorPanel, LevelBadge, ProfilePanel, StationPlots } from './flow/DetectorPanel';
@@ -194,6 +195,8 @@ export function FlowGeometry() {
   const [fieldKind, setFieldKind] = useState<FieldChoice>('none');
   const [overlayParent, setOverlayParent] = useState(true);
   const [showStations, setShowStations] = useState(true);
+  const [showStreams, setShowStreams] = useState(false);
+  const [streamSpacing, setStreamSpacing] = useState(2.5);
   const [withRecords, setWithRecords] = useState(true);
   const [camera, setCamera] = useState<Camera | null>(null);
   const [options, setOptions] = useState<ViewOptions>({ particles: true, vectors: false, collisions: false, trails: false, colorBySpeed: true });
@@ -392,6 +395,16 @@ export function FlowGeometry() {
     getGrid(id).then((g) => setGrids((s) => ({ ...s, [id]: g })));
   }, [viewed.run?.recordId, grids, getGrid, lib]);
   const grid = viewed.run ? grids[viewed.run.recordId] ?? null : null;
+  // streamlines of the measured mean flow of the viewed version (the seed- and time-averaged cell velocities)
+  const streams = useMemo(() => {
+    if (!showStreams || !grid || !viewed.run) return null;
+    const c = project.conditions as unknown as Conditions;
+    const valid = grid.density.map((d) => d > 0);
+    const field = smoothField({ nx: grid.nx, ny: grid.ny, x0: 0, y0: 0, cw: c.length / grid.nx, ch: c.height / grid.ny, ux: grid.ux, uy: grid.uy, valid }, 1);
+    const poly = place(bodyPolygon(viewed.geometry), placementFor({ ...c, geometry: viewed.geometry }));
+    const lines = traceStreamlines(field, { spacing: streamSpacing, testFraction: 0.5, step: 0.4, maxLength: 3 * Math.max(c.length, c.height), minSpeed: 0.06 * c.speed, inside: (x, y) => insidePolygon(poly, x, y), maxLines: 500 });
+    return { lines, arrowEvery: 8 * (streamSpacing / 2.5) + 6 };
+  }, [showStreams, grid, viewed, project.conditions, streamSpacing]);
   const analyses = viewed.run?.analysis ?? null;
   const analysis = analyses?.[side] ?? null;
   const parentAnalysis = overlayParent && parent?.run ? parent.run.analysis[side] : null;
@@ -827,6 +840,7 @@ export function FlowGeometry() {
       showStations,
       alphaDeg: (project.conditions as unknown as Conditions).alphaDeg,
       references: project.references.map((r) => r.geometry),
+      streams,
       pointer:
         head.shape && !liveShape
           ? (() => {
@@ -842,7 +856,7 @@ export function FlowGeometry() {
       draw(g, T);
       drawStream(g, T, frame.domain, (project.conditions as unknown as Conditions).speed, st.alphaDeg);
     };
-  }, [analysis, side, mode, project, head, viewed, proposal, pointIdx, replayFrame, showStations, sim.frame, liveShape, liveFrame, liveSettings.side, pSide, pointerTarget]);
+  }, [analysis, side, mode, project, head, viewed, proposal, pointIdx, replayFrame, showStations, sim.frame, liveShape, liveFrame, liveSettings.side, pSide, pointerTarget, streams]);
 
   const underlay = useMemo(() => {
     if (fieldKind === 'none' || !grid) return undefined;
@@ -1123,6 +1137,17 @@ export function FlowGeometry() {
               <input type="checkbox" checked={showStations} onChange={(e) => setShowStations(e.target.checked)} />
               stations
             </label>
+            <label className="field-inline" title={`lines everywhere tangent to the seed- and time-averaged velocity of ${viewed.id}: the paths of the mean motion, not of single particles`}>
+              <input type="checkbox" checked={showStreams} disabled={!grid} onChange={(e) => setShowStreams(e.target.checked)} aria-label="show streamlines" />
+              streamlines
+            </label>
+            {showStreams && (
+              <select value={streamSpacing} onChange={(e) => setStreamSpacing(Number(e.target.value))} aria-label="streamline spacing">
+                <option value={4}>sparse</option>
+                <option value={2.5}>normal</option>
+                <option value={1.6}>dense</option>
+              </select>
+            )}
             <span className="zoom-buttons">
               <button className="ctl" onClick={() => setCamera((c) => ({ ...(c ?? { zoom: 1, cx: conds.length / 3, cy: conds.height / 2 }), zoom: Math.min(60, (c?.zoom ?? 1) * 1.6) }))} aria-label="zoom in">
                 ＋
@@ -1153,6 +1178,11 @@ export function FlowGeometry() {
               {fieldKind !== 'none' && grid && (
                 <div>
                   <span className="tag measured">MEASURED</span> {FIELD_NOTE[fieldKind].label} [{FIELD_NOTE[fieldKind].units}] — mean of {viewed.run!.seeds.length} seeds over t = {win?.t0} … {win?.t1} τ of {viewed.id}, cell {grid.cell} d
+                </div>
+              )}
+              {showStreams && streams && (
+                <div>
+                  <span className="tag derived">DERIVED</span> {streams.lines.length} streamlines of the mean flow of {viewed.id}: integrated through the seed- and time-averaged cell velocities, so they show the path of the <i>mean</i> motion. A single particle does not follow one (it moves thermally and collides); where cells hold few samples a line wanders.
                 </div>
               )}
               <div className="muted">
