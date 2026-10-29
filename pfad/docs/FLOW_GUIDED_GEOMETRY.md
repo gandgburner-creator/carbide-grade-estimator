@@ -540,8 +540,11 @@ Boltzmann method (D2Q9, two-relaxation-time collision with the "magic" parameter
 ν = (τ − ½)/3; `src/cfd/Lbm.ts`). Walls are no-slip with the linear-interpolation bounce-back of Bouzidi,
 Firdaouss and Lallemand, so a tilted or curved wall sits where the polygon puts it (the fraction of every
 wall link is computed from the geometry, `Raster.ts`). The force on the body is the momentum exchanged with
-its surface. Boundaries: Zou–He velocity inflow at the free-stream speed, zero-gradient outflow, slip walls at
-top and bottom (a channel of 6 plate lengths height: the blockage of the body is reported, and 15 % at 65°).
+its surface. Boundaries: Zou–He velocity inflow at the free-stream speed, zero-gradient outflow behind an absorbing layer (the
+relaxation time rises over the last two plate lengths, so a vortex leaving the domain is smeared out by viscosity
+and sends nothing back; without it the shedding of a cylinder at Re = 100 showed slow amplitude modulations from
+reflections, and with it the lift oscillates steadily), slip walls at top and bottom (a channel: the blockage
+of the body is reported with every run).
 Nothing that decides the flow is imposed: no Kutta condition, no circulation, no separation point.
 
 **Measurements** (`CfdRun.ts`, `Walls.ts`). After a start-up of 10–14 flow-throughs of the plate, a window
@@ -574,8 +577,17 @@ your air exactly as in the particle workspace, and are labelled a scaled estimat
   1.46 at 3.6 % blockage (published, unconfined: 0.165 and 1.34). The values do not change with resolution
   (10, 16, 24 cells across the cylinder give C_d = 1.51, 1.53, 1.50): the differences from the published
   values are the confinement of the slip walls and the outflow condition, not the resolution.
-- **Not validated:** the amplitude of the fluctuating lift of the cylinder (0.5 against the published 0.33,
-  with slow modulations); any flat-plate or inclined-plate result against measurements; any Reynolds number
+- With the absorbing layer in front of the outflow the lift of the cylinder oscillates steadily (amplitude 0.43 against the published
+  0.33 for unconfined flow; confinement raises it) and C_d = 1.48, St = 0.175; without it the amplitude modulated slowly between
+  0.3 and 0.64 (reflections from the outflow).
+- A plate parallel to the stream (0°, Re = 384) has C_d = 0.24 and no lift (to three digits): the friction drag of two sides of a
+  laminar plate is 2 × 1.328 / √Re = 0.14 (based on the plate length), and the round ends and the thickness add the rest.
+- **Confinement.** The channel is 6 plate lengths high (the blockage of the body is shown with every run). For the default plate at
+  65° the computed force coefficients fall as the channel is raised: resultant coefficient 3.80 at 6 plate lengths (blockage 15 %),
+  3.34 at 10 (9 %); a stream confined by slip walls is accelerated past a bluff body. Quantitative comparison of two shapes needs the
+  same channel for both, which the project guarantees; absolute values are inflated by the confinement, and a run above 10 % blockage
+  is marked with a warning.
+- **Not validated:** the fluctuating lift of the cylinder beyond the numbers above; any flat-plate or inclined-plate result against measurements; any Reynolds number
   above the cap; turbulence (none is modelled). The cylinder checks say the solver solves the equations it
   claims to; they do not say that the plate results are right.
 

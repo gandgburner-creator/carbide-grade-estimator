@@ -46,7 +46,7 @@ const phaseIs = (ph, timeout) => page.waitForFunction((x) => [...document.queryS
 
 await page.goto(url);
 await page.getByRole('button', { name: /FLOW-GUIDED GEOMETRY A/ }).click();
-await vis.getByText('4 · Live fill (experimental)').waitFor({ timeout: 10000 });
+await vis.getByText('5 · Live fill (experimental)').waitFor({ timeout: 10000 });
 await field('angle of attack in °').fill('30');
 await field('wind speed in km/h').fill('2000');
 await vis.getByText(/is Mach 1\.6\d in this air/).waitFor({ timeout: 5000 });
@@ -70,12 +70,12 @@ await vis.getByText('live fill', { exact: true }).first().waitFor({ timeout: 120
 await page.waitForTimeout(8000);
 await shot('2-live-running');
 step(`live fill is running: the surface grows while the simulation goes (${lap()})`);
-const status = await vis.locator('.section', { hasText: '4 · Live fill' }).innerText();
+const status = await vis.locator('.section', { hasText: '5 · Live fill' }).innerText();
 if (!/separation point/.test(status) || !/front of the fill/.test(status)) throw new Error(`the live status is missing:\n${status}`);
 await vis.getByText(/Live fill finished \(/).waitFor({ timeout: 900000 });
 step(`live fill finished (${lap()})`);
 await shot('3-live-finished');
-const result = await vis.locator('.section', { hasText: '4 · Live fill' }).innerText();
+const result = await vis.locator('.section', { hasText: '5 · Live fill' }).innerText();
 if (!/New version v1/.test(result)) throw new Error(`no new version was made:\n${result}`);
 if (!/not been measured/.test(result)) throw new Error('the result does not say that the new version is unmeasured');
 

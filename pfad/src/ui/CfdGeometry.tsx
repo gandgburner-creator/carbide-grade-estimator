@@ -319,9 +319,18 @@ export function CfdGeometry() {
           g.fillText('dividing streamline', pts[0][0] + 4, pts[0][1] - 6);
         }
       }
+      // the absorbing layer in front of the outflow
+      if (params.spongeL > 0) {
+        const x0 = T.X(domain.w - params.spongeL * chord);
+        g.fillStyle = 'rgba(11,14,18,0.45)';
+        g.fillRect(x0, T.Y(domain.h), T.X(domain.w) - x0, domain.h * T.s);
+        g.font = '10px ui-monospace, monospace';
+        g.fillStyle = '#8b98a5';
+        g.fillText('absorbing layer (not part of the result)', x0 + 6, T.Y(domain.h) + 14);
+      }
       draw(g, T);
     };
-  }, [params, head, viewed, shape, side, pointerTarget, showStations, streams, showHeight, live]);
+  }, [params, head, viewed, shape, side, pointerTarget, showStations, streams, showHeight, live, domain.w, domain.h, chord]);
 
   // ---- charts
   const stationsOf = (v: CfdVersion | null) => (v?.run ? v.run.result.stations[side] : null);

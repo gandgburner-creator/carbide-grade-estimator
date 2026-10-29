@@ -52,6 +52,12 @@ export interface LbmConfig {
   magic?: number;
   /** Smagorinsky constant Cs of a sub-grid eddy viscosity (0 or absent: none, i.e. direct simulation) */
   smagorinsky?: number;
+  /**
+   * An absorbing layer in front of the outflow: over the last `cells` columns the relaxation time rises smoothly (as the square of the
+   * distance into the layer) from τ to `tau`, so that a vortex leaving the domain is smeared out by viscosity before it reaches the outflow
+   * boundary and sends nothing back. Nothing inside the layer is reported.
+   */
+  sponge?: { cells: number; tau: number };
   /** relative amplitude of a small random perturbation of the starting velocity (seeded; breaks symmetry so shedding can start) */
   noise?: number;
   seed?: number;
@@ -89,6 +95,8 @@ export class LbmSolver {
   private readonly omegaP: number;
   private readonly omegaM: number;
   private readonly ramp: number;
+  private readonly omPcol: Float64Array;
+  private readonly omMcol: Float64Array;
   private readonly cs: number;
   private readonly magic: number;
   steps = 0;
@@ -115,6 +123,17 @@ export class LbmSolver {
     this.magic = c.magic ?? 3 / 16;
     this.omegaM = 1 / (this.magic / (c.tau - 0.5) + 0.5);
     this.cs = c.smagorinsky ?? 0;
+    this.omPcol = new Float64Array(c.nx).fill(this.omegaP);
+    this.omMcol = new Float64Array(c.nx).fill(this.omegaM);
+    if (c.sponge && c.sponge.cells > 0) {
+      for (let i = 0; i < c.nx; i++) {
+        const f = (i - (c.nx - c.sponge.cells)) / c.sponge.cells;
+        if (f <= 0) continue;
+        const tau = c.tau + (c.sponge.tau - c.tau) * f * f;
+        this.omPcol[i] = 1 / tau;
+        this.omMcol[i] = 1 / (this.magic / (tau - 0.5) + 0.5);
+      }
+    }
     this.ramp = c.rampSteps ?? 0;
     this.off = CX.map((cx, k) => cx + CY[k] * c.nx);
     this.fa = new Float64Array(9 * this.N);
@@ -208,6 +227,8 @@ export class LbmSolver {
     const { N, nx, ny } = this;
     const f = this.fa;
     const g = this.fb;
+    const omPcol = this.omPcol;
+    const omMcol = this.omMcol;
     const cs2 = this.cs * this.cs;
     const tau0 = this.tau;
     const magic = this.magic;
@@ -217,6 +238,7 @@ export class LbmSolver {
     // ---- collision, in place (post-collision populations f*)
     for (let n = 0; n < N; n++) {
       if (kind[n] === 2) continue;
+      const col = n % nx;
       const f0 = f[n];
       const f1 = f[N + n];
       const f2 = f[2 * N + n];
@@ -244,8 +266,8 @@ export class LbmSolver {
       const e7 = w5 * (1 - 3 * c5 + 4.5 * c5 * c5 - usq);
       const e6 = w5 * (1 + 3 * c6 + 4.5 * c6 * c6 - usq);
       const e8 = w5 * (1 - 3 * c6 + 4.5 * c6 * c6 - usq);
-      let omP = this.omegaP;
-      let omM = this.omegaM;
+      let omP = omPcol[col];
+      let omM = omMcol[col];
       if (cs2 > 0) {
         // Smagorinsky sub-grid viscosity from the non-equilibrium momentum flux (Hou et al. 1996): τ = ½ (τ₀ + √(τ₀² + 18√2 Cs² |Π| / ρ))
         const pxx = f1 + f3 + f5 + f6 + f7 + f8 - (e1 + e3 + e5 + e6 + e7 + e8);

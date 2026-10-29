@@ -111,13 +111,13 @@ describe('the lattice Boltzmann solver', () => {
 });
 
 /** a circular cylinder of diameter D in a 30 D × 14 D box (free-stream inflow, outflow, slip top and bottom; blockage 1/14) */
-function cylinder(Re: number, D: number, spin: number, avg: number) {
+function cylinder(Re: number, D: number, spin: number, avg: number, sponge?: { cells: number; tau: number }) {
   const U = 0.1;
   const tau = (3 * U * D) / Re + 0.5;
   const nx = Math.round(30 * D);
   const ny = Math.round(14 * D);
   const r = rasterize(nx, ny, circlePolygon(8 * D, ny / 2 + 0.2, D / 2, 128));
-  const s = new LbmSolver({ nx, ny, tau, uIn: U, solid: r.solid, wallQ: r.wallQ, noise: 0.01, seed: 3 });
+  const s = new LbmSolver({ nx, ny, tau, uIn: U, solid: r.solid, wallQ: r.wallQ, noise: 0.01, seed: 3, sponge });
   const cd: number[] = [];
   const cl: number[] = [];
   const rho: number[] = [];
@@ -142,7 +142,10 @@ function cylinder(Re: number, D: number, spin: number, avg: number) {
   const period = up.length > 1 ? (up[up.length - 1] - up[0]) / (up.length - 1) : Number.NaN;
   // amplitude of the lift oscillation: √2 × the standard deviation (the amplitude of a sinusoid); robust against single-step spikes
   const clAmp = Math.SQRT2 * Math.sqrt(mean(cl.map((v) => (v - m) ** 2)));
-  return { cd: mean(cd), clSpan: Math.max(...cl) - Math.min(...cl), clAmp, St: D / (period * U), mon: s.monitor() };
+  // the height of each lift peak above the mean
+  const peaks: number[] = [];
+  for (let i = 1; i < cl.length - 1; i++) if (cl[i] > cl[i - 1] && cl[i] >= cl[i + 1] && cl[i] > m + 0.1) peaks.push(cl[i] - m);
+  return { peaks, cd: mean(cd), clSpan: Math.max(...cl) - Math.min(...cl), clAmp, St: D / (period * U), mon: s.monitor() };
 }
 
 describe('the solver on the circular cylinder (the classical benchmark)', () => {
@@ -163,6 +166,19 @@ describe('the solver on the circular cylinder (the classical benchmark)', () => 
     expect(r.cd).toBeGreaterThan(1.3);
     expect(r.cd).toBeLessThan(1.65);
     expect(r.clAmp).toBeGreaterThan(0.25); // the lift oscillates: published amplitude about 0.33 (in units of ½ρU²D)
+    expect(r.clAmp).toBeLessThan(0.55);
+  }, 180000);
+
+  it('Re = 100 with an absorbing layer in front of the outflow: the lift oscillates steadily (without it the amplitude modulates from reflections), at the same Strouhal number', () => {
+    const r = cylinder(100, 10, 8000, 6000, { cells: 80, tau: 1.0 });
+    expect(r.mon.finite).toBe(true);
+    expect(r.St).toBeGreaterThan(0.15);
+    expect(r.St).toBeLessThan(0.2);
+    expect(r.cd).toBeGreaterThan(1.3);
+    expect(r.cd).toBeLessThan(1.65);
+    expect(r.peaks.length).toBeGreaterThan(8);
+    expect(Math.min(...r.peaks) / Math.max(...r.peaks)).toBeGreaterThan(0.75);
+    expect(r.clAmp).toBeGreaterThan(0.3);
     expect(r.clAmp).toBeLessThan(0.55);
   }, 180000);
 });

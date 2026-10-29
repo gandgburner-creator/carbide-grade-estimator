@@ -24,6 +24,9 @@ export interface CfdParams {
   /** domain in plate lengths */
   widthL: number;
   heightL: number;
+  /** the absorbing layer in front of the outflow: its length in plate lengths and the relaxation time at the end of it */
+  spongeL: number;
+  spongeTau: number;
   /** where the mid-chord sits, as a fraction of the width */
   bodyAtX: number;
   /** start-up and averaging window, in convective times */
@@ -45,10 +48,10 @@ export const CFD_PRESETS = {
 } as const;
 
 /**
- * Lattice speed 0.06 keeps the largest local speed (about 2.5 U in the vortices) below Mach 0.3; the domain is 8 plate
- * lengths long and 6 high, with the mid-chord 30 % of the length from the inflow.
+ * Lattice speed 0.06 keeps the largest local speed (about 2.5 U in the vortices) below Mach 0.3; the domain is 9 plate
+ * lengths long (the last 2 are an absorbing layer in front of the outflow) and 6 high, with the mid-chord 30 % of the length from the inflow.
  */
-export const CFD_BASE = { uLattice: 0.06, widthL: 8, heightL: 6, bodyAtX: 0.3, blocks: 8, sampleEvery: 8, seed: 7 };
+export const CFD_BASE = { uLattice: 0.06, widthL: 9, heightL: 6, spongeL: 2, spongeTau: 1.2, bodyAtX: 0.3, blocks: 8, sampleEvery: 8, seed: 7 };
 
 /** The smallest kinematic viscosity (lattice units) the solver runs without sub-grid modelling: τ ≥ 0.5225. Below it the two-relaxation-time scheme was found unstable on this geometry (tests/cfd.run.test.ts). */
 export const MIN_VISCOSITY = 0.0075;
@@ -217,7 +220,7 @@ export class CfdRun {
     }
     this.blockage = (ymax - ymin) / this.ny;
     const r = rasterize(this.nx, this.ny, poly);
-    this.solver = new LbmSolver({ nx: this.nx, ny: this.ny, tau: this.tau, uIn: p.uLattice, solid: r.solid, wallQ: r.wallQ, noise: 0.01, seed: p.seed, smagorinsky: p.smagorinsky, rampSteps: p.ramp });
+    this.solver = new LbmSolver({ nx: this.nx, ny: this.ny, tau: this.tau, uIn: p.uLattice, solid: r.solid, wallQ: r.wallQ, noise: 0.01, seed: p.seed, smagorinsky: p.smagorinsky, rampSteps: p.ramp, sponge: p.spongeL > 0 ? { cells: Math.round(p.spongeL * p.cells), tau: p.spongeTau } : undefined });
     const N = this.nx * this.ny;
     this.rho = new Float64Array(N);
     this.ux = new Float64Array(N);
@@ -484,7 +487,7 @@ export class CfdRun {
       { id: 'flux', label: 'Mass flux through the domain: inflow and outflow agree', pass: fluxImbalance < 0.02, hard: fluxImbalance >= 0.1, value: Number.isFinite(fluxImbalance) ? `${(100 * fluxImbalance).toFixed(2)} %` : 'n/a', criterion: '< 2 % (a failure above 10 %)' },
       { id: 'density', label: 'The free-stream density did not drift during the window', pass: densityDrift < 0.01, hard: densityDrift >= 0.05, value: `${(100 * densityDrift).toFixed(2)} %`, criterion: '< 1 % (a failure above 5 %)' },
       { id: 'stationary', label: 'The mean drag is the same in the two halves of the window', pass: !(forceDrift > 0.1), hard: false, value: Number.isFinite(forceDrift) ? `${(100 * forceDrift).toFixed(1)} %` : 'n/a', criterion: '< 10 % (otherwise the flow had not settled)' },
-      { id: 'blockage', label: 'Blockage of the body in the domain (a stream confined by slip walls is accelerated past a large body)', pass: this.blockage < 0.3, hard: false, value: `${(100 * this.blockage).toFixed(0)} %`, criterion: '< 30 %' },
+      { id: 'blockage', label: 'Blockage of the body in the channel: a stream confined by slip walls is accelerated past the body, and the forces rise with it (the default plate at 65° gave a drag coefficient 11 % lower when the channel was raised from 6 to 10 plate lengths, blockage 15 % → 9 %)', pass: this.blockage < 0.1, hard: false, value: `${(100 * this.blockage).toFixed(0)} %`, criterion: '< 10 % (above it the force coefficients are inflated by the confinement)' },
     ];
     const status = checks.some((c) => !c.pass && c.hard) ? 'FAILED' : checks.every((c) => c.pass) ? 'PASSED' : 'WARNING';
     const { geometry, ...params } = p;
