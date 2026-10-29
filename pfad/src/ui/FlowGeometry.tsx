@@ -517,6 +517,9 @@ export function FlowGeometry() {
   const stopLive = () => {
     sim.stop();
   };
+  const finishLive = () => {
+    sim.send({ type: 'finishNow' });
+  };
   const liveFrame = liveActive && sim.frame ? (sim.frame.live as Record<string, unknown>) : null;
   const liveStatus = liveFrame
     ? {
@@ -1058,6 +1061,7 @@ export function FlowGeometry() {
               status={liveStatus}
               onStart={startLive}
               onStop={stopLive}
+              onFinish={finishLive}
               blocked={auto.active ? 'Auto-build is running.' : sweep.active ? 'The pointer sweep is running.' : busy ? 'A simulation is running: wait for it to finish, or stop it.' : proposal ? 'Accept or reject the proposal on screen first.' : !draftCheck.ok || dirty ? 'The inputs have unapplied changes or errors: apply or fix them first.' : null}
               lastResult={liveResult}
             />

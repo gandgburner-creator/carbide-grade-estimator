@@ -18,8 +18,10 @@ import { bodyConfigFor, FLOW_GEOMETRY_QUICK, makeSimulation, placementFor, sampl
  * chosen side (WakeVoid.ts). From the separation point, where they stop touching, to a front that advances
  * toward the trailing edge, a small amount of material is added where the particle cloud stands off the surface
  * (LiveFill.ts), only in space that holds no particle, and the polygon of the running simulation is reshaped
- * in place (PolygonBody.reshape). It stops when the void has closed, when nothing was ever unwetted, when the
- * geometry limits or the particles leave no room, or at the update limit.
+ * in place (PolygonBody.reshape). The front makes ONE pass: it starts at the separation point of the first update and
+ * sweeps to the trailing edge (stop 'converged' when the gap there is small, 'swept' when the cloud still stands off).
+ * It also stops when the void has closed, when nothing was ever unwetted, when the geometry limits or the particles
+ * leave no room, at the update limit, or when the person asks to keep what is built ('user').
  *
  * One seed builds the shape (the builder). The result is a GEOMETRY and the story of how it grew. It is not a
  * flow measurement of that geometry: that needs the ordinary `flow-geometry` experiment on the final shape, with
@@ -76,9 +78,10 @@ class LiveBuildRun implements Run<LiveBuildRunResult> {
   private nextSample = 0;
   private nextUpdate = 0;
   private front: number | null = null;
+  /** the separation point of the first update: where the fill starts, for the whole run */
+  private onset0: number | null = null;
   private updates = 0;
   private wetted = 0;
-  private closed = 0;
   private stalled = 0;
   private blocked = 0;
   private limited = 0;
@@ -148,6 +151,11 @@ class LiveBuildRun implements Run<LiveBuildRunResult> {
     this.done = true;
   }
 
+  /** End the run now and keep the shape built so far (the person pressed STOP AND KEEP). */
+  finishEarly() {
+    this.finish('user', 'you stopped it: the shape built so far is kept');
+  }
+
   private analyses(): Record<Side, WakeAnalysis> {
     const gx = stationX(this.geometry);
     const xs = gx.slice(0, this.geometry.stations).map((x, k) => 0.5 * (x + gx[k + 1]));
@@ -174,7 +182,8 @@ class LiveBuildRun implements Run<LiveBuildRunResult> {
     const n = this.updates + 1;
     const step = (s: Partial<LiveStep>): LiveStep => ({ update: n, t, onset: null, front: this.front ?? 0, maxGap: 0, meanGap: 0, added: 0, area: 0, capped: 0, scale: 1, note: '', ...s });
 
-    const plan = planIncrement(this.geometry, wake, cfg, this.front);
+    const plan = planIncrement(this.geometry, wake, cfg, this.front, this.onset0);
+    if (plan && this.onset0 === null) this.onset0 = plan.onset;
     if (!plan) {
       this.wetted++;
       this.record(step({ note: 'every station is touched by particles: nothing to fill' }));
@@ -263,10 +272,12 @@ class LiveBuildRun implements Run<LiveBuildRunResult> {
     this.front = Math.min(g.chord - cfg.teReserve, Math.max(plan.front, plan.onset) + cfg.frontSpeed);
     this.record(step({ onset: plan.onset, front: plan.front, maxGap: plan.maxGap, meanGap: plan.meanGap, added, area, capped: cap.capped, scale, note: cap.capped ? `${cap.capped} station(s) held back by particles` : 'material added' }));
     this.restartEpoch(t);
-    // converged: the front has reached the trailing edge and the gap stays small
+    // the front has reached the trailing edge: the single pass is complete, and the gap that is still left (if any) is reported
     const atTe = plan.front >= g.chord - cfg.teReserve - 1e-9;
-    this.closed = atTe && plan.maxGap < cfg.convergeGap ? this.closed + 1 : 0;
-    if (this.closed >= cfg.convergeUpdates) return this.finish('converged', `the fill reached the trailing edge and the gap stayed under ${cfg.convergeGap} d for ${cfg.convergeUpdates} updates`);
+    if (atTe) {
+      this.finish(plan.maxGap < cfg.convergeGap ? 'converged' : 'swept', plan.maxGap < cfg.convergeGap ? `the front reached the trailing edge and the gap there is under ${cfg.convergeGap} d` : `the front swept from the separation point (x = ${(this.onset0 ?? plan.onset).toFixed(1)} d) to the trailing edge in one pass; the particle cloud still stands off the surface by up to ${plan.maxGap.toFixed(1)} d there (mean ${plan.meanGap.toFixed(1)} d), which a single pass does not chase`);
+      return;
+    }
     this.afterUpdate();
   }
 
@@ -371,6 +382,11 @@ export class FlowLiveBuildExperiment extends SequentialExperiment<{ seed: number
 
   protected createRun(spec: { seed: number }): Run<LiveBuildRunResult> {
     return new LiveBuildRun(this.params, spec.seed);
+  }
+
+  /** End the run now and keep what has been built; the record is then built as for a run that ended by itself. */
+  finishNow(): void {
+    (this.current as LiveBuildRun | null)?.finishEarly();
   }
 
   buildRecord(): ExperimentRecord {

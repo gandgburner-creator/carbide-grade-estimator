@@ -52,3 +52,27 @@ describe('live fill on the real engine (short run, not judged)', () => {
     expect(again.trajectory.map((s) => [s.t, s.added, s.area])).toEqual(r.trajectory.map((s) => [s.t, s.added, s.area]));
   }, 120000);
 }, 180000);
+
+describe('stopping a live fill and keeping what it built', () => {
+  it('ends with stop kind user, keeps the shape grown so far, and still passes every integrity check', () => {
+    const e = new FlowLiveBuildExperiment({ ...short, live: { ...short.live, maxUpdates: 30 } });
+    let guard = 0;
+    // run until at least one update has put material on the surface, but nowhere near the end
+    while (!e.done && guard++ < 400) {
+      e.advance(2000);
+      const updates = String(e.currentRun()?.live().updates ?? '0/0');
+      if (Number(updates.split('/')[0]) >= 2) break;
+    }
+    expect(e.done).toBe(false);
+    e.finishNow();
+    e.advance(1);
+    expect(e.done).toBe(true);
+    const rec = e.buildRecord();
+    const r = rec.results as unknown as LiveBuildResults;
+    expect(r.stop.kind).toBe('user');
+    expect(r.stop.reason).toMatch(/kept/);
+    expect(r.areaAdded).toBeGreaterThan(0);
+    expect(validateGeometry(r.finalGeometry, short.live.limits)).toEqual([]);
+    for (const c of rec.acceptance) expect(c.status, `${c.id}: ${c.measured}`).toBe('PASSED');
+  }, 180000);
+});

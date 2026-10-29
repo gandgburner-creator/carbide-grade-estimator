@@ -31,6 +31,8 @@ export type ToWorker =
   | { type: 'pause' }
   | { type: 'step'; steps: number }
   | { type: 'stop' }
+  /** end the run now and keep what has been built so far (live fill) */
+  | { type: 'finishNow' }
   | { type: 'inspect'; index: number | null }
   | { type: 'view'; field: FieldKind; perCell: number; average: boolean; trails: boolean; profile?: ProfileRequest | null }
   | { type: 'resetAverage' }

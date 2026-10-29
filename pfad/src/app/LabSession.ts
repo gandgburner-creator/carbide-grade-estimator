@@ -94,6 +94,17 @@ export class LabSession {
           }
           this.frame(true);
           break;
+        case 'finishNow': {
+          // an experiment that can end early and keep its result (the live fill) is asked to; the record is built as usual
+          const x = this.experiment as unknown as { finishNow?: () => void } | null;
+          if (x && !this.finished && x.finishNow) {
+            x.finishNow();
+            this.running = false;
+            this.advance(1);
+          }
+          this.frame(true);
+          break;
+        }
         case 'inspect':
           this.inspected = m.index;
           this.trajectory = [];

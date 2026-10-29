@@ -22,7 +22,7 @@ import { cloneGeometry, DEFAULT_LIMITS, isFree, segmentAt, sideY, stationX, vali
  * Safety: material is only added where no particle centre is within its radius (+ `clearance`) of the new
  * surface (`capByParticles`), so the engine never has a particle inside the body.
  */
-export type LiveStop = 'converged' | 'stalled' | 'wetted' | 'max-updates' | 'blocked' | 'limit' | 'failed';
+export type LiveStop = 'converged' | 'swept' | 'stalled' | 'wetted' | 'max-updates' | 'blocked' | 'limit' | 'failed' | 'user';
 
 /** One update of a live fill. */
 export interface LiveStep {
@@ -74,6 +74,8 @@ export interface LiveFillConfig {
   frontSpeed: number;
   ramp: number;
   taper: number;
+  /** how far behind the front material is still added [d]: the fill is ONE pass of the front, so a station gets material only while the front is passing it */
+  behind: number;
   leReserve: number;
   teReserve: number;
   /** extra clearance beyond the particle radius kept between a particle centre and new material [d] */
@@ -95,6 +97,7 @@ export const DEFAULT_LIVE: LiveFillConfig = {
   frontSpeed: 1.5,
   ramp: 3,
   taper: 3,
+  behind: 3,
   leReserve: 1,
   teReserve: 2,
   clearance: 0.1,
@@ -131,22 +134,42 @@ export interface LivePlan {
   meanGap: number;
 }
 
-/** The increment for this update, or null when there is no separation (nothing is unwetted). */
-export function planIncrement(g: SurfaceGeometry, wake: WakeAnalysis, cfg: LiveFillConfig, front: number | null): LivePlan | null {
-  if (!wake.separation || !wake.run) return null;
+/** A three-point smoothing (¼, ½, ¼) of a profile that keeps it non-negative and leaves its ends alone. */
+function smoothProfile(v: number[]): number[] {
+  return v.map((x, i) => (i === 0 || i === v.length - 1 ? x : 0.25 * v[i - 1] + 0.5 * x + 0.25 * v[i + 1]));
+}
+
+/**
+ * The increment for this update, or null when there is nothing to start from.
+ *
+ * The fill STARTS at the separation point found at the first update (`onset`, kept for the whole run: material added since then
+ * makes the particles touch the new surface, which would otherwise move the "first unwetted station" ahead of the fill and make it
+ * restart downstream, leaving a ripple of separate humps) and its FRONT then advances toward the trailing edge by `frontSpeed` per
+ * update. In a band around the front (from `behind` behind it to `taper` ahead) it adds material by the measured gap, which is
+ * smoothed over several stations first (and so is the increment) so that the noise of single stations does not print itself into the surface. The fill is ONE
+ * PASS of the front: once the front has passed a station it adds nothing more there, so the surface cannot keep growing after the cloud
+ * it follows (a surface in a thermal gas always has a lee side with less contact, and chasing it outward never ends). `onset` is read from the wake analysis when it is not given.
+ */
+export function planIncrement(g: SurfaceGeometry, wake: WakeAnalysis, cfg: LiveFillConfig, front: number | null, onsetFixed: number | null = null): LivePlan | null {
+  const onset = onsetFixed ?? wake.separation?.x ?? null;
+  if (onset === null || (onsetFixed === null && (!wake.separation || !wake.run))) return null;
   const xs = stationX(g);
-  const onset = wake.separation.x;
   const xOn = Math.max(onset, cfg.leReserve);
   const xTe = g.chord - cfg.teReserve;
   const fr = Math.min(xTe, front === null ? onset + cfg.frontSpeed : front);
-  const gap = gapAtStations(g, wake);
-  const delta = xs.map((x, i) => {
+  // three passes of the three-point filter: the gap of one station is a few hundred particle samples, and a ripple of 0.3 d in it is noise
+  const gap = smoothProfile(smoothProfile(smoothProfile(gapAtStations(g, wake))));
+  const raw = xs.map((x, i) => {
     if (!isFree(g, i)) return 0;
     if (x < xOn - 1e-9) return 0;
     if (x >= xTe || x >= fr + cfg.taper) return 0;
-    const w = smooth((x - xOn) / Math.max(1e-6, cfg.ramp)) * (1 - smooth((x - fr) / Math.max(1e-6, cfg.taper)));
+    // material goes into the band around the front only: from `behind` behind it, easing in, to `taper` ahead of it, easing out
+    const w = smooth((x - xOn) / Math.max(1e-6, cfg.ramp)) * smooth((x - (fr - cfg.behind)) / Math.max(1e-6, cfg.behind)) * (1 - smooth((x - fr) / Math.max(1e-6, cfg.taper)));
     return Math.min(cfg.maxStep, cfg.relaxation * Math.max(0, gap[i] - cfg.margin)) * w;
   });
+  // the increment itself is smoothed too (and cut off again where nothing may be added), so that the surface gets a smooth bump, not a comb
+  const sm = smoothProfile(smoothProfile(raw));
+  const delta = sm.map((v, i) => (isFree(g, i) && xs[i] >= xOn - 1e-9 && xs[i] < xTe && xs[i] < fr + cfg.taper ? Math.min(cfg.maxStep, v) : 0));
   const treated = xs.map((x, i) => (x >= xOn - 1e-9 && x <= fr + 1e-9 ? gap[i] : null)).filter((v): v is number => v !== null);
   return {
     delta,

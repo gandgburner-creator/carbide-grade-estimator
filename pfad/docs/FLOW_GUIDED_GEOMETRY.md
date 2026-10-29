@@ -286,17 +286,33 @@ midpoint after a probe of a flat plate at 30° and 65° (lee density 0.15–0.4 
 windward side); that is recorded here, not hidden. It is an occupancy definition: a fast stream past an inclined plate
 leaves a rarefied lee that it calls unwetted, whether or not a classical analysis would call it separated.
 
-**The rule** (`src/geometry/LiveFill.ts`). Every `interval` (40 τ) of simulation time, from the separation point to a *front*
-that starts at the separation point and advances 1.5 d per update until it meets the trailing edge:
+**The rule** (`src/geometry/LiveFill.ts`). The fill makes **one pass**. It starts at the separation point found at the first
+update (`onset`, kept for the whole run) and a *front* then advances 1.5 d per update to the trailing edge. At every update
+(`interval` 40 τ of simulation time) material is added only in a band around the front, from `behind` (3 d) behind it to
+`taper` ahead of it:
 
 ```
-δ(x) = min(maxStep, η · max(0, gap(x) − margin)) · w_on(x) · w_front(x)
+δ(x) = min(maxStep, η · max(0, gap_smooth(x) − margin)) · w_on(x) · w_behind(x) · (1 − w_ahead(x))   then smoothed
 ```
 
-with η = 0.4, maxStep = 0.5 d, margin = 0.3 d, smoothstep ramps (3 d) so the new surface leaves and rejoins the old one
-tangentially, and the last 2 d before the trailing edge never touched (it stays where it is: the fill *converges to* it).
-Only the gap is filled, so as the surface advances into the void the particles touch it again and the gap closes. Nothing
-here knows an airfoil, a Kutta condition or a target shape; the result is the envelope of the particle cloud.
+with η = 0.4, maxStep = 0.5 d, margin = 0.3 d, smoothstep ramps so the new surface leaves and rejoins the old one
+tangentially, `gap_smooth` the measured gap smoothed over several stations (three passes of ¼-½-¼), δ smoothed again, and the
+last 2 d before the trailing edge never touched (it stays where it is: the fill *converges to* it). Nothing here knows an
+airfoil, a Kutta condition or a target shape; the result is a bounded, smooth envelope of the particle cloud.
+
+*What was wrong with the first version, and what changed* (reported by the user as "the live fill is not doing it correctly").
+(1) The fill took as its start the *first unwetted station of the latest measurement*. Material makes the particles touch the
+new surface, so that station moved downstream ahead of the fill, the fill restarted there, and the surface came out as a
+row of separate humps; the start is now fixed at the first update. (2) A station kept getting material for as long as a gap
+was measured above it; a thermal gas leaves a *rarefied lee* behind a surface that a fairing need not close (this is the
+likely reading, not a separate measurement: the cloud stood off by up to 12 d, the edge of the sampled window, whatever the
+fill did), so chasing it outward never ended (in a reproduction with only the start fixed, the surface grew 4–5.5 d thick at
+15° and at 30°). A station now receives material only while the front is passing it, so the fill ends when the front reaches
+the trailing edge: stop `converged` when the gap there is under 1 d, `swept` when the cloud still stands off the surface (it
+says by how much: that is the measurement, not something the fill hides). (3) A single station's gap is a few hundred samples,
+so ripples of 0.3–0.5 d in it printed themselves into the surface; the gap and the increment are now smoothed. (4) STOP threw
+the shape away; **STOP AND KEEP WHAT IS BUILT** ends the run at once and keeps what has grown (stop `user`), and the old stop is
+now called CANCEL.
 
 **Safety, so the engine stays honest** (`PolygonBody.reshape`, `capByParticles`, `fitToLimits`):
 
@@ -310,10 +326,11 @@ here knows an airfoil, a Kutta condition or a target shape; the result is the en
   (about 1e-14 in tests), the trailing edge unmoved, the other side untouched, the final geometry within its limits.
 
 **The run** (`flow-live-build`, `src/experiments/FlowLiveBuildExperiment.ts`): one builder seed (the first seed + 100), a
-start-up on the starting geometry until the wake has developed, then the live updates. It stops when the void has closed,
-when nothing was ever unwetted, when it **stalls** (the front is at the trailing edge and almost nothing more fits: the
-limits or the particles allow no more while a void is still left), when particles block it for several updates, when the
-limits leave no room, or at the update limit (30). The output is a **geometry and the story of how it grew**, not a flow
+start-up on the starting geometry until the wake has developed, then the live updates. It stops when the front has swept
+to the trailing edge (`converged` / `swept`), when the void has closed, when nothing was ever unwetted, when it **stalls**
+(the front is at the trailing edge and almost nothing more fits: the limits or the particles allow no more while a void is
+still left), when particles block it for several updates, when the limits leave no room, at the update limit (30), or when
+you press STOP AND KEEP (`user`). The output is a **geometry and the story of how it grew**, not a flow
 measurement of it. One seed builds the shape, so another seed can give a slightly different one.
 
 **In the workspace**: the *Live fill* card starts it; you watch the body grow in the particle view, with the separation
@@ -322,10 +339,11 @@ shape becomes a new version tagged `live-fill`, with every update kept in the hi
 (three seeds, as for any version) to measure what the new surface does. The comparison with its parent then reports the
 prediction the fill stated — *the particles touch the new surface more over the treated stretch* — as supported,
 contradicted, unresolved or not applicable, and lists the contact-layer density of both sides. The measurement panel shows
-the contact density and the void along the surface for every simulated version. STOP discards the run (the shape grown so
-far is not kept).
+the contact density and the void along the surface for every simulated version. **STOP AND KEEP WHAT IS BUILT** ends the
+run and keeps the shape grown so far as a new version; **CANCEL** discards the run.
 
-**What it did in the first real runs** (flat plate 30 × 3 d at 30°, stream 2.95 d/τ = Mach 1.6, builder seed 401; one
+**What it did in the first real runs, with the first version of the rule** (superseded by the one-pass rule above; kept as the
+record of what was observed) (flat plate 30 × 3 d at 30°, stream 2.95 d/τ = Mach 1.6, builder seed 401; one
 seed, not judged): the lee side was unwetted from the leading edge on, with the cloud standing 7–12 d off the surface
 (12 d is the edge of the sampled window); the fill grew a convex fairing on the upper side, up to about +4 d at 10 d from
 the leading edge, flat to about 21 d and back to the trailing edge, in about 20 updates (75 s on a server core). It

@@ -79,11 +79,13 @@ describe('the live-fill rule', () => {
 
   it('adds more where the gap is bigger, never more than relaxation × gap', () => {
     const wsmall = wake(10, 1.2);
-    const small = planIncrement(g0, wsmall, DEFAULT_LIVE, 28)!;
-    const big = planIncrement(g0, wake(10, 8), DEFAULT_LIVE, 28)!;
+    const small = planIncrement(g0, wsmall, DEFAULT_LIVE, 18)!;
+    const big = planIncrement(g0, wake(10, 8), DEFAULT_LIVE, 18)!;
     expect(Math.max(...big.delta)).toBeGreaterThan(Math.max(...small.delta));
-    expect(Math.max(...small.delta)).toBeLessThanOrEqual(DEFAULT_LIVE.relaxation * (wsmall.stations[15].gap - DEFAULT_LIVE.margin) + 1e-9);
-    expect(Math.max(...big.delta)).toBeCloseTo(DEFAULT_LIVE.maxStep, 9);
+    expect(Math.max(...small.delta)).toBeLessThanOrEqual(DEFAULT_LIVE.relaxation * (Math.max(...wsmall.stations.map((q) => q.gap)) - DEFAULT_LIVE.margin) + 1e-9);
+    // a big gap is capped by the most that may be added in one update, and the smoothing never raises a peak
+    expect(Math.max(...big.delta)).toBeLessThanOrEqual(DEFAULT_LIVE.maxStep + 1e-12);
+    expect(Math.max(...big.delta)).toBeGreaterThan(0.5 * DEFAULT_LIVE.maxStep);
   });
 
   it('plans nothing when every station is touched, and ignores wetted segments inside the front', () => {
@@ -93,6 +95,38 @@ describe('the live-fill rule', () => {
     expect(gap[20]).toBeGreaterThan(5);
   });
 
+  it('keeps the start of the fill where it was first found, however the measured separation moves later', () => {
+    const first = planIncrement(g0, wake(10, 6), DEFAULT_LIVE, null)!;
+    // later the cloud touches the surface up to x = 18 (the fill made it so): the measured separation moved, the fill's start did not
+    const later = planIncrement(g0, wake(18, 6), DEFAULT_LIVE, 20, first.onset)!;
+    expect(later.onset).toBeCloseTo(first.onset, 9);
+    expect(later.delta[16]).toBeGreaterThanOrEqual(0);
+    expect(later.delta.slice(0, 10).every((d) => d === 0)).toBe(true);
+    // with nothing unwetted anywhere and a fixed start there is still a plan (a gap of zero adds nothing) …
+    const calm = planIncrement(g0, wake(40, 6), DEFAULT_LIVE, 20, first.onset)!;
+    expect(calm.delta.every((d) => d === 0)).toBe(true);
+  });
+
+  it('is one pass: a station the front has left behind gets nothing more, however big the gap there', () => {
+    const w = wake(4, 10);
+    const early = planIncrement(g0, w, DEFAULT_LIVE, 10)!;
+    const late = planIncrement(g0, w, DEFAULT_LIVE, 24)!;
+    const xs = early.delta.map((_, i) => i + 0.5);
+    early.delta.forEach((d, i) => expect(xs[i] < 10 - DEFAULT_LIVE.behind - 1.01 && d).toBeFalsy());
+    expect(late.delta.slice(0, 18).every((d) => d === 0)).toBe(true);
+    expect(Math.max(...late.delta.slice(20))).toBeGreaterThan(0);
+  });
+
+  it('adds a smooth bump, not a comb: no sharp second differences even from a noisy gap', () => {
+    const S = 30;
+    const NB = 12;
+    const counts: number[] = [];
+    for (let k = 0; k < S; k++) for (let j = 0; j < NB; j++) counts.push(k >= 4 && j < (k % 2 ? 9 : 2) ? 12 : 100);
+    const w = wakeFromTotals({ stations: S, bins: NB, counts, exposure: new Array(S).fill(800), xs: Array.from({ length: S }, (_, k) => k + 0.5), ambient: 0.125, dn: 1 }, 'upper', { ...WAKE_SPEC, pool: 1 });
+    const plan = planIncrement(g0, w, DEFAULT_LIVE, 16)!;
+    for (let i = 1; i < plan.delta.length - 1; i++) expect(Math.abs(plan.delta[i + 1] - 2 * plan.delta[i] + plan.delta[i - 1])).toBeLessThan(0.5 * DEFAULT_LIVE.maxStep);
+  });
+
   it('the front moves toward the trailing edge but never past its reserve', () => {
     const last = planIncrement(g0, wake(10, 6), DEFAULT_LIVE, 29)!;
     expect(last.front).toBeCloseTo(g0.chord - DEFAULT_LIVE.teReserve, 9);
@@ -100,7 +134,7 @@ describe('the live-fill rule', () => {
 });
 
 describe('particles are never overrun', () => {
-  const plan = planIncrement(g0, wake(4, 8), DEFAULT_LIVE, 28)!;
+  const plan = planIncrement(g0, wake(4, 8), DEFAULT_LIVE, 15)!;
   const y = sideY(g0, 'upper');
 
   it('caps the increment above a particle that sits close to the surface, smoothly', () => {
@@ -212,7 +246,7 @@ function runWithWake(wk: WakeAnalysis, seed = 5): RunSummary {
 
 function liveSummary(over: Partial<LiveBuildSummary> = {}): LiveBuildSummary {
   const w = wakeWith(8, 0.2);
-  const plan = planIncrement(g0, w, DEFAULT_LIVE, 28)!;
+  const plan = planIncrement(g0, w, DEFAULT_LIVE, 18)!;
   const fit = fitToLimits(g0, 'upper', plan.delta, DEFAULT_LIVE.limits);
   if (!('geometry' in fit)) throw new Error('no fit');
   const step = (n: number): LiveStep => ({ update: n, t: 100 + 40 * n, onset: plan.onset, front: plan.front, maxGap: plan.maxGap, meanGap: plan.meanGap, added: 0.5, area: 3, capped: 0, scale: 1, note: 'material added' });

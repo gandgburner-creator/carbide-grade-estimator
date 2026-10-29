@@ -29,6 +29,8 @@ export function LiveFillPanel(p: {
   status: LiveStatus | null;
   onStart: () => void;
   onStop: () => void;
+  /** end the run now and keep the shape built so far as a new version */
+  onFinish: () => void;
   blocked: string | null;
   lastResult: string | null;
 }) {
@@ -39,7 +41,7 @@ export function LiveFillPanel(p: {
     <div>
       <div className="note">
         Starts the stream past the <b>current geometry</b> and, while it runs, watches where the particles <b>stop touching</b> the surface (the wake behind it). From that <b>separation point</b> it adds a little material at a time, only into empty space, and the front of the fill moves toward the{' '}
-        <b>trailing edge</b>, which stays where it is. It stops when the void has closed or when nothing more fits. The result is a new version (not yet measured: simulate it afterwards).
+        <b>trailing edge</b>, which stays where it is. The front makes <b>one pass</b>: it starts where the separation was first found and sweeps to the trailing edge, adding material only around itself, so the surface cannot keep growing after a thin cloud. It stops when it reaches the trailing edge, or when you press stop and keep. The result is a new version (not yet measured: simulate it afterwards).
       </div>
       <div className="params" style={{ margin: '6px 0' }}>
         <label className="wide">
@@ -75,9 +77,14 @@ export function LiveFillPanel(p: {
             ▶ START LIVE FILL
           </button>
         ) : (
-          <button className="ctl" onClick={p.onStop} title="ends the run; the shape grown so far is not kept">
-            ■ STOP (discards the run)
-          </button>
+          <>
+            <button className="ctl primary" onClick={p.onFinish} title="ends the run now and keeps the shape grown so far as a new version">
+              ■ STOP AND KEEP WHAT IS BUILT
+            </button>
+            <button className="ctl" onClick={p.onStop} title="ends the run; the shape grown so far is not kept">
+              CANCEL (discards the run)
+            </button>
+          </>
         )}
       </div>
       {p.blocked && !p.active && <div className="note">{p.blocked}</div>}

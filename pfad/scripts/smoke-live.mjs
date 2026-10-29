@@ -72,8 +72,11 @@ await shot('2-live-running');
 step(`live fill is running: the surface grows while the simulation goes (${lap()})`);
 const status = await vis.locator('.section', { hasText: '5 · Live fill' }).innerText();
 if (!/separation point/.test(status) || !/front of the fill/.test(status)) throw new Error(`the live status is missing:\n${status}`);
-await vis.getByText(/Live fill finished \(/).waitFor({ timeout: 900000 });
-step(`live fill finished (${lap()})`);
+// stop it part-way and keep what it built (the button that replaced the old stop-and-discard)
+await page.waitForFunction(() => [...document.querySelectorAll('.shell-body')].some((b) => b.offsetParent !== null && /updates\s*(\d+)\/\d+/.test(b.innerText) && Number(/updates\s*(\d+)\/\d+/.exec(b.innerText)[1]) >= 4), null, { timeout: 600000 });
+await button('■ STOP AND KEEP WHAT IS BUILT').click();
+await vis.getByText(/Live fill finished \(user: you stopped it/).waitFor({ timeout: 120000 });
+step(`live fill stopped by the person and its shape kept (${lap()})`);
 await shot('3-live-finished');
 const result = await vis.locator('.section', { hasText: '5 · Live fill' }).innerText();
 if (!/New version v1/.test(result)) throw new Error(`no new version was made:\n${result}`);
