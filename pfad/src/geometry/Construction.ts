@@ -1,4 +1,4 @@
-import { cloneGeometry, DEFAULT_LIMITS, sideY, stationX, validateGeometry, type GeometryLimits, type Side, type SurfaceGeometry } from './SurfaceGeometry';
+import { cloneGeometry, DEFAULT_LIMITS, isFree, sideY, stationX, validateGeometry, type GeometryLimits, type Side, type SurfaceGeometry } from './SurfaceGeometry';
 
 /**
  * FLOW-GUIDED CONSTRUCTION RULE (experimental; a hypothesis generator, not an optimiser).
@@ -34,8 +34,8 @@ import { cloneGeometry, DEFAULT_LIMITS, sideY, stationX, validateGeometry, type 
  */
 /** what a measurement-based proposal rests on: the detector's region, or a weaker point estimate (see Basis.ts) */
 export type AnalysisMode = 'detector' | 'exploratory';
-/** how an increment came about: from an analysis of a finished run, or grown live while a simulation ran (LiveFill.ts) */
-export type EvidenceMode = AnalysisMode | 'live-fill';
+/** how an increment came about: from an analysis of a finished run, grown live while a simulation ran (LiveFill.ts), or drawn by the pointer (Pointer.ts, PointerVersion.ts) */
+export type EvidenceMode = AnalysisMode | 'live-fill' | 'pointer';
 
 export interface BasisStation {
   /** body-frame chord position of the analysis station's centre */
@@ -199,7 +199,8 @@ export function proposeIncrement(g: SurfaceGeometry, basis: ConstructionBasis, c
   const xLast = xEnd + cfg.taper;
   if (!(xEnd > xOn)) return { ok: false, reason: 'the measured region lies inside the reserved leading/trailing zones: nothing can be changed there' };
   const inRegion = basis.stations.filter((s) => s.x >= basis.region.xLo - 1e-9 && s.x <= basis.region.xHi + 1e-9);
-  const delta = xs.map((x) => {
+  const delta = xs.map((x, i) => {
+    if (!isFree(g, i)) return 0;
     if (x <= xOn || x >= xLast) return 0;
     const h = interpolate(inRegion, usable, x);
     const w = smooth((x - xOn) / cfg.ramp) * (1 - smooth((x - xEnd) / cfg.taper));
@@ -227,8 +228,7 @@ export function proposeIncrement(g: SurfaceGeometry, basis: ConstructionBasis, c
       weight: w,
     });
   }
-  const dx = g.chord / g.stations;
-  const area = points.reduce((a, p) => a + Math.abs(p.yNew - p.yOld) * dx, 0);
+  const area = points.reduce((a, p) => a + Math.abs(p.yNew - p.yOld) * 0.5 * ((xs[p.index + 1] ?? xs[p.index]) - (xs[p.index - 1] ?? xs[p.index])), 0);
   const sideWord = side === 'upper' ? 'upper side' : 'lower side';
   const exploratory = basis.mode === 'exploratory';
   return {

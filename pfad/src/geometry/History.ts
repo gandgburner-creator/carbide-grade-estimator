@@ -4,7 +4,8 @@ import type { WakeAnalysis } from '../measurements/WakeVoid';
 import type { LiveFillConfig, LiveStep, LiveStop } from './LiveFill';
 import type { ValidationStatus } from '../validation/Status';
 import { applyProposal, partialSurface, type PathPoint, type Proposal } from './Construction';
-import { cloneGeometry, type Side, type SurfaceGeometry } from './SurfaceGeometry';
+import type { PlateSpec, PointerLimits, PointerPaths, Pt } from './Pointer';
+import { cloneGeometry, stationX, type Side, type SurfaceGeometry } from './SurfaceGeometry';
 
 /**
  * The construction history: a project is an append-only record of geometry versions, the
@@ -49,8 +50,30 @@ export interface ConstructionInfo {
   scale: number;
   /** the accepted points, in construction order */
   points: PathPoint[];
+  /** present when the increment is a move of the construction pointer (PointerVersion.ts) instead of a proposal */
+  pointer?: PointerMove;
   /** present when the increment was grown live during a simulation (LiveFill.ts) instead of proposed and accepted */
   live?: { recordId: string; seed: number; stop: { kind: LiveStop; reason: string }; updates: number; config: LiveFillConfig; trajectory: LiveStep[] };
+}
+
+/** One placement of the construction pointer: where it was, where it went, and who or what decided. */
+export interface PointerMove {
+  side: Side;
+  /** plate frame (origin at the centre of the leading circle), outward height */
+  from: Pt;
+  to: Pt;
+  decided: 'hand' | 'measurement';
+  /** for a measurement-guided move: the gap it responded to and the rise that followed (see planPointerStep) */
+  measured?: { surface: number; gap: number; rise: number; note: string; recordId: string | null; versionId: string | null; seeds: number[] };
+  limits: PointerLimits;
+}
+
+/** The rounded plate and pointer paths a version's geometry was drawn from (present while the geometry is exactly that shape). */
+export interface PlateShape {
+  plate: PlateSpec;
+  paths: PointerPaths;
+  /** station spacing of the polygon [d] */
+  spacing: number;
 }
 
 export interface GeometryVersion {
@@ -60,6 +83,8 @@ export interface GeometryVersion {
   label: string;
   createdAt: string;
   geometry: SurfaceGeometry;
+  /** the rounded plate and pointer paths that produce `geometry`; absent for flat-plate projects and after a proposal/live-fill increment */
+  shape?: PlateShape;
   construction?: ConstructionInfo;
   run: RunSummary | null;
   undone: { at: string } | null;
@@ -113,18 +138,19 @@ export interface Project {
 
 const now = () => new Date().toISOString();
 
-export function newProject(name: string, conditions: Record<string, unknown>, geometry: SurfaceGeometry, at = now()): Project {
+export function newProject(name: string, conditions: Record<string, unknown>, geometry: SurfaceGeometry, at = now(), shape?: PlateShape): Project {
+  const what = shape ? 'rounded plate (round leading and trailing ends)' : 'flat starting geometry';
   return {
     format: 'pfad-flow-geometry/1',
     id: `fg-${at.replace(/[:.]/g, '-')}`,
     name,
     createdAt: at,
     conditions,
-    versions: [{ id: 'v0', parent: null, origin: 'initial', label: 'flat starting geometry', createdAt: at, geometry: cloneGeometry(geometry), run: null, undone: null }],
+    versions: [{ id: 'v0', parent: null, origin: 'initial', label: what, createdAt: at, geometry: cloneGeometry(geometry), ...(shape ? { shape } : {}), run: null, undone: null }],
     head: 'v0',
     proposals: [],
     references: [],
-    log: [{ t: at, type: 'created', version: 'v0', detail: 'project created with the flat starting geometry' }],
+    log: [{ t: at, type: 'created', version: 'v0', detail: `project created with the ${what}` }],
   };
 }
 
@@ -223,16 +249,16 @@ export function acceptProposal(p: Project, id: string, upTo?: number, note = '',
 function acceptedPoints(before: SurfaceGeometry, after: SurfaceGeometry, prop: Proposal): PathPoint[] {
   const y0 = prop.side === 'upper' ? before.upper : before.lower;
   const y1 = prop.side === 'upper' ? after.upper : after.lower;
-  const dx = before.chord / before.stations;
+  const xs = stationX(before);
   const byIndex = new Map(prop.points.map((q) => [q.index, q]));
   const out: PathPoint[] = [];
   for (let i = 0; i < y0.length; i++) {
     if (Math.abs(y1[i] - y0[i]) <= 1e-9) continue;
     const q = byIndex.get(i);
-    const m = (y0[Math.min(y0.length - 1, i + 1)] - y0[Math.max(0, i - 1)]) / (dx * (Math.min(y0.length - 1, i + 1) - Math.max(0, i - 1)));
+    const m = (y0[Math.min(y0.length - 1, i + 1)] - y0[Math.max(0, i - 1)]) / (xs[Math.min(y0.length - 1, i + 1)] - xs[Math.max(0, i - 1)]);
     out.push({
       index: i,
-      x: i * dx,
+      x: xs[i],
       yOld: y0[i],
       yNew: y1[i],
       // the vertical shift is δ·√(1 + m²), so the normal height is the shift divided by that

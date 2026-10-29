@@ -51,7 +51,7 @@ await field('angle of attack in °').fill('30');
 await field('wind speed in km/h').fill('2000');
 await vis.getByText(/is Mach 1\.6\d in this air/).waitFor({ timeout: 5000 });
 await button('START NEW PROJECT').click();
-await vis.getByText('Starts from a flat plate (30 × 3 particle diameters').waitFor({ timeout: 10000 });
+await vis.getByText('Starts from a rounded plate (30 particle diameters long').waitFor({ timeout: 10000 });
 step('plate 20 × 2 cm at 30°, 2000 km/h (Mach 1.6): project started');
 
 // v0: measure how the particles touch the flat plate

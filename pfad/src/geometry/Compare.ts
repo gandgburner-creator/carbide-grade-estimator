@@ -153,7 +153,7 @@ export function compareVersions(va: GeometryVersion, vb: GeometryVersion): Compa
   // the one stated prediction: backflow over the treated stretch is reduced
   let hypothesis: Comparison['hypothesis'] = null;
   const c = vb.construction;
-  if (c && c.mode === 'live-fill') {
+  if (c && (c.mode === 'live-fill' || c.mode === 'pointer')) {
     const { xLo, xHi } = c.basis.region;
     if (!ra.wake || !rb.wake) {
       hypothesis = { stated: c.hypothesis, side: c.side, xLo, xHi, outcome: 'not applicable', detail: 'One of the two runs has no wake-void measurement (it was made before that measure existed): simulate both again to test the prediction.', delta: null };

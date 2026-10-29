@@ -1,6 +1,6 @@
 import { Simulation } from '../core/Simulation';
 import { applyDelta, capByParticles, DEFAULT_LIVE, fitToLimits, planIncrement, type LiveFillConfig, type LiveStep, type LiveStop } from '../geometry/LiveFill';
-import { sideY, unplace, validateGeometry, type Placement, type Side, type SurfaceGeometry } from '../geometry/SurfaceGeometry';
+import { sideY, stationX, unplace, validateGeometry, type Placement, type Side, type SurfaceGeometry } from '../geometry/SurfaceGeometry';
 import { ConservationMonitor } from '../measurements/EnergyMonitor';
 import { SurfaceFlowSampler } from '../measurements/SurfaceFlowSampler';
 import { wakeFromTotals, WakeAccumulator, WAKE_LABEL, WAKE_SPEC, type WakeAnalysis } from '../measurements/WakeVoid';
@@ -149,7 +149,8 @@ class LiveBuildRun implements Run<LiveBuildRunResult> {
   }
 
   private analyses(): Record<Side, WakeAnalysis> {
-    const xs = Array.from({ length: this.geometry.stations }, (_, k) => ((k + 0.5) * this.geometry.chord) / this.geometry.stations);
+    const gx = stationX(this.geometry);
+    const xs = gx.slice(0, this.geometry.stations).map((x, k) => 0.5 * (x + gx[k + 1]));
     const mk = (s: Side) => wakeFromTotals(this.acc[s].totals(xs, this.n0, this.p.normalWidth), s, WAKE_SPEC);
     return { upper: mk('upper'), lower: mk('lower') };
   }
@@ -251,11 +252,11 @@ class LiveBuildRun implements Run<LiveBuildRunResult> {
     const y1 = sideY(candidate, side);
     let added = 0;
     let area = 0;
-    const dx = g.chord / g.stations;
+    const gxs = stationX(g);
     for (let i = 0; i < y0.length; i++) {
       const d = Math.abs(y1[i] - y0[i]);
       added = Math.max(added, d);
-      area += d * dx;
+      area += d * 0.5 * ((gxs[i + 1] ?? gxs[i]) - (gxs[i - 1] ?? gxs[i]));
     }
     this.body.reshape(bodyConfigFor({ ...this.p, geometry: candidate }).vertices);
     this.geometry = candidate;

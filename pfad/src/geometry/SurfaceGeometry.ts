@@ -25,6 +25,21 @@ export interface SurfaceGeometry {
   upper: number[];
   /** y of the lower surface at stations 0 … n */
   lower: number[];
+  /**
+   * Station abscissae x_0 = 0 < … < x_n = chord, shared by both sides. Absent: uniform, x_i = i · chord / n
+   * (the flat plate). The rounded plate (Pointer.ts) has closer stations around its two round ends.
+   */
+  xs?: number[];
+  /**
+   * Stations [lo, hi] whose surface the increment rules (Construction, LiveFill) may change and whose slope, curvature and
+   * thickness the limits check. Absent: all. The round ends of the rounded plate lie outside it.
+   */
+  free?: [number, number];
+  /**
+   * Both sides meet in a single point at x = 0 and at x = chord (a rounded plate has no end faces). Absent: the plate has
+   * blunt end faces, as the flat plate does.
+   */
+  pointedEnds?: boolean;
 }
 
 export interface GeometryLimits {
@@ -41,8 +56,32 @@ export interface GeometryLimits {
 export const DEFAULT_LIMITS: GeometryLimits = { minThickness: 1.5, maxSlope: 0.5, maxCurvature: 0.35, maxThickness: 12 };
 
 export function stationX(g: SurfaceGeometry): number[] {
+  if (g.xs) return g.xs;
   const dx = g.chord / g.stations;
   return Array.from({ length: g.stations + 1 }, (_, i) => i * dx);
+}
+
+/** Station index whose segment [x_i, x_{i+1}] contains x (clamped to 0 … stations − 1). */
+export function segmentAt(g: SurfaceGeometry, x: number): number {
+  const xs = stationX(g);
+  let lo = 0;
+  let hi = g.stations - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (xs[mid] <= x) lo = mid;
+    else hi = mid - 1;
+  }
+  return lo;
+}
+
+/** Mean station spacing (the flat plate's dx). */
+export function meanSpacing(g: SurfaceGeometry): number {
+  return g.chord / g.stations;
+}
+
+/** Whether station i may be changed by the increment rules (see `free`). */
+export function isFree(g: SurfaceGeometry, i: number): boolean {
+  return !g.free || (i >= g.free[0] && i <= g.free[1]);
 }
 
 /** The starting geometry: a flat plate of the given thickness (blunt leading and trailing faces). */
@@ -53,19 +92,30 @@ export function flatPlate(chord: number, thickness: number, stations = Math.max(
 }
 
 export function cloneGeometry(g: SurfaceGeometry): SurfaceGeometry {
-  return { chord: g.chord, stations: g.stations, upper: g.upper.slice(), lower: g.lower.slice() };
+  const out: SurfaceGeometry = { chord: g.chord, stations: g.stations, upper: g.upper.slice(), lower: g.lower.slice() };
+  if (g.xs) out.xs = g.xs.slice();
+  if (g.free) out.free = [g.free[0], g.free[1]];
+  if (g.pointedEnds) out.pointedEnds = true;
+  return out;
 }
 
 export function sideY(g: SurfaceGeometry, side: Side): number[] {
   return side === 'upper' ? g.upper : g.lower;
 }
 
-/** Counter-clockwise polygon in the body frame: lower surface LE→TE, trailing face, upper surface TE→LE. */
+/**
+ * Counter-clockwise polygon in the body frame: lower surface LE→TE, trailing face, upper surface TE→LE.
+ * With `pointedEnds` the two sides meet at the leading and trailing tips, so there is no end face and the shared tip
+ * vertices appear once.
+ */
 export function bodyPolygon(g: SurfaceGeometry): number[] {
   const x = stationX(g);
+  const n = g.stations;
   const v: number[] = [];
-  for (let i = 0; i <= g.stations; i++) v.push(x[i], g.lower[i]);
-  for (let i = g.stations; i >= 0; i--) v.push(x[i], g.upper[i]);
+  for (let i = 0; i <= n; i++) v.push(x[i], g.lower[i]);
+  const last = g.pointedEnds ? 1 : 0;
+  const first = g.pointedEnds ? n - 1 : n;
+  for (let i = first; i >= last; i--) v.push(x[i], g.upper[i]);
   return v;
 }
 
@@ -74,15 +124,18 @@ export function bodyPolygon(g: SurfaceGeometry): number[] {
  * edge e runs from vertex e to vertex e+1: lower segments are edges 0 … n−1 (a→b
  * downstream), the trailing face is edge n, the upper segments are edges n+1 … 2n
  * (a→b upstream: segment k is edge 2n − k), and the leading face is edge 2n+1.
+ * With pointed ends there are no end faces: upper segment k is edge 2n − 1 − k.
  */
 export function edgeOfSegment(g: SurfaceGeometry, side: Side, k: number): number {
   const n = g.stations;
+  if (g.pointedEnds) return side === 'lower' ? k : 2 * n - 1 - k;
   return side === 'lower' ? k : 2 * n - k;
 }
 
 /** Polygon vertex shared by graph segments k and k+1 of a side (see bodyPolygon for the vertex order). */
 export function junctionVertex(g: SurfaceGeometry, side: Side, k: number): number {
   const n = g.stations;
+  if (g.pointedEnds) return side === 'lower' ? k + 1 : 2 * n - 1 - k;
   return side === 'lower' ? k + 1 : 2 * n - k;
 }
 
@@ -133,25 +186,31 @@ export interface Issue {
   message: string;
 }
 
-/** Local thickness, slope and curvature checks; an empty list means the geometry is within the limits. */
+/**
+ * Local thickness, slope and curvature checks; an empty list means the geometry is within the limits. Only the free
+ * stations are checked (all of them unless the geometry names a free range); the slope is dy/dx of a segment and the
+ * curvature the change of slope from one segment to the next.
+ */
 export function validateGeometry(g: SurfaceGeometry, limits: GeometryLimits = DEFAULT_LIMITS): Issue[] {
   const issues: Issue[] = [];
   const n = g.stations;
   if (g.upper.length !== n + 1 || g.lower.length !== n + 1) return [{ code: 'shape', message: 'a surface needs stations + 1 values' }];
-  const dx = g.chord / n;
+  const x = stationX(g);
+  const lo = g.free ? g.free[0] : 0;
+  const hi = g.free ? g.free[1] : n;
   for (const side of ['upper', 'lower'] as const) {
     const y = sideY(g, side);
     for (let i = 0; i <= n; i++) if (!Number.isFinite(y[i])) return [{ code: 'finite', message: `${side} surface has a non-finite value at station ${i}` }];
-    for (let i = 0; i < n; i++) {
-      const slope = (y[i + 1] - y[i]) / dx;
-      if (Math.abs(slope) > limits.maxSlope + 1e-9) issues.push({ code: 'slope', message: `${side} slope ${slope.toFixed(3)} at segment ${i} exceeds ${limits.maxSlope}` });
+    const slope = (i: number) => (y[i + 1] - y[i]) / (x[i + 1] - x[i]);
+    for (let i = lo; i < hi; i++) {
+      if (Math.abs(slope(i)) > limits.maxSlope + 1e-9) issues.push({ code: 'slope', message: `${side} slope ${slope(i).toFixed(3)} at segment ${i} exceeds ${limits.maxSlope}` });
     }
-    for (let i = 1; i < n; i++) {
-      const curv = (y[i + 1] - 2 * y[i] + y[i - 1]) / dx;
+    for (let i = lo + 1; i < hi; i++) {
+      const curv = slope(i) - slope(i - 1);
       if (Math.abs(curv) > limits.maxCurvature + 1e-9) issues.push({ code: 'curvature', message: `${side} curvature ${curv.toFixed(3)} at station ${i} exceeds ${limits.maxCurvature}` });
     }
   }
-  for (let i = 0; i <= n; i++) {
+  for (let i = lo; i <= hi; i++) {
     const t = g.upper[i] - g.lower[i];
     if (t < limits.minThickness - 1e-9) issues.push({ code: 'min-thickness', message: `thickness ${t.toFixed(3)} at station ${i} is below ${limits.minThickness}` });
     if (t > limits.maxThickness + 1e-9) issues.push({ code: 'max-thickness', message: `thickness ${t.toFixed(3)} at station ${i} exceeds ${limits.maxThickness}` });
@@ -179,8 +238,8 @@ export function maxDifference(a: SurfaceGeometry, b: SurfaceGeometry): { upper: 
 }
 
 export function area(g: SurfaceGeometry): number {
-  const dx = g.chord / g.stations;
+  const x = stationX(g);
   let a = 0;
-  for (let i = 0; i < g.stations; i++) a += 0.5 * (g.upper[i] - g.lower[i] + g.upper[i + 1] - g.lower[i + 1]) * dx;
+  for (let i = 0; i < g.stations; i++) a += 0.5 * (g.upper[i] - g.lower[i] + g.upper[i + 1] - g.lower[i + 1]) * (x[i + 1] - x[i]);
   return a;
 }

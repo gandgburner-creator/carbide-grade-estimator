@@ -179,9 +179,10 @@ export function wakeFromTotals(t: WakeTotals, side: SideName, spec: WakeSpec = W
     if (stations.slice(k, k + spec.minRun).every((s) => s.unwetted)) {
       let last = k + spec.minRun - 1;
       while (last + 1 < S && stations[last + 1].unwetted) last++;
-      const dx = S > 1 ? t.xs[1] - t.xs[0] : 1;
+      // half the local station spacing (the stations of a rounded plate are not uniformly spaced)
+      const hw = (i: number) => (S < 2 ? 0.5 : 0.5 * (i + 1 < S ? t.xs[i + 1] - t.xs[i] : t.xs[i] - t.xs[i - 1]));
       separation = { index: k, x: stations[k].x };
-      run = { first: k, last, xLo: stations[k].x - dx / 2, xHi: stations[last].x + dx / 2 };
+      run = { first: k, last, xLo: stations[k].x - hw(k), xHi: stations[last].x + hw(last) };
       break;
     }
   }

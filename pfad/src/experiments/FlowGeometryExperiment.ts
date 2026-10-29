@@ -3,7 +3,7 @@ import type { DomainSpec } from '../core/Domain';
 import type { TimestepPolicy } from '../core/Integrator';
 import type { SafetyFlag } from '../core/Safety';
 import { Simulation } from '../core/Simulation';
-import { bodyPolygon, edgeOfSegment, flatPlate, junctionVertex, place, placementAt, type Placement, type Side, type SurfaceGeometry } from '../geometry/SurfaceGeometry';
+import { bodyPolygon, edgeOfSegment, flatPlate, junctionVertex, meanSpacing, place, placementAt, stationX, type Placement, type Side, type SurfaceGeometry } from '../geometry/SurfaceGeometry';
 import { createGas } from '../gas/InitialConditions';
 import { aggregateEmptySpace, EmptySpaceMonitor, type EmptySpaceSummary } from '../measurements/EmptySpaceMonitor';
 import { ConservationMonitor } from '../measurements/EnergyMonitor';
@@ -144,7 +144,7 @@ export function placementFor(p: Pick<FlowGeometryParams, 'geometry' | 'length' |
 /** Sampler sides (simulation frame) for a geometry and placement. */
 export function samplerSidesFor(g: SurfaceGeometry, pl: Placement): SamplerSide[] {
   const n = g.stations;
-  const xs = Array.from({ length: n + 1 }, (_, i) => (i * g.chord) / n);
+  const xs = stationX(g);
   return (['upper', 'lower'] as const).map((side: Side) => {
     const y = side === 'upper' ? g.upper : g.lower;
     const body = xs.flatMap((x, i) => [x, y[i]]);
@@ -188,7 +188,7 @@ export function bodyConfigFor(p: FlowGeometryParams): PolygonBodyConfig {
     accommodation: p.accommodation,
     temperature: p.wallKT,
     // one measurement bin per edge (edges are about one station long)
-    binLength: (1.5 * p.geometry.chord) / p.geometry.stations,
+    binLength: 1.5 * meanSpacing(p.geometry),
     momentOrigin: { x: pl.x + 0.25 * p.geometry.chord * Math.cos(a), y: pl.y - 0.25 * p.geometry.chord * Math.sin(a) },
   };
 }
@@ -389,7 +389,7 @@ export function flowDataOf(p: FlowGeometryParams, runs: FlowRunResult[]): FlowDa
     radius: p.radius,
     normalWidth: p.normalWidth,
     normalBins: p.normalBins,
-    xs: Array.from({ length: n }, (_, k) => ((k + 0.5) * g.chord) / n),
+    xs: stationX(g).slice(0, n).map((x, k) => 0.5 * (x + stationX(g)[k + 1])),
     lengths: { upper: seg('upper'), lower: seg('lower') },
     runs: runs.map((r) => ({ seed: r.seed, blocks: r.blocks })),
     ambientDensity: p.areaFraction / (Math.PI * p.radius * p.radius),

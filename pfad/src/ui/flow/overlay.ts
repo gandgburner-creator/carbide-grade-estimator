@@ -1,6 +1,6 @@
 import type { Proposal } from '../../geometry/Construction';
 import type { ReplayFrame } from '../../geometry/History';
-import { bodyPolygon, place, sideY, stationX, type Placement, type Side, type SurfaceGeometry } from '../../geometry/SurfaceGeometry';
+import { bodyPolygon, place, segmentAt, sideY, stationX, type Placement, type Side, type SurfaceGeometry } from '../../geometry/SurfaceGeometry';
 import type { StationRow } from '../../measurements/SeparationDetector';
 import type { transformOf } from '../ParticleView';
 
@@ -28,9 +28,11 @@ export interface OverlayState {
   references: SurfaceGeometry[];
   /** a live fill in progress: where the particles stopped touching the surface, and how far the front has got */
   live?: { side: Side; onset: number | null; front: number | null } | null;
+  /** the construction pointer: where it is, the anchor its tether runs to (body frame; y outward on `side`), and an unplaced candidate */
+  pointer?: { side: Side; at: { x: number; y: number }; anchor: { x: number; y: number }; preview: SurfaceGeometry | null; previewAt: { x: number; y: number } | null } | null;
 }
 
-const COLORS = { reversed: '#f85149', reduced: '#d29922', exploratory: '#d29922', proposal: '#f0b429', dividing: '#39c5cf', marker: '#ff4d4d' };
+const COLORS = { tether: '#7ee787', reversed: '#f85149', reduced: '#d29922', exploratory: '#d29922', proposal: '#f0b429', dividing: '#39c5cf', marker: '#ff4d4d' };
 
 /** Annotations of the construction workflow, drawn over the particle view in simulation coordinates. */
 export function makeOverlay(st: OverlayState) {
@@ -120,7 +122,7 @@ export function makeOverlay(st: OverlayState) {
       const y = sideY(geo, side);
       const sgn = side === 'upper' ? 1 : -1;
       const at = (xq: number): [number, number] => {
-        const i = Math.max(0, Math.min(geo.stations - 1, Math.floor(xq / (geo.chord / geo.stations))));
+        const i = segmentAt(geo, xq);
         const f = (xq - x[i]) / (x[i + 1] - x[i]);
         return P(xq, y[i] + f * (y[i + 1] - y[i]) + sgn * 0.45);
       };
@@ -163,6 +165,52 @@ export function makeOverlay(st: OverlayState) {
       }
     }
 
+    // the pointer, its tether to the anchor, and the surface a candidate position would give
+    if (st.pointer && !st.replay) {
+      const pt = st.pointer;
+      const sgn = pt.side === 'upper' ? 1 : -1;
+      if (pt.preview) {
+        outline(pt.preview);
+        g.setLineDash([4, 4]);
+        g.strokeStyle = COLORS.proposal;
+        g.lineWidth = 1.8;
+        g.stroke();
+        g.setLineDash([]);
+        if (pt.previewAt) {
+          const [qx, qy] = P(pt.previewAt.x, sgn * pt.previewAt.y);
+          g.beginPath();
+          g.arc(qx, qy, 5, 0, 2 * Math.PI);
+          g.strokeStyle = COLORS.proposal;
+          g.lineWidth = 1.8;
+          g.stroke();
+        }
+      }
+      const a = P(pt.at.x, sgn * pt.at.y);
+      const b = P(pt.anchor.x, sgn * pt.anchor.y);
+      line([a, b]);
+      g.setLineDash([6, 4]);
+      g.strokeStyle = COLORS.tether;
+      g.lineWidth = 1.6;
+      g.stroke();
+      g.setLineDash([]);
+      g.beginPath();
+      g.arc(b[0], b[1], 4, 0, 2 * Math.PI);
+      g.fillStyle = COLORS.tether;
+      g.fill();
+      g.beginPath();
+      g.arc(a[0], a[1], 6, 0, 2 * Math.PI);
+      g.fillStyle = COLORS.marker;
+      g.fill();
+      g.strokeStyle = '#fff';
+      g.lineWidth = 1.5;
+      g.stroke();
+      g.font = '10px ui-monospace, monospace';
+      g.fillStyle = '#ffb3b3';
+      g.fillText('pointer', a[0] + 8, a[1] - 8);
+      g.fillStyle = COLORS.tether;
+      g.fillText('tether → anchor', b[0] - 70, b[1] - 8);
+    }
+
     // measured dividing streamline: the surface of zero net near-wall flux, at its measured height along the normal
     if (st.dividing && !st.replay) {
       const side = st.dividing.side;
@@ -173,7 +221,7 @@ export function makeOverlay(st: OverlayState) {
         const h = st.dividing.exploratory ? s.hdsRaw : s.hds;
         if ((h.state !== 'closed' && h.state !== 'open') || !(h.value > 0)) continue;
         // the station centre on the surface, then the measured height along the local normal
-        const i = Math.max(0, Math.min(geo.stations - 1, Math.floor(s.x / (geo.chord / geo.stations))));
+        const i = segmentAt(geo, s.x);
         const f = (s.x - x[i]) / (x[i + 1] - x[i]);
         const cy = y[i] + f * (y[i + 1] - y[i]);
         const tx = x[i + 1] - x[i];

@@ -67,8 +67,8 @@ await expectText('PFAD LABORATORY');
 await page.getByRole('button', { name: /FLOW-GUIDED GEOMETRY/ }).click();
 await expectText('FLOW-GUIDED GEOMETRY · EXPERIMENTAL');
 await expectText('NOT AN OPTIMISER');
-await expectText('Starts from a flat plate');
-step('workspace opens on a flat plate, labelled experimental / not an optimiser / not validated');
+await expectText('Starts from a rounded plate');
+step('workspace opens on a rounded plate, labelled experimental / not an optimiser / not validated');
 
 // the plain-unit inputs: plate in cm, air in °C and m, wind in km/h, angle in degrees
 const field = (name) => page.locator('.shell-body:visible').getByLabel(name, { exact: true });
@@ -92,7 +92,7 @@ await expectText('between 1 and 5000 cm');
 if (await button('START NEW PROJECT').isEnabled()) throw new Error('START NEW PROJECT must be disabled for an impossible wing depth');
 await field('wing depth in cm').fill('150');
 await button('START NEW PROJECT').click();
-await expectText('Starts from a flat plate (30 × 3 particle diameters');
+await expectText('Starts from a rounded plate (30 particle diameters long');
 step('plain inputs are checked, explained, and turned into the simulation setup (20 × 2 cm → 30 × 3 particle diameters)');
 await shot('1-v0-before');
 

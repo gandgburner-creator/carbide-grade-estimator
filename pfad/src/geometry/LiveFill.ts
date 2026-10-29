@@ -1,5 +1,5 @@
 import type { WakeAnalysis } from '../measurements/WakeVoid';
-import { cloneGeometry, DEFAULT_LIMITS, sideY, stationX, validateGeometry, type GeometryLimits, type Side, type SurfaceGeometry } from './SurfaceGeometry';
+import { cloneGeometry, DEFAULT_LIMITS, isFree, segmentAt, sideY, stationX, validateGeometry, type GeometryLimits, type Side, type SurfaceGeometry } from './SurfaceGeometry';
 
 /**
  * LIVE FILL (experimental): grow a surface WHILE the simulation runs, where the particles no longer
@@ -141,6 +141,7 @@ export function planIncrement(g: SurfaceGeometry, wake: WakeAnalysis, cfg: LiveF
   const fr = Math.min(xTe, front === null ? onset + cfg.frontSpeed : front);
   const gap = gapAtStations(g, wake);
   const delta = xs.map((x, i) => {
+    if (!isFree(g, i)) return 0;
     if (x < xOn - 1e-9) return 0;
     if (x >= xTe || x >= fr + cfg.taper) return 0;
     const w = smooth((x - xOn) / Math.max(1e-6, cfg.ramp)) * (1 - smooth((x - fr) / Math.max(1e-6, cfg.taper)));
@@ -164,15 +165,16 @@ export function planIncrement(g: SurfaceGeometry, wake: WakeAnalysis, cfg: LiveF
  */
 export function capByParticles(g: SurfaceGeometry, side: Side, delta: number[], particles: { x: number; y: number }[], radius: number, clearance: number, slopeStep = 0.3): { delta: number[]; capped: number } {
   const n = g.stations;
-  const dx = g.chord / n;
+  const xs = stationX(g);
   const y = sideY(g, side);
   const sign = side === 'upper' ? 1 : -1;
   const out = delta.slice();
   let capped = 0;
   for (const p of particles) {
     if (p.x < 0 || p.x > g.chord) continue;
-    const i = Math.min(n - 1, Math.max(0, Math.floor(p.x / dx)));
-    const f = p.x / dx - i;
+    const i = segmentAt(g, p.x);
+    const dx = xs[i + 1] - xs[i];
+    const f = (p.x - xs[i]) / dx;
     const y0 = y[i] + f * (y[i + 1] - y[i]);
     const slope = (y[i + 1] - y[i]) / dx;
     const dOut = sign * (p.y - y0);
@@ -215,14 +217,14 @@ export function applyDelta(g: SurfaceGeometry, side: Side, delta: number[], scal
  */
 export function fitToLimits(g: SurfaceGeometry, side: Side, delta: number[], limits: GeometryLimits): { geometry: SurfaceGeometry; scale: number } | { reason: string } {
   const n = g.stations;
-  const dx = g.chord / n;
+  const xs = stationX(g);
   const sign = side === 'upper' ? 1 : -1;
   const h = sideY(g, side).map((v) => sign * v);
-  const d = delta.map((v) => Math.max(0, v));
-  const S = limits.maxSlope * dx;
+  const d = delta.map((v, i) => (isFree(g, i) ? Math.max(0, v) : 0));
+  const S = Array.from({ length: n }, (_, i) => limits.maxSlope * (xs[i + 1] - xs[i]));
   for (let pass = 0; pass < 3; pass++) {
-    for (let i = 0; i < n; i++) d[i + 1] = Math.max(0, Math.min(d[i + 1], d[i] + S - (h[i + 1] - h[i])));
-    for (let i = n - 1; i >= 0; i--) d[i] = Math.max(0, Math.min(d[i], d[i + 1] + S + (h[i + 1] - h[i])));
+    for (let i = 0; i < n; i++) d[i + 1] = Math.max(0, Math.min(d[i + 1], d[i] + S[i] - (h[i + 1] - h[i])));
+    for (let i = n - 1; i >= 0; i--) d[i] = Math.max(0, Math.min(d[i], d[i + 1] + S[i] + (h[i + 1] - h[i])));
   }
   let reason = '';
   for (let iter = 0; iter < 40; iter++) {

@@ -37,13 +37,17 @@ import {
   type Project,
 } from '../geometry/History';
 import { runSummaryFromRecord } from '../geometry/RunSummary';
-import { flatPlate, type Side, type SurfaceGeometry } from '../geometry/SurfaceGeometry';
+import { addPointerPoint, anchorOf, DEFAULT_POINTER_STEP, initialPaths, outwardHeight, plateGeometry, pointerOf, radiusOf, type PointerStepConfig } from '../geometry/Pointer';
+import { measuredPointerStep } from '../geometry/PointerMeasure';
+import { addPointerVersion } from '../geometry/PointerVersion';
+import type { Side, SurfaceGeometry } from '../geometry/SurfaceGeometry';
 import { fieldScale } from './colors';
 import { downloadText } from './download';
 import { DetectorPanel, LevelBadge, ProfilePanel, StationPlots } from './flow/DetectorPanel';
 import { ConstructionPanel } from './flow/ConstructionPanel';
 import { AutoBuildPanel, EMPTY_AUTO, type AutoRun } from './flow/AutoBuildPanel';
 import { LiveFillPanel, type LiveSettings } from './flow/LiveFillPanel';
+import { EMPTY_SWEEP, PointerPanel, type PointerSweep, type PointerTexts } from './flow/PointerPanel';
 import { ForcesPanel } from './flow/ForcesPanel';
 import { ScenarioPanel, scenarioText, type ScenarioText } from './flow/ScenarioPanel';
 import { FlowComparePanel } from './flow/ComparePanel';
@@ -69,7 +73,7 @@ interface Setup {
   name: string;
   preset: 'quick' | 'extended';
 }
-const DEFAULT_SETUP: Setup = { name: 'Flat plate study', preset: 'quick' };
+const DEFAULT_SETUP: Setup = { name: 'Rounded plate study', preset: 'quick' };
 
 /** The simulation's own conditions for a plate set up from plain inputs (the plain inputs are kept for provenance only). */
 function conditionsFor(s: Setup, input: PhysicalInputs): Conditions {
@@ -81,9 +85,12 @@ function conditionsFor(s: Setup, input: PhysicalInputs): Conditions {
   return { ...c, length: Math.round(6 * m.chord), height: Math.round((10 * m.chord) / 3), alphaDeg: m.alphaDeg, speed: m.speed, scenario: input };
 }
 
+/** A new project starts from the rounded plate (half-circle ends); the construction pointer sits on top of its leading circle. */
 function makeProject(s: Setup, input: PhysicalInputs): Project {
   const m = scenarioToModel(input);
-  return newProject(s.name || 'Flat plate study', conditionsFor(s, input) as unknown as Record<string, unknown>, flatPlate(m.chord, m.thickness));
+  const plate = { length: m.chord, thickness: m.thickness };
+  const paths = initialPaths(plate);
+  return newProject(s.name || 'Rounded plate study', conditionsFor(s, input) as unknown as Record<string, unknown>, plateGeometry(plate, paths, 1), undefined, { plate, paths, spacing: 1 });
 }
 
 interface Draft {
@@ -164,6 +171,10 @@ export function FlowGeometry() {
   const [liveActive, setLiveActive] = useState(false);
   const [liveResult, setLiveResult] = useState<string | null>(null);
   const [auto, setAuto] = useState<AutoRun>(EMPTY_AUTO);
+  const [pSide, setPSide] = useState<Side>('upper');
+  const [pTexts, setPTexts] = useState<PointerTexts>({ x: '', rise: '0.5' });
+  const [pStep, setPStep] = useState<PointerStepConfig>(DEFAULT_POINTER_STEP);
+  const [sweep, setSweep] = useState<PointerSweep>(EMPTY_SWEEP);
   const [autoTarget, setAutoTarget] = useState(3);
   const [autoWeak, setAutoWeak] = useState(true);
   const [side, setSide] = useState<Side>('upper');
@@ -313,6 +324,7 @@ export function FlowGeometry() {
     setMessage(`${kind === 'stopped' ? 'Stopped' : 'Failed'}: ${text}`);
     // a simulation that ended without a result also ends auto-build (nothing to build on)
     setAuto((a) => (a.active ? { ...a, active: false, stopped: { stop: kind === 'failed' ? 'failed' : 'user', reason: text }, log: [...a.log, { text: `Stopped (${kind === 'failed' ? 'the simulation failed' : 'the simulation was stopped'}): ${text}`, kind: 'stop' as const }] } : a));
+    setSweep((a) => (a.active ? { ...a, active: false, stopped: { stop: kind, reason: text }, log: [...a.log, { text: `Stopped (${kind === 'failed' ? 'the simulation failed' : 'the simulation was stopped'}): ${text}`, kind: 'stop' as const }] } : a));
   }, []);
   const sim = useSimulation(onRecord, onEnd);
 
@@ -346,7 +358,7 @@ export function FlowGeometry() {
   }, [wantKey, loadedKey, sim.phase, loadHead]);
 
   const busy = sim.phase === 'running' || sim.phase === 'paused';
-  const locked = busy || auto.active;
+  const locked = busy || auto.active || sweep.active;
   const run = () => {
     const c = readCheck(draft, project.conditions as unknown as Conditions);
     if (c.ok && JSON.stringify(c.cond) !== JSON.stringify(project.conditions)) {
@@ -585,6 +597,113 @@ export function FlowGeometry() {
     return () => clearTimeout(t);
   }, [auto.active, auto.done, auto.target, proposal, playing, pointIdx]);
 
+  // ---- pointer: the rounded plate's construction pointer (geometry/Pointer.ts), by hand, by one measured step, or swept to the anchor
+  const shape = head.shape ?? null;
+  const cmPerUnit = projectScenario ? projectScenario.lengthCm / head.geometry.chord : 1;
+  const pointerTarget = useMemo((): { ok: true; to: { x: number; y: number }; geometry: SurfaceGeometry } | { ok: false; reason: string } => {
+    if (!shape) return { ok: false, reason: 'the open version was not drawn with the pointer' };
+    const xcm = Number(pTexts.x);
+    const rcm = Number(pTexts.rise);
+    if (pTexts.x.trim() === '' || !Number.isFinite(xcm)) return { ok: false, reason: 'enter how far along the plate the pointer goes [cm]' };
+    if (pTexts.rise.trim() === '' || !Number.isFinite(rcm)) return { ok: false, reason: 'enter how high above the plate the pointer goes [cm]' };
+    const to = { x: xcm / cmPerUnit, y: radiusOf(shape.plate) + rcm / cmPerUnit };
+    const added = addPointerPoint(shape.plate, shape.paths, pSide, to, pStep.limits);
+    if (!added.ok) return { ok: false, reason: added.reason };
+    return { ok: true, to, geometry: plateGeometry(shape.plate, added.paths, shape.spacing) };
+  }, [shape, pTexts, pSide, cmPerUnit, pStep.limits]);
+  // a sensible next position whenever the head or the side changes
+  useEffect(() => {
+    if (!shape || sweep.active) return;
+    const at = pointerOf(shape.paths, pSide);
+    const x = Math.min(anchorOf(shape.plate).x, at.x + pStep.step);
+    const h = outwardHeight(shape.plate, pSide === 'upper' ? shape.paths.upper : shape.paths.lower, x) - radiusOf(shape.plate);
+    setPTexts({ x: (x * cmPerUnit).toFixed(2), rise: ((h + 0.5) * cmPerUnit).toFixed(2) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [head.id, pSide]);
+  const afterPointerVersion = (v: { id: string; parent: string | null }, text: string) => {
+    setViewId(v.id);
+    setCmp([v.parent ?? v.id, v.id]);
+    setPlaying(false);
+    setMessage(text);
+  };
+  const placePointer = () => {
+    if (!pointerTarget.ok) return setMessage(`Cannot place the pointer: ${pointerTarget.reason}`);
+    try {
+      const out = addPointerVersion(project, { side: pSide, to: pointerTarget.to, limits: pStep.limits, decision: { kind: 'hand' } });
+      setProject(out.project);
+      afterPointerVersion(out.version, `The pointer moved: ${out.version.id} has the new surface. It has not been simulated: run it to see what the new surface does.`);
+    } catch (e) {
+      setMessage(`Cannot place the pointer: ${(e as Error).message}`);
+    }
+  };
+  const measuredStep = (v: typeof head) => measuredPointerStep(v, pSide, pStep);
+  const doMeasuredStep = (proj: Project, v: typeof head) => {
+    const m = measuredStep(v);
+    if (!m.ok) throw new Error(m.reason);
+    return addPointerVersion(proj, { side: pSide, to: m.st.to, limits: pStep.limits, decision: { kind: 'measurement', step: m.st, recordId: v.run!.recordId, versionId: v.id, seeds: v.run!.seeds, summary: m.summary, detector: 'wake-void/0' } });
+  };
+  const autoPointerStep = () => {
+    try {
+      const out = doMeasuredStep(project, head);
+      setProject(out.project);
+      afterPointerVersion(out.version, `The measurement moved the pointer: ${out.version.id}. ${out.version.construction!.pointer!.measured!.note}. It has not been simulated.`);
+    } catch (e) {
+      setMessage(`No pointer step: ${(e as Error).message}`);
+    }
+  };
+  const sweepKey = useRef('');
+  const sweepLogged = useRef(new Set<string>());
+  const logSweep = (text: string, kind: 'info' | 'warn' | 'stop' = 'info') => setSweep((a) => ({ ...a, log: [...a.log, { text, kind }] }));
+  const stopSweep = (stop: string, reason: string) => {
+    setSweep((a) => ({ ...a, active: false, stopped: { stop, reason }, log: [...a.log, { text: `Stopped (${stop === 'nothing-measured' ? 'nothing is measured' : stop}): ${reason}.`, kind: 'stop' as const }] }));
+    setMessage(`Pointer sweep stopped: ${reason}`);
+  };
+  const startSweep = () => {
+    setMessage(null);
+    sweepKey.current = '';
+    sweepLogged.current = new Set();
+    setSweep({ active: true, steps: 0, log: [{ text: `Started on the ${pSide} side from ${head.id}: simulate, move the pointer by what was measured, simulate again, until the pointer reaches the anchor.`, kind: 'info' }], stopped: null });
+  };
+  const stopSweepByUser = () => {
+    if (sim.phase === 'running' || sim.phase === 'paused') sim.stop();
+    stopSweep('user', 'you stopped it');
+  };
+  useEffect(() => {
+    if (!sweep.active) return;
+    if (sim.phase === 'running' || sim.phase === 'paused' || runningVersion.current !== null) return;
+    if (!head.shape) return stopSweep('limit', 'the open version was not drawn with the pointer');
+    const key = `${head.id}|${head.run?.recordId ?? '-'}`;
+    if (sweepKey.current === key) return;
+    sweepKey.current = key;
+    if (!head.run) {
+      logSweep(`Simulating ${head.id}…`);
+      run();
+      if (runningVersion.current === null) stopSweep('failed', 'the simulation could not be started (see the message above the run controls)');
+      return;
+    }
+    if (head.run.integrity.status !== 'PASSED') return stopSweep('failed', `the run of ${head.id} did not pass its numerical-integrity checks (${head.run.integrity.status}), so its measurements cannot be trusted`);
+    if (head.parent && head.construction?.mode === 'pointer' && !sweepLogged.current.has(head.id)) {
+      sweepLogged.current.add(head.id);
+      try {
+        const c = compareVersions(version(project, head.parent), head);
+        logSweep(c.hypothesis ? `${head.id} simulated. The stated prediction (the particles touch the surface more over the stretch just drawn) is ${c.hypothesis.outcome}: ${c.hypothesis.detail}` : `${head.id} simulated.`);
+      } catch {
+        logSweep(`${head.id} simulated (no comparison with its parent was possible).`, 'warn');
+      }
+    }
+    if (pointerOf(head.shape.paths, pSide).x >= anchorOf(head.shape.plate).x - 1e-9) return stopSweep('finished', 'the pointer is at the trailing-edge anchor: the curve is complete and its last version has been simulated');
+    if (sweep.steps >= 40) return stopSweep('limit', 'forty pointer steps were taken');
+    try {
+      const out = doMeasuredStep(project, head);
+      setProject(out.project);
+      setViewId(out.version.id);
+      setCmp([out.version.parent!, out.version.id]);
+      setSweep((a) => ({ ...a, steps: a.steps + 1, log: [...a.log, { text: `Step ${a.steps + 1}: ${out.version.construction!.pointer!.measured!.note}. New version ${out.version.id}; simulating it next.`, kind: 'info' as const }] }));
+    } catch (e) {
+      stopSweep('nothing-measured', (e as Error).message);
+    }
+  });
+
   // ---- conditions and projects
   const applyConditions = () => {
     const c = readCheck(draft, project.conditions as unknown as Conditions);
@@ -708,13 +827,22 @@ export function FlowGeometry() {
       showStations,
       alphaDeg: (project.conditions as unknown as Conditions).alphaDeg,
       references: project.references.map((r) => r.geometry),
+      pointer:
+        head.shape && !liveShape
+          ? (() => {
+              const r0 = radiusOf(head.shape.plate);
+              const at = pointerOf(head.shape.paths, pSide);
+              const a = anchorOf(head.shape.plate);
+              return { side: pSide, at: { x: at.x + r0, y: at.y }, anchor: { x: a.x + r0, y: a.y }, preview: pointerTarget.ok ? pointerTarget.geometry : null, previewAt: pointerTarget.ok ? { x: pointerTarget.to.x + r0, y: pointerTarget.to.y } : null };
+            })()
+          : null,
     };
     const draw = makeOverlay(st);
     return (g: CanvasRenderingContext2D, T: Parameters<typeof draw>[1], frame: NonNullable<typeof sim.frame>) => {
       draw(g, T);
       drawStream(g, T, frame.domain, (project.conditions as unknown as Conditions).speed, st.alphaDeg);
     };
-  }, [analysis, side, mode, project, head, viewed, proposal, pointIdx, replayFrame, showStations, sim.frame, liveShape, liveFrame, liveSettings.side]);
+  }, [analysis, side, mode, project, head, viewed, proposal, pointIdx, replayFrame, showStations, sim.frame, liveShape, liveFrame, liveSettings.side, pSide, pointerTarget]);
 
   const underlay = useMemo(() => {
     if (fieldKind === 'none' || !grid) return undefined;
@@ -781,7 +909,7 @@ export function FlowGeometry() {
               depthError={depthCheck.ok ? null : depthCheck.error}
             />
             <div className="seg" style={{ margin: '6px 0' }}>
-              <button className="ctl primary" onClick={newProjectFromSetup} disabled={locked || !sCheck.ok || !depthCheck.ok} title="start again from a flat plate with these values">
+              <button className="ctl primary" onClick={newProjectFromSetup} disabled={locked || !sCheck.ok || !depthCheck.ok} title="start again from a rounded plate with these values">
                 START NEW PROJECT
               </button>
               <button className="ctl" onClick={applyConditions} disabled={locked || !dirty || !draftCheck.ok || legacy} title="change the wind, air or angle of the open project; the change is recorded in its history">
@@ -790,7 +918,10 @@ export function FlowGeometry() {
             </div>
             {sCheck.ok && !draftCheck.ok && draftCheck.errors.map((e, i) => <div key={i} className="error">{e}</div>)}
             <div className="note">
-              Starts from a flat plate ({project.versions[0].geometry.chord} × {fmt(project.versions[0].geometry.upper[0] - project.versions[0].geometry.lower[0])} particle diameters, blunt ends). No airfoil profile is built in. Open project: <b>{project.name}</b> · {project.versions.length} version
+              {project.versions[0].shape
+                ? `Starts from a rounded plate (${project.versions[0].geometry.chord} particle diameters long, ${fmt(2 * radiusOf(project.versions[0].shape.plate))} thick, half-circle ends).`
+                : `Starts from a flat plate (${project.versions[0].geometry.chord} × ${fmt(project.versions[0].geometry.upper[0] - project.versions[0].geometry.lower[0])} particle diameters, blunt ends).`}{' '}
+              No airfoil profile is built in. Open project: <b>{project.name}</b> · {project.versions.length} version
               {project.versions.length === 1 ? '' : 's'}.
             </div>
           </div>
@@ -880,7 +1011,32 @@ export function FlowGeometry() {
           </div>
 
           <div className="section">
-            <h2>4 · Live fill (experimental)</h2>
+            <h2>4 · Draw with the pointer (experimental)</h2>
+            <PointerPanel
+              plate={head.shape?.plate ?? null}
+              paths={head.shape?.paths ?? null}
+              cmPerUnit={cmPerUnit}
+              side={pSide}
+              onSide={setPSide}
+              texts={pTexts}
+              onTexts={setPTexts}
+              textError={pointerTarget.ok ? null : pointerTarget.reason}
+              step={pStep}
+              onStep={setPStep}
+              sweep={sweep}
+              measuredWhat="the measured gap between that surface and the particles (the wake void)"
+              hasMeasurement={!!head.run?.wake}
+              onPlace={placePointer}
+              onAutoStep={autoPointerStep}
+              onSweep={startSweep}
+              onStop={stopSweepByUser}
+              blocked={auto.active ? 'Auto-build is running.' : busy ? 'A simulation is running: wait for it to finish, or stop it.' : proposal ? 'Accept or reject the proposal on screen first.' : !draftCheck.ok || dirty ? 'The inputs have unapplied changes or errors: apply or fix them first.' : null}
+              caveat="In the particle simulation the plate is only 3 particle diameters thick by default, so the round ends and any shoulder you draw are resolved to about one particle diameter."
+            />
+          </div>
+
+          <div className="section">
+            <h2>5 · Live fill (experimental)</h2>
             <LiveFillPanel
               settings={liveSettings}
               onSettings={setLiveSettings}
@@ -888,13 +1044,13 @@ export function FlowGeometry() {
               status={liveStatus}
               onStart={startLive}
               onStop={stopLive}
-              blocked={auto.active ? 'Auto-build is running.' : busy ? 'A simulation is running: wait for it to finish, or stop it.' : proposal ? 'Accept or reject the proposal on screen first.' : !draftCheck.ok || dirty ? 'The inputs have unapplied changes or errors: apply or fix them first.' : null}
+              blocked={auto.active ? 'Auto-build is running.' : sweep.active ? 'The pointer sweep is running.' : busy ? 'A simulation is running: wait for it to finish, or stop it.' : proposal ? 'Accept or reject the proposal on screen first.' : !draftCheck.ok || dirty ? 'The inputs have unapplied changes or errors: apply or fix them first.' : null}
               lastResult={liveResult}
             />
           </div>
 
           <div className="section">
-            <h2>5 · Auto-build (experimental)</h2>
+            <h2>6 · Auto-build (experimental)</h2>
             <AutoBuildPanel
               auto={auto}
               target={autoTarget}
@@ -903,13 +1059,13 @@ export function FlowGeometry() {
               onAllowWeak={setAutoWeak}
               onStart={startAuto}
               onStop={stopByUser}
-              blocked={busy ? 'A simulation is running: wait for it to finish, or stop it.' : proposal ? 'Accept or reject the proposal on screen first.' : !draftCheck.ok || dirty ? 'The inputs have unapplied changes or errors: apply or fix them first.' : null}
+              blocked={sweep.active ? 'The pointer sweep is running.' : busy ? 'A simulation is running: wait for it to finish, or stop it.' : proposal ? 'Accept or reject the proposal on screen first.' : !draftCheck.ok || dirty ? 'The inputs have unapplied changes or errors: apply or fix them first.' : null}
               phaseText={busy ? `simulating ${head.id}` : proposal ? 'drawing the increment' : 'deciding'}
             />
           </div>
 
           <div className="section">
-            <h2>6 · Build by hand</h2>
+            <h2>7 · Build by hand</h2>
             <fieldset disabled={auto.active} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
               <ConstructionPanel
                 head={head}
