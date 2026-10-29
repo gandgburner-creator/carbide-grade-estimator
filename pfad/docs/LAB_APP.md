@@ -317,6 +317,7 @@ there:
 | `tests/architecture.test.ts` | The app layer imports no benchmarks and mentions no classical aerodynamic method |
 | `scripts/smoke-app.mjs` | Drives the built app in Chromium |
 | `scripts/smoke-cfd.mjs` | Drives the CFD workspace in Chromium (real lattice Boltzmann run at the quick resolution → integrity, wall shear and separation, lift and drag with the scaled estimate → streamlines → pointer by hand and by one measured step → comparison → undo → export) |
+| `scripts/smoke-sweep.mjs` | Runs the pointer sweep to the trailing-edge anchor in both workspaces (particles and CFD): simulate, measured step, simulate, until it stops by itself |
 | `scripts/smoke-pointer.mjs` | Drives the rounded plate and the construction pointer in the particle workspace (candidate checks, placing, simulation, streamlines, one measured step, project JSON, undo) |
 | `scripts/smoke-flow.mjs` | Drives the flow-guided geometry workspace end to end in Chromium (flat plate → simulation → measurement → proposal → accept → re-simulation → comparison → undo → exports) |
 

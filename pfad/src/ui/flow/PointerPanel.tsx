@@ -121,7 +121,7 @@ export function PointerPanel(p: {
           <input inputMode="decimal" value={p.texts.rise} disabled={p.sweep.active} onChange={(e) => set('rise', e.target.value)} aria-label="pointer height above the plate in cm" />
         </label>
       </div>
-      {p.textError && <div className="error">{p.textError}</div>}
+      {p.textError && left > 1e-9 && <div className="error">{p.textError}</div>}
       <div className="seg" style={{ margin: '6px 0' }}>
         <button className="ctl primary" onClick={p.onPlace} disabled={!!p.blocked || !!p.textError || p.sweep.active} title={p.blocked ?? 'draw the surface out to this position of the pointer and make it a new version'}>
           PLACE POINTER
