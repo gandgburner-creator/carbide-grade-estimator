@@ -4,14 +4,14 @@ Live: https://gandgburner-creator.github.io/carbide-grade-estimator/pfad-lab/
 
 This folder is a static production build of the PFAD laboratory application
 (`npm run build` in `pfad/`). The build is from commit
-d9307b1217d7691a233580d07d5609ab473b2fd8 on branch
+f8bca57f5117d1cc28877602c3854d347376c966 on branch
 `claude/bible-master-build-prompt-xtrg6e`; the app shows that commit in its
 top bar and writes it into every export. Source, user guide and tests are on
 that branch, in `pfad/` (guide: `pfad/docs/LAB_APP.md`).
 
 The app has three workspaces: the **Laboratory**, and two experimental construction workspaces (guide: `pfad/docs/FLOW_GUIDED_GEOMETRY.md`):
 **Flow-guided geometry A · particles**, set up in plain units (cm, °C, m, km/h, degrees), which starts from a rounded plate (half-circle ends) and a
-construction pointer with a straight tether to the trailing edge (by hand, one measured step, or a sweep), also with a live fill (one smooth pass from the first-found separation point, with a stop-and-keep button), an auto-build button,
+construction pointer with a straight tether to the trailing edge (by hand, one measured step, or a sweep), also with a live fill (one smooth pass from the first-found separation point, with a stop-and-keep button), an auto-build button, a CFD auto fill (the pointer moves by itself during one CFD run), streamlines that also work while a run goes, lift and drag in newtons and kilogram-force, plates whose leading and trailing round ends have different diameters, and a red dot, a pointer and a green dot (anchor) that can be typed or dragged, with adjustable arc directions between them,
 streamlines of the mean flow, and the lift and drag on the plate (a scaled estimate that is not a prediction); and **Flow-guided geometry B · CFD**, the same
 plate and pointer with a conventional lattice-Boltzmann Navier–Stokes solver instead of particles (separate from the particle research, no Universes, run at the highest
 Reynolds number its resolution allows, validated only on channel flow and the circular cylinder). Both are experimental and not validated for airfoil performance;
