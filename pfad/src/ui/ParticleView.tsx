@@ -32,6 +32,15 @@ interface Props {
   overlay?: (g: CanvasRenderingContext2D, T: ReturnType<typeof transformOf>, frame: Frame) => void;
   /** drawn before the particles, over the field cells and under the body (e.g. a measured mean field) */
   underlay?: (g: CanvasRenderingContext2D, T: ReturnType<typeof transformOf>, frame: Frame) => void;
+  /** points the person can pick up and drag (simulation coordinates); a drag reports where the point was dropped to, and the view does not pan meanwhile */
+  handles?: ViewHandle[];
+  onHandleDrag?: (id: string, x: number, y: number) => void;
+}
+
+export interface ViewHandle {
+  id: string;
+  x: number;
+  y: number;
 }
 
 type Dom = Frame['domain'];
@@ -53,12 +62,13 @@ export function transformOf(d: Dom, w: number, h: number, cam: Camera | null) {
   };
 }
 
-export function ParticleView({ frame, options, selected, onPick, camera, onCamera, canvasRef, overlay, underlay }: Props) {
+export function ParticleView({ frame, options, selected, onPick, camera, onCamera, canvasRef, overlay, underlay, handles, onHandleDrag }: Props) {
   const localRef = useRef<HTMLCanvasElement>(null);
   const ref = canvasRef ?? localRef;
   const frameRef = useRef<Frame | null>(null);
   frameRef.current = frame;
   const drag = useRef<{ x: number; y: number; cam: Camera; moved: boolean } | null>(null);
+  const handleDrag = useRef<string | null>(null);
   const [probe, setProbe] = useState<{ x: number; y: number; px: number; py: number } | null>(null);
   const [size, setSize] = useState(0);
 
@@ -280,14 +290,39 @@ export function ParticleView({ frame, options, selected, onPick, camera, onCamer
     onCamera({ zoom, cx: p.x - (p.x - c.cx) / r, cy: p.y - (p.y - c.cy) / r });
   };
 
+  const hitHandle = (ev: { clientX: number; clientY: number }): string | null => {
+    const p = toDomain(ev);
+    if (!p || !handles?.length) return null;
+    let best: string | null = null;
+    let bestD = 16;
+    for (const h of handles) {
+      const d = Math.hypot(p.T.X(h.x) - p.px, p.T.Y(h.y) - p.py);
+      if (d <= bestD) {
+        bestD = d;
+        best = h.id;
+      }
+    }
+    return best;
+  };
+
   const onDown = (ev: React.PointerEvent<HTMLCanvasElement>) => {
     if (!frameRef.current) return;
+    const hit = hitHandle(ev);
+    if (hit) {
+      ev.currentTarget.setPointerCapture(ev.pointerId);
+      handleDrag.current = hit;
+      return;
+    }
     ev.currentTarget.setPointerCapture(ev.pointerId);
     drag.current = { x: ev.clientX, y: ev.clientY, cam: cam(), moved: false };
   };
 
   const onMove = (ev: React.PointerEvent<HTMLCanvasElement>) => {
     const p = toDomain(ev);
+    if (handleDrag.current) {
+      if (p) onHandleDrag?.(handleDrag.current, p.x, p.y);
+      return;
+    }
     if (p) setProbe({ x: p.x, y: p.y, px: p.px, py: p.py });
     const dr = drag.current;
     if (!dr || !p) return;
@@ -299,6 +334,10 @@ export function ParticleView({ frame, options, selected, onPick, camera, onCamer
   };
 
   const onUp = (ev: React.PointerEvent<HTMLCanvasElement>) => {
+    if (handleDrag.current) {
+      handleDrag.current = null;
+      return;
+    }
     const dr = drag.current;
     drag.current = null;
     if (!dr || dr.moved) return;
@@ -346,7 +385,7 @@ export function ParticleView({ frame, options, selected, onPick, camera, onCamer
         onDoubleClick={() => onCamera(null)}
         // a touch drag scrolls the page until the view is zoomed; then it pans
         style={{ touchAction: camera ? 'none' : 'pan-y' }}
-        aria-label="Particle view: wheel to zoom, drag to pan, double-click to fit, click a particle to inspect it"
+        aria-label="Particle view: wheel to zoom, drag to pan, double-click to fit, click a particle to inspect it, drag the red dot, the pointer or the green dot to move them"
       />
       {readout && <div className="probe">{readout}</div>}
     </div>

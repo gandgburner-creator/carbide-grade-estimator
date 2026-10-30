@@ -34,7 +34,7 @@ export type ToWorker =
   /** end the run now and keep what has been built so far (live fill) */
   | { type: 'finishNow' }
   | { type: 'inspect'; index: number | null }
-  | { type: 'view'; field: FieldKind; perCell: number; average: boolean; trails: boolean; profile?: ProfileRequest | null }
+  | { type: 'view'; field: FieldKind; perCell: number; average: boolean; trails: boolean; profile?: ProfileRequest | null; vectors?: boolean }
   | { type: 'resetAverage' }
   | { type: 'checkpoint' }
   | { type: 'unload'; epoch: number };
@@ -89,6 +89,11 @@ export interface Frame {
     t0: number;
     t1: number;
   };
+  /**
+   * the running average of the cell velocity (both components) since the current run began, when asked for (`vectors`):
+   * what the streamlines of a run in progress are drawn from. It is not the measurement window's mean.
+   */
+  flow?: null | { nx: number; ny: number; ux: Float32Array; uy: Float32Array; snapshots: number; particlesPerCell: number; t0: number; t1: number };
   /** wall and body momentum transfer since the start of the current run phase */
   transfer: TransferData | null;
   /** near-wall profile, when requested */

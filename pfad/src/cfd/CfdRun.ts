@@ -146,6 +146,12 @@ export interface CfdResult {
 
 const SIDES = ['upper', 'lower'] as const;
 
+/** The near-wall profile sampling: first sample one cell out, then every half cell, up to a third of the plate length. */
+export function profileSpec(cells: number): ProfileSpec {
+  const reach = Math.max(8, 0.34 * cells);
+  return { first: 1, step: 0.5, count: Math.max(8, Math.floor((reach - 1) / 0.5) + 1) };
+}
+
 /** Where the body sits in the domain (plate units): mid-chord at bodyAtX of the width, mid-height, at the angle of attack. */
 export function cfdPlacement(p: Pick<CfdParams, 'alphaDeg' | 'widthL' | 'heightL' | 'bodyAtX'>, g: SurfaceGeometry): Placement {
   return placementAt(g, p.bodyAtX * p.widthL * g.chord, (p.heightL * g.chord) / 2, p.alphaDeg);
@@ -233,8 +239,7 @@ export class CfdRun {
     this.blkUy = new Float64Array(N);
     this.stations = wallStations(g, this.placement, this.cpu);
     // profiles: first sample one cell out (then every half cell) up to a third of the plate length
-    const reach = Math.max(8, 0.34 * p.cells);
-    this.spec = { first: 1, step: 0.5, count: Math.max(8, Math.floor((reach - 1) / 0.5) + 1) };
+    this.spec = profileSpec(p.cells);
     for (const s of SIDES) {
       this.profUt[s] = [];
       this.profRho[s] = [];

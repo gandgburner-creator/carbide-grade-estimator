@@ -93,7 +93,7 @@ step('a candidate position is checked (forward only, add-only) and previewed');
 
 // 3. place it by hand: a new version, not simulated yet
 await button('PLACE POINTER').click();
-await expectText('The pointer moved: v1');
+await expectText('v1 has the new surface');
 await expectText('CONSTRUCTED · POINTER', 10000).catch(() => {});
 step('placing the pointer makes version v1');
 

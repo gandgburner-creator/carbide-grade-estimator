@@ -215,11 +215,16 @@ export function makeOverlay(st: OverlayState) {
           g.strokeStyle = COLORS.proposal;
           g.lineWidth = 1.8;
           g.stroke();
+          g.font = '10px ui-monospace, monospace';
+          g.fillStyle = COLORS.proposal;
+          g.fillText('pointer', qx + 8, qy + 14);
         }
       }
       const a = P(pt.at.x, sgn * pt.at.y);
       const b = P(pt.anchor.x, sgn * pt.anchor.y);
-      line([a, b]);
+      // the rope runs from the pointer when one is being placed, else from the red dot
+      const rope = pt.preview && pt.previewAt ? P(pt.previewAt.x, sgn * pt.previewAt.y) : a;
+      line([rope, b]);
       g.setLineDash([6, 4]);
       g.strokeStyle = COLORS.tether;
       g.lineWidth = 1.6;
@@ -238,9 +243,9 @@ export function makeOverlay(st: OverlayState) {
       g.stroke();
       g.font = '10px ui-monospace, monospace';
       g.fillStyle = '#ffb3b3';
-      g.fillText('pointer', a[0] + 8, a[1] - 8);
+      g.fillText('red dot', a[0] + 8, a[1] - 8);
       g.fillStyle = COLORS.tether;
-      g.fillText('tether → anchor', b[0] - 70, b[1] - 8);
+      g.fillText('green dot (anchor) · tether', b[0] - 110, b[1] - 8);
     }
 
     // measured dividing streamline: the surface of zero net near-wall flux, at its measured height along the normal

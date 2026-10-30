@@ -427,6 +427,32 @@ increment rules (proposals, live fill, auto-build) may change; those rules leave
 A version drawn by the pointer remembers its plate and pointer paths; after an older-rule increment the
 geometry is no longer plate-plus-paths and the pointer panel says so.
 
+**Two diameters.** The leading and the trailing round end can have **different diameters** (the optional
+"trailing edge thickness" box beside the plate thickness; empty = the same). The length is the distance between the two
+centres plus the two radii, and the body is the hull of the two circles: they are joined by the straight edges that touch
+both (a plate that tapers when the trailing end is thinner). The pointer starts, and the anchor sits, where those straight
+edges leave and meet the circles (the tops of the circles when the diameters are equal, so equal-diameter plates and all
+saved projects are unchanged). The plate's own surface, below which material is never added, is the circles and that edge
+(`baseHeight`). The plate must be at least as long as the two radii plus the thicker diameter. In the particle model the
+trailing end is drawn from one particle diameter across (a note says when it had to be changed); in the CFD it is at least
+a few lattice cells across.
+
+**Three dots and two arcs.** On each side there are three points: the **red dot** is where the drawn curve now ends (the last
+place the pointer was put), the **pointer** is where it goes next, and the **green dot** is the anchor the tether (a rope) is
+tied to. All three can be changed, by typing (in centimetres) or by **dragging them on the picture** (a drag fills in the same
+boxes, with the same preview and checks):
+- the **pointer**: where the arc from the red dot ends and the rope begins;
+- the **red dot**: re-places the last placed point (the first red dot sits where the straight edge leaves the leading circle and
+  cannot be moved, but its direction can be set);
+- the **green dot**: anywhere above the plate from the red dot to the top of the trailing circle; the surface runs to it along the
+  rope and then along a straight line that touches the trailing circle (a small corner at the green dot is possible: it is a pin);
+  one button puts it back;
+- the **arc**: between consecutive points it is a cubic whose direction at each end is set by the person (degrees from the plate
+  axis, positive outward, at most 80° so the surface stays a graph over the plate) or, when left empty, along the rope. A point
+  has one direction, shared by the arc arriving at it and the arc leaving it, so there is no corner at a placed point.
+Every change is a new version with its own words in the history (undo goes back; nothing is deleted). The anchor and the
+directions are construction choices, not flow laws; nothing about the flow decides them.
+
 **What is not claimed.** The pointer path is not an optimum, no shape it makes is optimised, and
 nothing about it has been validated.
 
@@ -441,7 +467,18 @@ where it meets another line, or where it closes on itself). In the particle work
 moves thermally and collides), and where a cell holds few samples a line wanders; the screen says so. The
 CFD workspace uses the same tracer on its time-mean velocity.
 
+**During a run.** The streamlines box also works while a simulation is going (it is greyed out only when nothing has been
+computed and nothing is running, and the screen says why). In the particle workspace the lines are those of the *running
+average* of the cell velocity since the run began (start-up included, so rough at first; redrawn about every 1.5 s) and are
+replaced by the measured mean of the measurement window and the seeds when the run ends. In the CFD workspace they are
+streamlines of the velocity *at this instant* (redrawn about every 2 s; behind a plate the instantaneous flow sheds vortices, so they
+move) and are replaced by the streamlines of the time-mean velocity when the run ends.
+
 ## Lift and drag (measured in the simulation, scaled for orientation only)
+
+**In newtons and in kilogram-force.** Wherever the scaled lift and drag are given in newtons (the forces table, the comparison
+tables, the history lines) the same force is given in kilogram-force (kgf = N / 9.80665): the weight in kg that would press on a
+scale with that force. It is a unit of force, not a mass of the wing or of the air, and it is as much a scaled estimate as the newtons.
 
 **What is measured.** The body is fixed in a stream along +x and every particle that hits it hands
 it momentum. The force on the body is the measured momentum-transfer rate (the body's own impulse
@@ -608,6 +645,20 @@ your air exactly as in the particle workspace, and are labelled a scaled estimat
 - **Not validated:** the fluctuating lift of the cylinder beyond the numbers above; any flat-plate or inclined-plate result against measurements; any Reynolds number
   above the cap; turbulence (none is modelled). The cylinder checks say the solver solves the equations it
   claims to; they do not say that the plate results are right.
+
+**Auto fill (CFD).** The pointer can also move by itself *during one CFD run* (`src/cfd/CfdFill.ts`, `LbmSolver.reshape`). The flow
+first develops around the starting body (the run's own warm-up). Then, again and again: the velocity is averaged over a short window
+(1.5 convective times), the dividing streamline of the reversed flow beside the surface gives the gap along the side, the same pointer
+rule as the measured step (`planPointerStep`) moves the pointer one step toward the anchor and up by a fraction of the gap above the
+surface, the body is redrawn through the new position, rasterised again and given to the running solver (nodes that become solid are
+masked, the fluid in them is removed), and the flow gets 1 convective time to adjust before the next window. It stops at the anchor:
+**one pass**, a station is passed once and never filled again, so it cannot keep growing after a vortex that a surface does not close.
+STOP AND KEEP ends it at once and keeps the shape drawn so far; CANCEL discards the run. The result is a **shape** (a new version made
+of all the pointer moves, with the story of each) and not a measurement of it: the flow around a body that changed during the run is a
+transient, so the shape is **computed afresh** (an ordinary run with its own start-up, started automatically unless switched off) and
+only that run's numbers say what the shape does. At 25° on a small, coarse run the dividing streamline stood about 10 d (the reach of the
+sampled profile, so a lower bound) above the surface along the whole side and the pointer rose by its limit of 1 d per move: the fill
+does not close such a region, and says so.
 
 **Status.** Experimental. The forces and the wall measurements of a plate are computed numbers with
 the stated limits, no more.

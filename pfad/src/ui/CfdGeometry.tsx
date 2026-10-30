@@ -3,26 +3,29 @@ import { safeName } from '../app/exporters';
 import { openCfdProjects, type CfdProjectStore } from '../app/cfdProjectStore';
 import { CODE_VERSION } from '../app/provenance';
 import { CFD_FIELD_LABEL, fieldFromResult, streamField } from '../cfd/CfdFields';
+import { DEFAULT_CFD_FILL, type CfdFillResult } from '../cfd/CfdFill';
 import { cfdForceMeasure } from '../cfd/CfdForces';
-import { addCfdPointerMove, attachCfdRun, cfdHead, cfdProjectToJSON, cfdVersion, logCfdEnd, newCfdProject, parseCfdProject, setCfdWingDepth, undoCfd, type CfdPreset, type CfdProject, type CfdVersion } from '../cfd/CfdProject';
+import { addCfdFillVersion, addCfdPointerMove, attachCfdRun, cfdHead, cfdProjectToJSON, cfdVersion, logCfdEnd, newCfdProject, parseCfdProject, setCfdWingDepth, undoCfd, type CfdPreset, type CfdProject, type CfdVersion } from '../cfd/CfdProject';
 import { CFD_BASE, CFD_PRESETS, cfdPlacement, type CfdParams, type CfdResult } from '../cfd/CfdRun';
 import { cfdSetup } from '../experiments/CfdScenario';
 import type { PhysicalInputs } from '../experiments/FlowGeometryExperiment';
-import { DEFAULT_DEPTH_CM, DEFAULT_SCENARIO, parseDepth, parseScenario, wingForces } from '../experiments/PhysicalScenario';
-import { addPointerPoint, anchorOf, DEFAULT_POINTER_STEP, initialPaths, outwardHeight, plateGeometry, pointerOf, radiusOf, type PointerStepConfig } from '../geometry/Pointer';
+import { DEFAULT_DEPTH_CM, DEFAULT_SCENARIO, newtonsAndKgf, parseDepth, parseScenario, wingForces } from '../experiments/PhysicalScenario';
+import { anchorOf, DEFAULT_POINTER_STEP, initialPaths, pointerOf, radiusOf, type PointerStepConfig } from '../geometry/Pointer';
 import { measuredCfdStep } from '../geometry/PointerMeasure';
-import { bodyPolygon, place, type Side, type SurfaceGeometry } from '../geometry/SurfaceGeometry';
+import { bodyPolygon, place, unplace, type Side } from '../geometry/SurfaceGeometry';
 import { insidePolygon, smoothField, traceStreamlines, type Streamline } from '../measurements/Streamlines';
 import type { CfdViewKind } from '../workers/cfdProtocol';
 import { downloadText } from './download';
+import { CfdFillPanel, type CfdFillSettings } from './flow/CfdFillPanel';
 import { CfdView } from './flow/CfdView';
 import { CfdCompare, CfdHistory, CfdMeasurements, CfdScenarioPanel } from './flow/CfdPanels';
 import { makeOverlay } from './flow/overlay';
-import { EMPTY_SWEEP, PointerPanel, type PointerSweep, type PointerTexts } from './flow/PointerPanel';
+import { defaultPointerTexts, dotsFromTexts, dragToTexts, EMPTY_POINTER_TEXTS, readPointerInput, type PointerTexts } from '../geometry/PointerInput';
+import { EMPTY_SWEEP, PointerPanel, type PointerSweep } from './flow/PointerPanel';
 import { scenarioText, type ScenarioText } from './flow/ScenarioPanel';
 import { StationChart } from './flow/StationChart';
 import { useCfd } from './flow/useCfd';
-import type { Camera } from './ParticleView';
+import type { Camera, ViewHandle } from './ParticleView';
 import { fmt } from './Panels';
 
 const KINDS: CfdViewKind[] = ['speed', 'vorticity', 'pressure', 'ux', 'uy'];
@@ -54,9 +57,16 @@ export function CfdGeometry() {
   const [showStations, setShowStations] = useState(false);
   const [showHeight, setShowHeight] = useState(true);
   const [side, setSide] = useState<Side>('upper');
-  const [pTexts, setPTexts] = useState<PointerTexts>({ x: '', rise: '0.5' });
+  const [pTexts, setPTexts] = useState<PointerTexts>({ ...EMPTY_POINTER_TEXTS });
   const [pStep, setPStep] = useState<PointerStepConfig>(DEFAULT_POINTER_STEP);
   const [sweep, setSweep] = useState<PointerSweep>(EMPTY_SWEEP);
+  const [fillSettings, setFillSettings] = useState<CfdFillSettings>({ settle: 1, window: 1.5, computeAfter: true });
+  const [fillActive, setFillActive] = useState(false);
+  const [fillResult, setFillResult] = useState<string | null>(null);
+  const [pendingCompute, setPendingCompute] = useState<string | null>(null);
+  const fillingRef = useRef(false);
+  const computeAfterRef = useRef(true);
+  computeAfterRef.current = fillSettings.computeAfter;
   const [camera, setCamera] = useState<Camera | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [rightTab, setRightTab] = useState<'results' | 'compare' | 'history'>('results');
@@ -97,14 +107,35 @@ export function CfdGeometry() {
     setViewId(v);
     setMessage(`CFD of ${v} finished: ${result.integrity.status}.`);
   }, []);
+  const onFilled = useCallback((res: CfdFillResult) => {
+    fillingRef.current = false;
+    setFillActive(false);
+    try {
+      const out = addCfdFillVersion(projectRef.current, res);
+      setProject(out.project);
+      setViewId(out.version.id);
+      setCmp([out.version.parent!, out.version.id]);
+      setFillResult(`Auto fill finished (${res.stop.kind}: ${res.stop.reason}). New version ${out.version.id}: ${res.moves.length} pointer moves, ${res.totalRise.toFixed(2)} d of rise in all. ${computeAfterRef.current ? 'Computing it next (an ordinary run on the new shape).' : 'It has not been computed: press COMPUTE to see what the new shape does.'}`);
+      setMessage(`Auto fill added ${out.version.id}.`);
+      if (computeAfterRef.current) setPendingCompute(out.version.id);
+    } catch (e) {
+      setFillResult(`Auto fill finished without a new version: ${(e as Error).message}`);
+      setMessage(`Auto fill finished without a new version: ${res.stop.reason}`);
+    }
+  }, []);
   const onEnd = useCallback((kindEnd: 'stopped' | 'failed', text: string) => {
+    if (fillingRef.current) {
+      fillingRef.current = false;
+      setFillActive(false);
+      setFillResult(`Auto fill ${kindEnd === 'failed' ? 'failed' : 'was cancelled'}: ${text}. Nothing was kept.`);
+    }
     const v = runningVersion.current;
     runningVersion.current = null;
     if (v) setProject((p) => logCfdEnd(p, v, kindEnd, text));
     setMessage(`${kindEnd === 'stopped' ? 'Stopped' : 'Failed'}: ${text}`);
     setSweep((a) => (a.active ? { ...a, active: false, stopped: { stop: kindEnd, reason: text }, log: [...a.log, { text: `Stopped (${kindEnd === 'failed' ? 'the simulation failed' : 'the simulation was stopped'}): ${text}`, kind: 'stop' as const }] } : a));
   }, []);
-  const sim = useCfd(onResult, onEnd);
+  const sim = useCfd(onResult, onEnd, onFilled);
 
   const head = cfdHead(project);
   const viewed = project.versions.some((v) => v.id === viewId) ? cfdVersion(project, viewId) : head;
@@ -127,7 +158,7 @@ export function CfdGeometry() {
     if (busy) return;
     setMessage(null);
     runningVersion.current = head.id;
-    sim.start({ ...params, geometry: head.geometry }, kind);
+    sim.start({ ...params, geometry: head.geometry }, kind, showStreams);
   };
 
   // ---- project
@@ -158,24 +189,29 @@ export function CfdGeometry() {
 
   // ---- the pointer
   const shape = head.shape;
-  const pointerTarget = useMemo((): { ok: true; to: { x: number; y: number }; geometry: SurfaceGeometry } | { ok: false; reason: string } => {
-    const xcm = Number(pTexts.x);
-    const rcm = Number(pTexts.rise);
-    if (pTexts.x.trim() === '' || !Number.isFinite(xcm)) return { ok: false, reason: 'enter how far along the plate the pointer goes [cm]' };
-    if (pTexts.rise.trim() === '' || !Number.isFinite(rcm)) return { ok: false, reason: 'enter how high above the plate the pointer goes [cm]' };
-    const to = { x: xcm / cmPerUnit, y: radiusOf(shape.plate) + rcm / cmPerUnit };
-    const added = addPointerPoint(shape.plate, shape.paths, side, to, pStep.limits);
-    if (!added.ok) return { ok: false, reason: added.reason };
-    return { ok: true, to, geometry: plateGeometry(shape.plate, added.paths, shape.spacing) };
-  }, [shape, pTexts, side, cmPerUnit, pStep.limits]);
+  const pointerTarget = useMemo(() => readPointerInput(shape.plate, shape.paths, shape.spacing, side, pTexts, cmPerUnit, pStep.limits), [shape, pTexts, side, cmPerUnit, pStep.limits]);
   useEffect(() => {
     if (sweep.active) return;
-    const at = pointerOf(shape.paths, side);
-    const x = Math.min(anchorOf(shape.plate).x, at.x + pStep.step);
-    const h = outwardHeight(shape.plate, side === 'upper' ? shape.paths.upper : shape.paths.lower, x) - radiusOf(shape.plate);
-    setPTexts({ x: (x * cmPerUnit).toFixed(2), rise: ((h + 0.5) * cmPerUnit).toFixed(2) });
+    setPTexts(defaultPointerTexts(shape.plate, shape.paths, side, cmPerUnit, pStep.step));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [head.id, side]);
+  }, [project.id, head.id, side]);
+  // the red dot, the pointer and the green dot can be picked up and dragged on the picture: a drag fills in the same boxes
+  const dotPlacement = cfdPlacement(params, head.geometry);
+  const dotHandles = useMemo((): ViewHandle[] => {
+    const sgn = side === 'upper' ? 1 : -1;
+    const r0 = radiusOf(shape.plate);
+    const d = dotsFromTexts(shape.plate, shape.paths, side, pTexts, cmPerUnit);
+    const toSim = (q: { x: number; y: number }) => {
+      const [x, y] = place([q.x + r0, sgn * q.y], dotPlacement);
+      return { x, y };
+    };
+    return [{ id: 'green', ...toSim(d.green) }, ...(d.pointer ? [{ id: 'pointer', ...toSim(d.pointer) }] : []), { id: 'red', ...toSim(d.red) }];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shape, side, pTexts, cmPerUnit, params, head.geometry]);
+  const onDotDrag = (id: string, sx: number, sy: number) => {
+    const [bx, by] = unplace([sx, sy], dotPlacement);
+    setPTexts((t) => dragToTexts(shape.plate, id, bx - radiusOf(shape.plate), (side === 'upper' ? 1 : -1) * by, cmPerUnit, t));
+  };
   const afterMove = (v: CfdVersion, text: string) => {
     setViewId(v.id);
     setCmp([v.parent ?? v.id, v.id]);
@@ -184,9 +220,9 @@ export function CfdGeometry() {
   const placePointer = () => {
     if (!pointerTarget.ok) return setMessage(`Cannot place the pointer: ${pointerTarget.reason}`);
     try {
-      const out = addCfdPointerMove(project, { side, to: pointerTarget.to, limits: pStep.limits, decision: { kind: 'hand' } });
+      const out = addCfdPointerMove(project, { side, ...(pointerTarget.to ? { to: pointerTarget.to } : {}), ...(pointerTarget.edit ? { edit: pointerTarget.edit } : {}), limits: pStep.limits, decision: { kind: 'hand' } });
       setProject(out.project);
-      afterMove(out.version, `The pointer moved: ${out.version.id} has the new surface. It has not been simulated: run it to compute its flow.`);
+      afterMove(out.version, `${out.version.label}: ${out.version.id} has the new surface. It has not been simulated: run it to compute its flow.`);
     } catch (e) {
       setMessage(`Cannot place the pointer: ${(e as Error).message}`);
     }
@@ -220,6 +256,20 @@ export function CfdGeometry() {
     if (busy) sim.stop();
     stopSweep('user', 'you stopped it');
   };
+  // ---- auto fill: the pointer moves by itself during one run (cfd/CfdFill.ts)
+  const startFill = () => {
+    setMessage(null);
+    setFillResult(null);
+    runningVersion.current = null;
+    fillingRef.current = true;
+    setFillActive(true);
+    sim.startFill({ ...params, geometry: head.geometry }, shape.plate, shape.paths, shape.spacing, { ...DEFAULT_CFD_FILL, side, step: pStep, settle: fillSettings.settle, window: fillSettings.window }, kind, showStreams);
+  };
+  useEffect(() => {
+    if (!pendingCompute || busy) return;
+    setPendingCompute(null);
+    if (head.id === pendingCompute && !head.run) run();
+  });
   useEffect(() => {
     if (!sweep.active || busy || runningVersion.current !== null) return;
     const key = `${head.id}|${head.run ? 'run' : '-'}`;
@@ -231,7 +281,7 @@ export function CfdGeometry() {
       return;
     }
     if (head.run.result.integrity.status === 'FAILED') return stopSweep('failed', `the run of ${head.id} failed its integrity checks, so its numbers cannot be trusted`);
-    if (pointerOf(head.shape.paths, side).x >= anchorOf(head.shape.plate).x - 1e-9) return stopSweep('finished', 'the pointer is at the trailing-edge anchor: the curve is complete and its last version has been computed');
+    if (pointerOf(head.shape.paths, side).x >= anchorOf(head.shape.plate, head.shape.paths, side).x - 1e-9) return stopSweep('finished', 'the pointer is at the trailing-edge anchor: the curve is complete and its last version has been computed');
     if (sweep.steps >= 40) return stopSweep('limit', 'forty pointer steps were taken');
     try {
       const out = doMeasuredStep(project, head);
@@ -246,9 +296,9 @@ export function CfdGeometry() {
 
   // ---- what is drawn
   useEffect(() => {
-    if (busy) sim.setView(kind);
+    if (busy) sim.setView(kind, showStreams);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kind]);
+  }, [kind, showStreams]);
   const stored = useMemo(() => (viewed.run && !live ? fieldFromResult(viewed.run.result, kind) : null), [viewed.run, kind, live]);
   const field = live ? { nx: live.field.nx, ny: live.field.ny, values: live.field.values } : stored;
   const streams = useMemo((): { lines: Streamline[]; arrowEvery: number } | null => {
@@ -260,6 +310,26 @@ export function CfdGeometry() {
     const lines = traceStreamlines(f, { spacing: streamSpacing, testFraction: 0.5, step: 0.4, maxLength: 4 * domain.w, minSpeed: 0.04, inside: (x, y) => insidePolygon(poly, x, y), maxLines: 600 });
     return { lines, arrowEvery: 8 * (streamSpacing / 2.5) + 6 };
   }, [showStreams, viewed, live, streamSpacing, domain.w]);
+  // streamlines of a run in progress: of the velocity at this instant (redrawn about every 2 s); the time-mean ones replace them when it ends
+  const [liveStreams, setLiveStreams] = useState<{ lines: Streamline[]; arrowEvery: number } | null>(null);
+  const liveStreamAt = useRef(0);
+  const flow = live?.flow ?? null;
+  useEffect(() => {
+    if (!busy || !showStreams) return void setLiveStreams(null);
+    if (!flow) return;
+    const now = performance.now();
+    if (now - liveStreamAt.current < 2000) return;
+    liveStreamAt.current = now;
+    const cell = flow.stride / live!.cellsPerUnit;
+    const solid = Array.from(flow.ux, (u) => Number.isNaN(u));
+    const f = smoothField({ nx: flow.nx, ny: flow.ny, x0: 0, y0: 0, cw: cell, ch: cell, ux: Array.from(flow.ux, (u) => (Number.isNaN(u) ? 0 : u)), uy: Array.from(flow.uy, (u) => (Number.isNaN(u) ? 0 : u)), valid: solid.map((x) => !x) }, 1);
+    const pl = cfdPlacement(params, head.geometry);
+    const poly = place(bodyPolygon(head.geometry), pl);
+    const lines = traceStreamlines(f, { spacing: streamSpacing, testFraction: 0.5, step: 0.4, maxLength: 4 * domain.w, minSpeed: 0.04, inside: (x, y) => insidePolygon(poly, x, y), maxLines: 600 });
+    setLiveStreams({ lines, arrowEvery: 8 * (streamSpacing / 2.5) + 6 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busy, showStreams, flow, streamSpacing]);
+  const shownStreams = busy && showStreams ? liveStreams : streams;
   const caption = live
     ? `${CFD_FIELD_LABEL[live.field.kind].label} at this instant — the run of ${head.id}, ${(100 * live.progress).toFixed(0)} %, ${live.phase}`
     : viewed.run
@@ -269,15 +339,18 @@ export function CfdGeometry() {
     const pl = cfdPlacement(params, head.geometry);
     const pointer = (() => {
       const r0 = radiusOf(shape.plate);
-      const at = pointerOf(shape.paths, side);
-      const a = anchorOf(shape.plate);
-      return { side, at: { x: at.x + r0, y: at.y }, anchor: { x: a.x + r0, y: a.y }, preview: pointerTarget.ok ? pointerTarget.geometry : null, previewAt: pointerTarget.ok ? { x: pointerTarget.to.x + r0, y: pointerTarget.to.y } : null };
+      const at = live?.fill?.pointer ?? (pointerTarget.ok ? pointerTarget.redAt : pointerOf(shape.paths, side));
+      const showPreview = pointerTarget.ok && !live?.fill;
+      const a = showPreview && pointerTarget.ok ? pointerTarget.anchorAt : anchorOf(shape.plate, shape.paths, side);
+      const pa = showPreview && pointerTarget.ok ? pointerTarget.pointerAt : null;
+      return { side, at: { x: at.x + r0, y: at.y }, anchor: { x: a.x + r0, y: a.y }, preview: showPreview && pointerTarget.ok ? pointerTarget.geometry : null, previewAt: pa ? { x: pa.x + r0, y: pa.y } : null };
     })();
-    const st = { placement: pl, geometry: head.geometry, previous: null, proposal: null, pointIdx: -1, region: null, dividing: null, replay: null, viewed: null, showStations, alphaDeg: params.alphaDeg, references: [], streams, pointer };
+    const st = { placement: pl, geometry: live?.fill?.geometry ?? head.geometry, previous: null, proposal: null, pointIdx: -1, region: null, dividing: null, replay: null, viewed: null, showStations, alphaDeg: params.alphaDeg, references: [], streams: shownStreams, pointer };
     const draw = makeOverlay(st);
     return (g: CanvasRenderingContext2D, T: Parameters<typeof draw>[1]) => {
       // the body: drawn solid over the field
-      const poly = place(bodyPolygon(viewed.geometry), cfdPlacement(params, viewed.geometry));
+      const bodyG = live?.fill?.geometry ?? viewed.geometry;
+      const poly = place(bodyPolygon(bodyG), cfdPlacement(params, bodyG));
       g.beginPath();
       for (let k = 0; k < poly.length; k += 2) {
         if (k === 0) g.moveTo(T.X(poly[k]), T.Y(poly[k + 1]));
@@ -330,7 +403,7 @@ export function CfdGeometry() {
       }
       draw(g, T);
     };
-  }, [params, head, viewed, shape, side, pointerTarget, showStations, streams, showHeight, live, domain.w, domain.h, chord]);
+  }, [params, head, viewed, shape, side, pointerTarget, showStations, shownStreams, showHeight, live, domain.w, domain.h, chord]);
 
   // ---- charts
   const stationsOf = (v: CfdVersion | null) => (v?.run ? v.run.result.stations[side] : null);
@@ -357,7 +430,7 @@ export function CfdGeometry() {
     const f = cfdForceMeasure(v.run.result);
     const base = `drag ${fmt(f.dragCoeff.mean, 2)} · lift ${fmt(f.liftCoeff.mean, 2)} (coefficients of this simulation)`;
     const w = wingForces(f, scenario, depthCm);
-    return `${base} → ${fmt(w.drag.mean, 3)} N and ${fmt(w.lift.mean, 3)} N on your ${depthCm} cm wing in your air (scaled estimate, not a prediction)`;
+    return `${base} → ${newtonsAndKgf(w.drag.mean)} drag and ${newtonsAndKgf(w.lift.mean)} lift on your ${depthCm} cm wing in your air (scaled estimate, not a prediction)`;
   };
   const exportProject = () => downloadText(`${safeName(project.name)}-cfd-project.json`, cfdProjectToJSON(project), 'application/json');
   const exportCsv = () => {
@@ -475,6 +548,7 @@ export function CfdGeometry() {
               texts={pTexts}
               onTexts={setPTexts}
               textError={pointerTarget.ok ? null : pointerTarget.reason}
+              changes={pointerTarget.ok ? pointerTarget.changes : []}
               step={pStep}
               onStep={setPStep}
               sweep={sweep}
@@ -486,6 +560,23 @@ export function CfdGeometry() {
               onStop={stopSweepByUser}
               blocked={busy ? 'A simulation is running: wait for it to finish, or stop it.' : null}
               caveat="The flow is computed, not measured from particles: the plate is resolved by the lattice cells, and a shoulder smaller than a few cells cannot be drawn."
+            />
+            <h3 className="h3">Auto fill (experimental)</h3>
+            <CfdFillPanel
+              side={side}
+              settings={fillSettings}
+              onSettings={setFillSettings}
+              active={fillActive}
+              status={
+                fillActive && live
+                  ? { phase: live.phase, convective: live.convective, moves: live.blocks, pointerX: live.fill?.pointer.x ?? pointerOf(shape.paths, side).x, lastGap: live.fill?.lastGap ?? null, lastRise: live.fill?.lastRise ?? null }
+                  : null
+              }
+              onStart={startFill}
+              onFinish={() => sim.finishNow()}
+              onCancel={() => sim.stop()}
+              blocked={busy ? 'A simulation is running: wait for it to finish, or stop it.' : sweep.active ? 'The pointer sweep is running.' : pointerOf(shape.paths, side).x >= anchorOf(shape.plate, shape.paths, side).x - 1e-9 ? 'The pointer of this side is already at the anchor: nothing left to draw.' : null}
+              lastResult={fillResult}
             />
           </div>
         </div>
@@ -500,8 +591,8 @@ export function CfdGeometry() {
                 </option>
               ))}
             </select>
-            <label className="field-inline" title={`lines everywhere tangent to the time-mean velocity of ${viewed.id}`}>
-              <input type="checkbox" checked={showStreams} disabled={!viewed.run} onChange={(e) => setShowStreams(e.target.checked)} aria-label="show streamlines" />
+            <label className="field-inline" title={viewed.run || busy ? `lines everywhere tangent to the velocity: while a run is going, of the velocity at this instant; afterwards, of the time-mean velocity of ${viewed.id}` : 'available while a computation runs (the velocity at this instant) and for a version that has been computed (its time-mean)'}>
+              <input type="checkbox" checked={showStreams} disabled={!viewed.run && !busy} onChange={(e) => setShowStreams(e.target.checked)} aria-label="show streamlines" />
               streamlines
             </label>
             {showStreams && (
@@ -535,7 +626,13 @@ export function CfdGeometry() {
             </span>
           </div>
           {viewed.id !== head.id && <div className="exp-banner">Viewing the results of {viewed.id}; the open version is {head.id} (head). Select the head in History to return.</div>}
-          <CfdView field={field} kind={kind} domain={domain} camera={camera ?? { zoom: 3.2, cx: params.bodyAtX * domain.w + 0.25 * domain.w * 0.4, cy: domain.h / 2 }} onCamera={setCamera} overlay={overlay} caption={caption} />
+          <CfdView field={field} kind={kind} domain={domain} camera={camera ?? { zoom: 3.2, cx: params.bodyAtX * domain.w + 0.25 * domain.w * 0.4, cy: domain.h / 2 }} onCamera={setCamera} overlay={overlay} caption={caption} handles={!busy && !sweep.active && viewed.id === head.id && rightTab !== 'compare' ? dotHandles : undefined} onHandleDrag={onDotDrag} />
+          {showStreams && busy && (
+            <div className="note">
+              <span className="tag derived">DERIVED</span> streamlines of the velocity <b>at this instant</b> of the run in progress ({liveStreams ? `${liveStreams.lines.length} lines, ` : ''}redrawn about every 2 s). Behind a plate the instantaneous flow sheds vortices, so these move; when the run ends they are replaced by the streamlines of the time-mean velocity over the measurement window.
+            </div>
+          )}
+          {!viewed.run && !busy && <div className="note">Streamlines: switched on while a computation runs (the velocity at this instant) or for a version that has been computed (its time-mean). {viewed.id} has not been computed yet.</div>}
           <div className="analysis" style={{ height: 'auto', minHeight: 250 }}>
             <div className="tabs small">
               <span className="note" style={{ alignSelf: 'center' }}>

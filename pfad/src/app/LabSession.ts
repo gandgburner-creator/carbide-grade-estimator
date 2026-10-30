@@ -35,6 +35,11 @@ export class LabSession {
   private averager: FieldAverager | null = null;
   private averagerSim: Simulation | null = null;
   private fieldT0 = 0;
+  /** the velocity average behind the streamlines of a run in progress (separate from the field overlay) */
+  private vectors = false;
+  private flowAv: FieldAverager | null = null;
+  private flowSim: Simulation | null = null;
+  private flowT0 = 0;
   private trails = false;
   private inspected: number | null = null;
   private trajectory: number[] = [];
@@ -112,6 +117,8 @@ export class LabSession {
           break;
         case 'view': {
           if (m.perCell !== this.perCell || m.average !== this.average || m.field !== this.field) this.averager = null;
+          if (!!m.vectors !== this.vectors || m.perCell !== this.perCell) this.flowAv = null;
+          this.vectors = !!m.vectors;
           this.field = m.field;
           this.perCell = m.perCell;
           this.average = m.average;
@@ -126,6 +133,7 @@ export class LabSession {
         }
         case 'resetAverage': {
           this.averager = null;
+          this.flowAv = null;
           this.profile = null;
           const sim = this.currentSim();
           this.transfer = sim ? new TransferMonitor(sim) : null;
@@ -145,6 +153,7 @@ export class LabSession {
           this.experiment = null;
           this.lastSim = null;
           this.averager = null;
+          this.flowAv = null;
           this.finished = false;
           this.recordStatus = null;
           break;
@@ -171,6 +180,7 @@ export class LabSession {
     this.lastSim = null;
     this.recordStatus = null;
     this.averager = null;
+    this.flowAv = null;
     this.profile = null;
     this.transfer = null;
     this.activeMs = 0;
@@ -283,6 +293,19 @@ export class LabSession {
     return { data, ms: this.now() - t0 };
   }
 
+  /** the running average of both velocity components, for the streamlines of a run in progress */
+  private computeFlow(sim: Simulation) {
+    if (!this.vectors) return null;
+    if (!this.flowAv || this.flowSim !== sim) {
+      this.flowAv = FieldAverager.forParticlesPerCell(sim.domain, sim.store.count, this.perCell);
+      this.flowSim = sim;
+      this.flowT0 = sim.time;
+    }
+    const av = this.flowAv;
+    av.add(sim.store);
+    return { nx: av.nx, ny: av.ny, ux: new Float32Array(av.field('ux')), uy: new Float32Array(av.field('uy')), snapshots: av.snapshots, particlesPerCell: av.meanParticlesPerCell(), t0: this.flowT0, t1: sim.time };
+  }
+
   private computeProfile(sim: Simulation) {
     const req = this.profileReq;
     if (!req) return null;
@@ -357,6 +380,7 @@ export class LabSession {
       collisions[2 * k + 1] = e.y;
     }
     const { data: fieldData, ms: fieldMs } = this.computeField(sim);
+    const flow = this.computeFlow(sim);
     if (!this.transfer || this.transfer.sim !== sim) this.transfer = new TransferMonitor(sim);
     const transfer = this.transfer.read();
     const profile = this.computeProfile(sim);
@@ -404,6 +428,7 @@ export class LabSession {
       radii,
       collisions,
       field: fieldData,
+      flow,
       transfer,
       profile,
       history: this.history.snapshot(),
@@ -427,6 +452,7 @@ export class LabSession {
     };
     const transferList: Transferable[] = [positions.buffer, velocities.buffer, radii.buffer, collisions.buffer];
     if (fieldData) transferList.push(fieldData.values.buffer);
+    if (flow) transferList.push(flow.ux.buffer, flow.uy.buffer);
     this.emit(frame, transferList);
     return frame;
   }

@@ -23,7 +23,7 @@ export interface CfdSetup {
   plate: PlateSpec;
   ratioAsked: number;
   ratioDrawn: number;
-  /** the plate was made thicker than asked so that it is at least a few cells thick */
+  /** the plate was made thicker than asked so that it is at least a few cells thick (either end) */
   thicknessNote: string | null;
   air: AirState;
   windMs: number;
@@ -56,6 +56,20 @@ export function cfdSetup(input: PhysicalInputs, preset: keyof typeof CFD_PRESETS
     thickness = minThick;
     thicknessNote = `The plate would be thinner than ${MIN_CELLS_THICK} lattice cells at this resolution, so it is drawn ${(CFD_PLATE_LENGTH / thickness).toFixed(1)} : 1 instead of ${ratioDrawn.toFixed(1)} : 1 (a finer resolution draws a thinner plate).`;
   }
+  // the trailing round end, at the same scale (plate units per cm of the plate) and at least a few cells across
+  let trailingThickness: number | undefined;
+  if (input.trailingThicknessCm !== undefined && input.trailingThicknessCm !== input.thicknessCm) {
+    const wanted = thickness * (input.trailingThicknessCm / input.thicknessCm);
+    let t = Math.max(minThick, wanted);
+    if (t > wanted + 1e-9) thicknessNote = `${thicknessNote ? thicknessNote + ' ' : ''}The trailing end would be thinner than ${MIN_CELLS_THICK} lattice cells at this resolution, so it is drawn ${t.toFixed(2)} thick instead of ${wanted.toFixed(2)}.`;
+    // the straight stretch between the circles must stay as long as the thicker end is wide
+    const fat = Math.max(thickness, t);
+    if (CFD_PLATE_LENGTH < thickness / 2 + t / 2 + fat) {
+      t = Math.max(minThick, 2 * (CFD_PLATE_LENGTH - thickness / 2 - fat));
+      thicknessNote = `${thicknessNote ? thicknessNote + ' ' : ''}The plate is too short for a trailing end that thick: it is drawn ${t.toFixed(2)} across.`;
+    }
+    trailingThickness = t;
+  }
   const cap = reynoldsCap(cells);
   const reynolds = Math.min(sim.reynolds, cap);
   const capped = sim.reynolds > cap;
@@ -63,6 +77,7 @@ export function cfdSetup(input: PhysicalInputs, preset: keyof typeof CFD_PRESETS
   const lines: string[] = [];
   const cautions: string[] = [];
   lines.push(`Shape: your plate ${input.lengthCm} × ${input.thicknessCm} cm (${ratioAsked.toFixed(1)} : 1) is drawn with round ends, ${CFD_PLATE_LENGTH} units long and ${thickness.toFixed(2)} thick (${ratioDrawn.toFixed(1)} : 1), at ${input.alphaDeg}°.`);
+  if (trailingThickness !== undefined) lines.push(`Round ends: the leading end is ${input.thicknessCm} cm across, the trailing end ${input.trailingThicknessCm} cm, drawn ${thickness.toFixed(2)} and ${trailingThickness.toFixed(2)} across and joined by the straight edges that touch both.`);
   lines.push(`Air: ${input.tempC} °C at ${input.altitudeM} m: density ${air.density.toFixed(3)} kg/m³, viscosity ${sci(air.viscosity)} Pa·s. Wind ${windMs.toFixed(1)} m/s (Mach ${sci(sim.mach)}).`);
   lines.push(`Reynolds number: your plate in your air has Re = ${sci(sim.reynolds)}. This run uses Re = ${sci(reynolds)}${capped ? ` (the most that ${cells} cells along the plate can run)` : ' (the same)'}. The lattice flow is at Mach ${latticeMach.toFixed(2)}: both are incompressible.`);
   if (capped) {
@@ -71,5 +86,5 @@ export function cfdSetup(input: PhysicalInputs, preset: keyof typeof CFD_PRESETS
     cautions.push(`The Reynolds number of your plate in your air is within what this resolution can run, so the lattice flow is at your Reynolds number. It is still two-dimensional (a plate of infinite depth): a real plate has ends, and the numbers are those of a section of it.`);
   }
   cautions.push('The fluid is solved from the Navier–Stokes equations on a lattice (lattice Boltzmann). No Kutta condition, no circulation and no separation point are imposed: what the flow does follows from the equations and the shape. Its accuracy is limited by the resolution.');
-  return { plate: { length: CFD_PLATE_LENGTH, thickness }, ratioAsked, ratioDrawn, thicknessNote, air, windMs, real: { reynolds: sim.reynolds, mach: sim.mach }, preset, cells, reynolds, reynoldsCap: cap, capped, latticeMach, lines, cautions };
+  return { plate: { length: CFD_PLATE_LENGTH, thickness, ...(trailingThickness !== undefined ? { trailingThickness } : {}) }, ratioAsked, ratioDrawn, thicknessNote, air, windMs, real: { reynolds: sim.reynolds, mach: sim.mach }, preset, cells, reynolds, reynoldsCap: cap, capped, latticeMach, lines, cautions };
 }

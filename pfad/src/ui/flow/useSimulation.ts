@@ -72,7 +72,7 @@ export function useSimulation(onRecord: (record: ExperimentRecord, activeMs: num
     },
     [send],
   );
-  const view = useCallback((field: FieldKind, perCell: number, average: boolean) => send({ type: 'view', field, perCell, average, trails: false, profile: null }), [send]);
+  const view = useCallback((field: FieldKind, perCell: number, average: boolean, vectors = false) => send({ type: 'view', field, perCell, average, trails: false, profile: null, vectors }), [send]);
   const run = useCallback(() => {
     send({ type: 'run' });
     setPhase('running');

@@ -66,6 +66,8 @@ export interface PointerMove {
   /** for a measurement-guided move: the gap it responded to and the rise that followed (see planPointerStep) */
   measured?: { surface: number; gap: number; rise: number; note: string; recordId: string | null; versionId: string | null; seeds: number[] };
   limits: PointerLimits;
+  /** the other things changed with this move: the green dot (null: put back) and the red dot (the last placed point re-placed, or its direction set) */
+  edit?: { anchor?: Pt | null; red?: Pt };
 }
 
 /** The rounded plate and pointer paths a version's geometry was drawn from (present while the geometry is exactly that shape). */

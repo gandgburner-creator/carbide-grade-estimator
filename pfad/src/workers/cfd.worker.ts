@@ -1,4 +1,5 @@
 /// <reference lib="webworker" />
+import { CfdFillRun } from '../cfd/CfdFill';
 import { CfdRun } from '../cfd/CfdRun';
 import type { CfdFromWorker, CfdToWorker, CfdViewKind } from './cfdProtocol';
 
@@ -7,10 +8,11 @@ import type { CfdFromWorker, CfdToWorker, CfdViewKind } from './cfdProtocol';
  * between them, so PAUSE and STOP act promptly, and posts a frame of the instantaneous field about four times a second.
  */
 const ctx = self as unknown as DedicatedWorkerGlobalScope;
-let run: CfdRun | null = null;
+let run: CfdRun | CfdFillRun | null = null;
 let epoch = 0;
 let running = false;
 let view: CfdViewKind = 'speed';
+let vectors = false;
 let activeMs = 0;
 let lastFrame = 0;
 let looping = false;
@@ -25,6 +27,7 @@ function frame() {
   const stride = Math.max(1, Math.ceil(run.nx / 300));
   const snap = run.snapshot(view, stride);
   const l = run.live();
+  const flow = vectors ? { ux: run.snapshot('ux', stride), uy: run.snapshot('uy', stride) } : null;
   post(
     {
       type: 'frame',
@@ -44,8 +47,10 @@ function frame() {
       ny: run.ny,
       cellsPerUnit: run.cpu,
       field: { kind: view, nx: snap.nx, ny: snap.ny, values: snap.values, stride },
+      ...(flow ? { flow: { nx: flow.ux.nx, ny: flow.ux.ny, ux: flow.ux.values, uy: flow.uy.values, stride } } : {}),
+      ...(run instanceof CfdFillRun ? { fill: run.fillState() } : {}),
     },
-    [snap.values.buffer],
+    flow ? [snap.values.buffer, flow.ux.values.buffer, flow.uy.values.buffer] : [snap.values.buffer],
   );
   lastFrame = performance.now();
 }
@@ -75,6 +80,12 @@ function loop() {
     running = false;
     looping = false;
     frame();
+    if (run instanceof CfdFillRun) {
+      const result = run.result();
+      if (!result.finite) post({ type: 'failed', epoch, message: `the simulation became unstable after ${result.steps} steps (the flow was too violent for this resolution and Reynolds number)`, activeMs });
+      else post({ type: 'filled', epoch, result, activeMs });
+      return;
+    }
     const result = run.result();
     if (result.integrity.checks.find((c) => c.id === 'stable')?.pass === false) post({ type: 'failed', epoch, message: `the simulation became unstable after ${result.steps} steps (the flow was too violent for this resolution and Reynolds number)`, activeMs });
     else post({ type: 'done', epoch, result, activeMs });
@@ -90,6 +101,7 @@ ctx.onmessage = (ev: MessageEvent<CfdToWorker>) => {
     case 'start':
       epoch = m.epoch;
       view = m.view;
+      vectors = !!m.vectors;
       activeMs = 0;
       rate = 0;
       rateAt = performance.now();
@@ -104,8 +116,33 @@ ctx.onmessage = (ev: MessageEvent<CfdToWorker>) => {
       running = true;
       frame();
       break;
+    case 'startFill':
+      epoch = m.epoch;
+      view = m.view;
+      vectors = !!m.vectors;
+      activeMs = 0;
+      rate = 0;
+      rateAt = performance.now();
+      rateSteps = 0;
+      try {
+        run = new CfdFillRun(m.params, m.plate, m.paths, m.spacing, m.fill);
+      } catch (e) {
+        run = null;
+        post({ type: 'failed', epoch, message: (e as Error).message, activeMs: 0 });
+        return;
+      }
+      running = true;
+      frame();
+      break;
+    case 'finishNow':
+      if (run instanceof CfdFillRun && run.phase !== 'done') {
+        run.finishEarly();
+        running = true;
+      }
+      break;
     case 'view':
       view = m.kind;
+      vectors = !!m.vectors;
       if (run && !running) frame();
       break;
     case 'pause':

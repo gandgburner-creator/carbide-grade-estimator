@@ -1,5 +1,5 @@
 import type { PhysicalInputs } from '../../experiments/FlowGeometryExperiment';
-import { sci, wingForces } from '../../experiments/PhysicalScenario';
+import { sci, toKgf, wingForces } from '../../experiments/PhysicalScenario';
 import type { ForceMeasure } from '../../geometry/Forces';
 import type { Est } from '../../measurements/SeparationDetector';
 import { fmt } from '../Panels';
@@ -34,7 +34,13 @@ export function ForcesPanel({ forces, scenario, depthCm, compact = false, cfd = 
             </td>
             <td>{n(forces.drag)}</td>
             <td>{n(forces.dragCoeff)}</td>
-            {w && <td>{n(w.drag, 3)} N</td>}
+            {w && (
+              <td>
+                {n(w.drag, 3)} N
+                <br />
+                <span className="note">{n(toKgf(w.drag), 3)} kgf</span>
+              </td>
+            )}
           </tr>
           <tr title="the force on the body across the stream (positive = toward +y; upward for a nose-up body)">
             <td className="q">
@@ -44,7 +50,13 @@ export function ForcesPanel({ forces, scenario, depthCm, compact = false, cfd = 
             </td>
             <td>{n(forces.lift)}</td>
             <td>{n(forces.liftCoeff)}</td>
-            {w && <td>{n(w.lift, 3)} N</td>}
+            {w && (
+              <td>
+                {n(w.lift, 3)} N
+                <br />
+                <span className="note">{n(toKgf(w.lift), 3)} kgf</span>
+              </td>
+            )}
           </tr>
         </tbody>
       </table>
@@ -62,15 +74,15 @@ export function ForcesPanel({ forces, scenario, depthCm, compact = false, cfd = 
         {w && (
           <>
             {' '}
-            <span className="tag imposed">SCALED ESTIMATE</span> the last column multiplies the coefficients by the dynamic pressure of your air (ρ = {w.air.density.toFixed(3)} kg/m³, wind {(scenario!.speedKmh / 3.6).toFixed(1)} m/s: q = {w.dynamicPressure.toFixed(1)} Pa) and the area of your wing ({(w.chordM * 100).toFixed(0)} × {depthCm} cm = {w.area.toFixed(3)} m², depth : chord = {w.aspectRatio.toFixed(1)}).
+            <span className="tag imposed">SCALED ESTIMATE</span> the last column multiplies the coefficients by the dynamic pressure of your air (ρ = {w.air.density.toFixed(3)} kg/m³, wind {(scenario!.speedKmh / 3.6).toFixed(1)} m/s: q = {w.dynamicPressure.toFixed(1)} Pa) and the area of your wing ({(w.chordM * 100).toFixed(0)} × {depthCm} cm = {w.area.toFixed(3)} m², depth : chord = {w.aspectRatio.toFixed(1)}). A kilogram-force (kgf) is the force a 1 kg mass presses with at rest (9.80665 N): the kgf figure is the force expressed as a weight, not a mass of the wing or of the air.
           </>
         )}
       </div>
       {w ? (
         <div className="warn">
           {cfd
-            ? `NOT A PREDICTION for your wing. The coefficients were computed for a two-dimensional flow at Reynolds number ${Math.round(cfd.run)}${cfd.real > cfd.run * 1.05 ? `, while your plate in your air has ${Math.round(cfd.real)}: a real plate at that Reynolds number has a turbulent boundary layer, and where the flow separates and the force coefficients can differ` : ''}; a real wing of this depth also has end effects a 2-D simulation cannot show. The newtons only put the simulation’s numbers in units you can picture.`
-            : 'NOT A PREDICTION for your wing. The coefficients were measured in a thin 2-D gas of hard disks; real air at your speed has Reynolds and Mach numbers the simulation does not reproduce, and a real wing of this depth has end effects a 2-D simulation cannot show. The newtons only put the simulation’s numbers in units you can picture.'}
+            ? `NOT A PREDICTION for your wing. The coefficients were computed for a two-dimensional flow at Reynolds number ${Math.round(cfd.run)}${cfd.real > cfd.run * 1.05 ? `, while your plate in your air has ${Math.round(cfd.real)}: a real plate at that Reynolds number has a turbulent boundary layer, and where the flow separates and the force coefficients can differ` : ''}; a real wing of this depth also has end effects a 2-D simulation cannot show. The newtons and kilogram-force only put the simulation’s numbers in units you can picture.`
+            : 'NOT A PREDICTION for your wing. The coefficients were measured in a thin 2-D gas of hard disks; real air at your speed has Reynolds and Mach numbers the simulation does not reproduce, and a real wing of this depth has end effects a 2-D simulation cannot show. The newtons and kilogram-force only put the simulation’s numbers in units you can picture.'}
         </div>
       ) : (
         <div className="note">Set up with the plain inputs (length, temperature, height, wind) to scale these to a wing in your air; until then only the simulation’s own numbers are shown.</div>

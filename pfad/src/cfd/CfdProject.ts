@@ -1,7 +1,8 @@
 import type { PlateShape, PointerMove } from '../geometry/History';
-import { addPointerPoint, fromBodyX, pointerOf, plateGeometry, radiusOf, toBodyX, type PointerLimits, type PointerStep, type Pt, DEFAULT_POINTER_LIMITS } from '../geometry/Pointer';
+import { applyPointerEdit, baseHeight, describePointerEdit, fromBodyX, pointerOf, plateGeometry, toBodyX, type PointerEdit, type PointerLimits, type PointerStep, type Pt, DEFAULT_POINTER_LIMITS } from '../geometry/Pointer';
 import type { Side, SurfaceGeometry } from '../geometry/SurfaceGeometry';
 import type { PhysicalInputs } from '../experiments/FlowGeometryExperiment';
+import type { CfdFillConfig, CfdFillMove, CfdFillResult, CfdFillStop } from './CfdFill';
 import type { CfdParams, CfdResult } from './CfdRun';
 
 /**
@@ -28,6 +29,20 @@ export interface CfdRunSummary {
   codeVersion: string;
 }
 
+/** How a version was drawn by an auto fill: the pointer moved by itself during one CFD run. */
+export interface CfdFillInfo {
+  side: Side;
+  moves: CfdFillMove[];
+  stop: { kind: CfdFillStop; reason: string };
+  config: CfdFillConfig;
+  /** convective times the fill ran for, and the largest lattice Mach number it saw */
+  convective: number;
+  maxMach: number;
+  totalRise: number;
+  reason: string;
+  hypothesis: string;
+}
+
 export interface CfdVersion {
   id: string;
   parent: string | null;
@@ -38,13 +53,15 @@ export interface CfdVersion {
   shape: PlateShape;
   /** the pointer move that made this version (absent for the starting plate) */
   move?: PointerMove & { step: number; reason: string; hypothesis: string };
+  /** the auto fill that made this version (absent for the starting plate and for hand or measured pointer moves) */
+  fill?: CfdFillInfo;
   run: CfdRunSummary | null;
   undone: { at: string } | null;
 }
 
 export interface CfdLogEvent {
   t: string;
-  type: 'created' | 'pointer-moved' | 'run-finished' | 'run-stopped' | 'run-failed' | 'undone' | 'conditions-changed';
+  type: 'created' | 'pointer-moved' | 'auto-fill' | 'run-finished' | 'run-stopped' | 'run-failed' | 'undone' | 'conditions-changed';
   version?: string;
   detail: string;
 }
@@ -96,45 +113,88 @@ export function cfdActivePath(p: CfdProject): CfdVersion[] {
 export type CfdDecision = { kind: 'hand' } | { kind: 'measurement'; step: PointerStep; versionId: string; summary: string };
 
 /** Move the pointer of the head version: a new version, with no run yet. Throws with the reason if the move is not allowed. */
-export function addCfdPointerMove(p: CfdProject, req: { side: Side; to: Pt; limits?: PointerLimits; decision: CfdDecision }, at = now()): { project: CfdProject; version: CfdVersion } {
+export function addCfdPointerMove(p: CfdProject, req: { side: Side; to?: Pt; edit?: { anchor?: Pt | null; red?: Pt }; limits?: PointerLimits; decision: CfdDecision }, at = now()): { project: CfdProject; version: CfdVersion } {
   const parent = cfdHead(p);
   const limits = req.limits ?? DEFAULT_POINTER_LIMITS;
   const sh = parent.shape;
-  const r = radiusOf(sh.plate);
   const from = pointerOf(sh.paths, req.side);
-  const added = addPointerPoint(sh.plate, sh.paths, req.side, req.to, limits);
+  const edit: PointerEdit = { ...(req.edit ?? {}), ...(req.to ? { to: req.to } : {}) };
+  if (!edit.to && edit.anchor === undefined && !edit.red) throw new Error('nothing to change: place the pointer, or move the red or the green dot, or set a direction');
+  const added = applyPointerEdit(sh.plate, sh.paths, req.side, edit, limits);
   if (!added.ok) throw new Error(added.reason);
+  const now0 = pointerOf(added.paths, req.side);
   const geometry = plateGeometry(sh.plate, added.paths, sh.spacing);
   const step = p.versions.filter((v) => v.origin === 'constructed').length + 1;
   const id = `v${p.versions.length}`;
   const side = req.side;
-  const where = `x = ${req.to.x.toFixed(1)} d, ${(req.to.y - r).toFixed(2)} d above the plate`;
+  const where = req.to ? `x = ${req.to.x.toFixed(1)} d, ${(req.to.y - baseHeight(sh.plate, req.to.x)).toFixed(2)} d above the plate` : describePointerEdit(sh.plate, edit);
   const bodyFrom = toBodyX(sh.plate, from.x);
-  const bodyTo = toBodyX(sh.plate, req.to.x);
+  const bodyTo = toBodyX(sh.plate, now0.x);
   const summary = req.decision.kind === 'measurement' ? `${req.decision.summary} ${req.decision.step.note}.` : 'Placed by hand (no measurement decided this).';
   const v: CfdVersion = {
     id,
     parent: parent.id,
     origin: 'constructed',
-    label: `step ${step}: pointer on the ${side} side to ${where}`,
+    label: `step ${step}: ${req.to ? `pointer on the ${side} side to ${where}` : `${side} side: ${where}`}`,
     createdAt: at,
     geometry,
     shape: { plate: sh.plate, paths: added.paths, spacing: sh.spacing },
     move: {
       side,
       from,
-      to: { x: req.to.x, y: Math.max(r, req.to.y) },
+      to: { x: now0.x, y: now0.y, ...(now0.angle !== undefined ? { angle: now0.angle } : {}) },
       decided: req.decision.kind,
       ...(req.decision.kind === 'measurement' ? { measured: { surface: req.decision.step.surface, gap: req.decision.step.gap, rise: req.decision.step.rise, note: req.decision.step.note, recordId: null, versionId: req.decision.versionId, seeds: [] } } : {}),
       limits,
+      ...(req.edit && (req.edit.anchor !== undefined || req.edit.red) ? { edit: req.edit } : {}),
       step,
-      reason: `The pointer moved from x = ${from.x.toFixed(1)} d to ${where} on the ${side} side. The drawn curve passes through every pointer position so far and meets the tether (the straight line from the pointer to the top of the trailing-edge circle) without a corner. ${summary} The anchor is a construction constraint, not a flow law.`,
+      reason: `On the ${side} side${req.to ? `, the pointer moved from x = ${from.x.toFixed(1)} d to ${where}` : `: ${where}`}${req.to && describePointerEdit(sh.plate, { ...edit, to: undefined }) ? `; also ${describePointerEdit(sh.plate, { ...edit, to: undefined })}` : ''}. The drawn curve passes through every pointer position so far, with one direction at each, and meets the tether (the straight rope from the pointer to the green dot, the anchor) without a corner. ${summary} The anchor is a construction constraint, not a flow law.`,
       hypothesis: `Drawing the surface out to the pointer and closing the rest of the way to the trailing edge with the straight tether should leave a thinner region of reversed flow beside the ${side} surface over x = ${bodyFrom.toFixed(1)}–${bodyTo.toFixed(1)} d. Untested: the next simulation decides, and the flow may simply separate further on.`,
     },
     run: null,
     undone: null,
   };
-  return { version: v, project: { ...p, versions: [...p.versions, v], head: id, log: [...p.log, { t: at, type: 'pointer-moved', version: id, detail: `pointer on the ${side} side moved to ${where} (${req.decision.kind === 'measurement' ? 'decided by the measurement' : 'by hand'})` }] } };
+  return { version: v, project: { ...p, versions: [...p.versions, v], head: id, log: [...p.log, { t: at, type: 'pointer-moved', version: id, detail: `${side} side: ${where} (${req.decision.kind === 'measurement' ? 'decided by the measurement' : 'by hand'})` }] } };
+}
+
+/**
+ * The auto fill finished: a new version, child of the head, drawn by the pointer moves of the fill (it has no run yet: the fill is not a
+ * measurement of the shape, the next computation is). Throws if the fill started from another shape or added nothing.
+ */
+export function addCfdFillVersion(p: CfdProject, fill: CfdFillResult, at = now()): { project: CfdProject; version: CfdVersion } {
+  const parent = cfdHead(p);
+  if (JSON.stringify(fill.startPaths) !== JSON.stringify(parent.shape.paths) || JSON.stringify(fill.plate) !== JSON.stringify(parent.shape.plate)) throw new Error(`the fill started from a different shape than the head ${parent.id}`);
+  if (fill.moves.length === 0 || fill.totalRise < 1e-9) throw new Error(fill.stop.kind === 'nothing-measured' ? fill.stop.reason : 'the fill added no material');
+  const id = `v${p.versions.length}`;
+  const first = fill.moves[0];
+  const last = fill.moves[fill.moves.length - 1];
+  const r = fill.plate.thickness / 2;
+  const lo = Math.min(...fill.moves.map((m) => m.to.x));
+  const hi = last.to.x;
+  const tallest = Math.max(...fill.moves.map((m) => m.maxH));
+  const v: CfdVersion = {
+    id,
+    parent: parent.id,
+    origin: 'constructed',
+    label: `auto fill: ${fill.moves.length} pointer moves on the ${fill.side} side (${fill.stop.kind === 'user' ? 'stopped by you' : 'to the anchor'})`,
+    createdAt: at,
+    geometry: fill.geometry,
+    shape: { plate: fill.plate, paths: fill.paths, spacing: fill.spacing },
+    fill: {
+      side: fill.side,
+      moves: fill.moves,
+      stop: fill.stop,
+      config: fill.config,
+      convective: fill.convective,
+      maxMach: fill.maxMach,
+      totalRise: fill.totalRise,
+      reason: `While one CFD run went on, the pointer moved ${fill.moves.length} times along the ${fill.side} side, from x = ${first.from.x.toFixed(1)} d to x = ${hi.toFixed(1)} d. Each move followed the dividing streamline of the reversed flow beside the surface, averaged over ${fill.config.window} convective times (the flow had ${fill.config.settle} convective times to adjust after each move): the pointer rose by ${fill.config.step.relaxation} of the gap above the surface, at most ${fill.config.step.maxRise} d, and passed each station once. In all it rose ${fill.totalRise.toFixed(2)} d (the plate's own surface is ${r.toFixed(2)} d from its middle line); the dividing streamline stood up to ${tallest.toFixed(1)} d above the surface. The anchor is a construction constraint, not a flow law. ${fill.stop.reason}.`,
+      hypothesis: `Drawing the surface out to follow the reversed flow along x = ${lo.toFixed(1)}–${hi.toFixed(1)} d should leave a thinner region of reversed flow beside the ${fill.side} surface. Untested: the flow changed while the pointer moved, so only the next computation of this shape (with its own start-up) can say.`,
+    },
+    run: null,
+    undone: null,
+  };
+  return { version: v, project: { ...p, versions: [...p.versions, v], head: id, log: [...p.log, { t: at, type: 'auto-fill', version: id, detail: `auto fill on the ${fill.side} side: ${fill.moves.length} moves, ${fill.totalRise.toFixed(2)} d of rise, stopped: ${fill.stop.kind}` }] } };
 }
 
 export function attachCfdRun(p: CfdProject, versionId: string, run: CfdRunSummary, at = now()): CfdProject {

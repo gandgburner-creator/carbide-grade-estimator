@@ -163,6 +163,37 @@ export class LbmSolver {
     }
   }
 
+  /**
+   * Replace the body in place (the polygon of a body that grows while the flow runs): `solid` and `wallQ` are copied into the arrays
+   * this solver already uses. A node that becomes solid is masked from then on (its fluid is simply removed: a small local density
+   * wave that the flow carries away); a node that becomes fluid starts at rest at density 1. Returns the number of nodes that changed.
+   */
+  reshape(solid: Uint8Array, wallQ: Float32Array): number {
+    const { N, nx, ny } = this;
+    if (solid.length !== N || wallQ.length !== 9 * N) throw new Error('the new body does not fit this lattice');
+    let changed = 0;
+    for (let n = 0; n < N; n++) {
+      if (this.solid[n] === solid[n]) continue;
+      changed++;
+      if (this.solid[n] && !solid[n]) for (let k = 0; k < 9; k++) this.fa[k * N + n] = this.feq(k, 1, 0, 0);
+    }
+    this.solid.set(solid);
+    this.wallQ.set(wallQ);
+    for (let j = 0; j < ny; j++) {
+      for (let i = 0; i < nx; i++) {
+        const n = j * nx + i;
+        if (this.solid[n]) {
+          this.kind[n] = 2;
+          continue;
+        }
+        let general = i === 0 || j === 0 || i === nx - 1 || j === ny - 1;
+        if (!general) for (let k = 1; k < 9; k++) if (this.solid[n + this.off[k]]) general = true;
+        this.kind[n] = general ? 1 : 0;
+      }
+    }
+    return changed;
+  }
+
   private feq(k: number, rho: number, ux: number, uy: number): number {
     const cu = CX[k] * ux + CY[k] * uy;
     return WGT[k] * rho * (1 + 3 * cu + 4.5 * cu * cu - 1.5 * (ux * ux + uy * uy));

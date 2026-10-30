@@ -4,7 +4,7 @@ import { cfdActivePath, cfdVersion, type CfdPreset, type CfdProject, type CfdVer
 import type { CfdResult } from '../../cfd/CfdRun';
 import { CFD_PRESETS } from '../../cfd/CfdRun';
 import type { PhysicalInputs } from '../../experiments/FlowGeometryExperiment';
-import { FIELDS, sci, wingForces } from '../../experiments/PhysicalScenario';
+import { FIELDS, sci, toKgf, TRAILING_FIELD, wingForces } from '../../experiments/PhysicalScenario';
 import type { CfdSetup } from '../../experiments/CfdScenario';
 import { fmt } from '../Panels';
 import { ForcesPanel } from './ForcesPanel';
@@ -29,12 +29,20 @@ export function CfdScenarioPanel(p: {
   return (
     <div>
       <div className="params simple">
-        {FIELDS.map((f) => (
+        {FIELDS.flatMap((f) => [
           <label key={f.key}>
             {f.label} [{f.unit}]
             <input inputMode="decimal" value={p.text[f.key]} disabled={p.disabled} onChange={(e) => p.onText(f.key, e.target.value)} aria-label={`${f.label} in ${f.unit}`} />
-          </label>
-        ))}
+          </label>,
+          ...(f.key === 'thicknessCm'
+            ? [
+                <label key={TRAILING_FIELD.key} title={TRAILING_FIELD.role}>
+                  {TRAILING_FIELD.label} [{TRAILING_FIELD.unit}]
+                  <input inputMode="decimal" placeholder="same as thickness" value={p.text[TRAILING_FIELD.key]} disabled={p.disabled} onChange={(e) => p.onText(TRAILING_FIELD.key, e.target.value)} aria-label={`${TRAILING_FIELD.label} in ${TRAILING_FIELD.unit}`} />
+                </label>,
+              ]
+            : []),
+        ])}
         <label title="the simulation is two-dimensional; this scales its forces to a wing this deep">
           wing depth (span) [cm]
           <input inputMode="decimal" value={p.depthText} onChange={(e) => p.onDepth(e.target.value)} aria-label="wing depth in cm" />
@@ -123,7 +131,7 @@ export function CfdCompare(p: { project: CfdProject; a: string; b: string; onCha
     if (p.scenario) {
       const wa = wingForces(cfdForceMeasure(ra), p.scenario, p.depthCm);
       const wb = wingForces(cfdForceMeasure(rb), p.scenario, p.depthCm);
-      rows.push(['drag on your wing', wa.drag, wb.drag, ' N'], ['lift on your wing', wa.lift, wb.lift, ' N']);
+      rows.push(['drag on your wing', wa.drag, wb.drag, ' N'], ['lift on your wing', wa.lift, wb.lift, ' N'], ['drag on your wing, as weight', toKgf(wa.drag), toKgf(wb.drag), ' kgf'], ['lift on your wing, as weight', toKgf(wa.lift), toKgf(wb.lift), ' kgf']);
     }
   }
   return (
@@ -206,10 +214,10 @@ export function CfdCompare(p: { project: CfdProject; a: string; b: string; onCha
               ))}
             </tbody>
           </table>
-          {vb.move && (
+          {(vb.move || vb.fill) && (
             <div className="hyp unresolved">
               <b>The stated prediction</b>
-              <div className="note">{vb.move.hypothesis}</div>
+              <div className="note">{(vb.move ?? vb.fill)!.hypothesis}</div>
               <div>Read it from the table above and the wall-shear curves; the CFD workspace does not score it.</div>
             </div>
           )}
@@ -254,13 +262,19 @@ export function CfdHistory(p: {
               </span>
             </div>
             <div className="note">
-              <span className={`tag ${v.origin === 'initial' ? 'derived' : 'imposed'}`}>{v.origin === 'initial' ? 'INITIAL' : 'CONSTRUCTED · POINTER'}</span> parent {v.parent ?? '—'} · {new Date(v.createdAt).toLocaleString()}
+              <span className={`tag ${v.origin === 'initial' ? 'derived' : 'imposed'}`}>{v.origin === 'initial' ? 'INITIAL' : v.fill ? 'CONSTRUCTED · AUTO FILL' : 'CONSTRUCTED · POINTER'}</span> parent {v.parent ?? '—'} · {new Date(v.createdAt).toLocaleString()}
               {!onPath.has(v.id) && ' · off the active path'}
               {v.move && (
                 <>
                   <br />
                   {v.move.decided === 'measurement' ? 'decided by the CFD result' : 'placed by hand'}
                   {v.move.measured ? ` · ${v.move.measured.note}` : ''}
+                </>
+              )}
+              {v.fill && (
+                <>
+                  <br />
+                  {v.fill.moves.length} moves during one run ({v.fill.convective.toFixed(1)} convective times), stopped: {v.fill.stop.kind} · rise {v.fill.totalRise.toFixed(2)} d · largest lattice Mach {v.fill.maxMach.toFixed(2)}
                 </>
               )}
             </div>

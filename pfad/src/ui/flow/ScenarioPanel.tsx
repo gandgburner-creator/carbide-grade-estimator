@@ -1,11 +1,12 @@
 import type { PhysicalInputs } from '../../experiments/FlowGeometryExperiment';
-import { FIELDS, sci, type ScenarioReport } from '../../experiments/PhysicalScenario';
+import { FIELDS, sci, TRAILING_FIELD, type ScenarioReport } from '../../experiments/PhysicalScenario';
 
 export type ScenarioText = Record<keyof PhysicalInputs, string>;
 
 export const scenarioText = (s: PhysicalInputs): ScenarioText => ({
   lengthCm: String(s.lengthCm),
   thicknessCm: String(s.thicknessCm),
+  trailingThicknessCm: s.trailingThicknessCm === undefined ? '' : String(s.trailingThicknessCm),
   tempC: String(s.tempC),
   altitudeM: String(s.altitudeM),
   speedKmh: String(s.speedKmh),
@@ -37,13 +38,22 @@ export function ScenarioPanel(p: {
   return (
     <div>
       <div className="params simple">
-        {FIELDS.map((f) => (
+        {FIELDS.flatMap((f) => [
           <label key={f.key} title={f.role}>
             {f.label} [{f.unit}]
             <input inputMode="decimal" value={p.text[f.key]} disabled={p.disabled} onChange={(e) => p.onText(f.key, e.target.value)} aria-label={`${f.label} in ${f.unit}`} />
             <span className="hint">{f.role}</span>
-          </label>
-        ))}
+          </label>,
+          ...(f.key === 'thicknessCm'
+            ? [
+                <label key={TRAILING_FIELD.key} title={TRAILING_FIELD.role}>
+                  {TRAILING_FIELD.label} [{TRAILING_FIELD.unit}]
+                  <input inputMode="decimal" placeholder="same as thickness" value={p.text[TRAILING_FIELD.key]} disabled={p.disabled} onChange={(e) => p.onText(TRAILING_FIELD.key, e.target.value)} aria-label={`${TRAILING_FIELD.label} in ${TRAILING_FIELD.unit}`} />
+                  <span className="hint">{TRAILING_FIELD.role}</span>
+                </label>,
+              ]
+            : []),
+        ])}
       </div>
       <div className="params simple" style={{ marginTop: 4 }}>
         <label title="the simulation is two-dimensional; this scales its forces to a wing this deep">
@@ -61,7 +71,7 @@ export function ScenarioPanel(p: {
         ))}
       </div>
       {p.errors && p.errors.map((e, i) => <div key={i} className="error">{e}</div>)}
-      {p.shapeDiffers && !p.legacy && <div className="warn">Length and thickness take effect when you start a new project (the open plate keeps its shape).</div>}
+      {p.shapeDiffers && !p.legacy && <div className="warn">Length and thicknesses take effect when you start a new project (the open plate keeps its shape).</div>}
       {p.legacy && <div className="warn">This project was set up in model units, so these inputs only apply to a new project.</div>}
       {r && (
         <div className="scenario-box">

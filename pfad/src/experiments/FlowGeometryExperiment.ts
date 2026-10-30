@@ -43,8 +43,10 @@ import { analyseWake, type WakeAnalysis } from '../measurements/WakeVoid';
 export interface PhysicalInputs {
   /** plate length [cm] */
   lengthCm: number;
-  /** plate thickness [cm] */
+  /** plate thickness [cm]: the diameter of the leading round end */
   thicknessCm: number;
+  /** diameter of the trailing round end [cm]; absent: the same as the thickness */
+  trailingThicknessCm?: number;
   /** ambient air temperature [°C] */
   tempC: number;
   /** height above sea level [m] */

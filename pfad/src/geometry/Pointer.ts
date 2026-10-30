@@ -3,22 +3,23 @@ import type { Side, SurfaceGeometry } from './SurfaceGeometry';
 /**
  * THE ROUNDED PLATE AND THE CONSTRUCTION POINTER (engine-agnostic; used by the particle and the CFD workspaces).
  *
- * The starting body is a slot shape, not a rectangle: both ends are half-circles. The THICKNESS is the diameter of the two
- * end circles and the LENGTH is the distance between their centres plus one diameter. PLATE FRAME: the origin is the centre
- * of the leading-edge circle, x runs along the plate and y across it (y is the outward height above the axis on each side,
- * so the plate's own surface is at y = r = thickness / 2 on both sides).
+ * The starting body is a slot shape, not a rectangle: both ends are half-circles. The THICKNESS is the diameter of the leading
+ * end circle and the TRAILING THICKNESS the diameter of the trailing one (when it is absent the two are the same); the LENGTH is the
+ * distance between their centres plus the two radii. With different diameters the body is the hull of the two circles, joined by the
+ * straight edges that touch both. PLATE FRAME: the origin is the centre of the leading-edge circle, x runs along the plate and y across
+ * it; y is the OUTWARD HEIGHT above the axis on each side, so the plate's own surface (baseHeight) is at y = r = thickness / 2 on both
+ * sides when the diameters are equal, and on the straight edge between the circles in general.
  *
- *            ·────────── tether ──────────·
- *      pointer P                            anchor A = top of the trailing-edge circle = (length − thickness, r)
+ *      red dot R ~~~ arc ~~~ pointer P ───── tether (rope) ─────· green dot A (the anchor)
  *
- * Construction on one side. A POINTER starts at the top of the leading-edge circle, P0 = (0, r). It is moved forward along the
- * plate (x) and outward (y, never below the plate's own surface: material is only added). Every position it has been placed at
- * is kept: the DRAWN CURVE passes through them, joined by cubic curves that touch each other smoothly (equal tangents at every
- * point). At each point the tangent is the direction of the TETHER, the straight line from the pointer to the anchor A, so
- * the curve arrives at the pointer heading along the tether and leaves it the same way: there is no corner at the pointer.
- * Ahead of the pointer the surface is the tether itself, a straight line to A; at the start (pointer on the plate, tether on
- * the plate) nothing has been added. The anchor is a construction constraint chosen by the user, namely the plate's own
- * trailing-edge geometry; it is not a flow law and nothing about the flow decides it.
+ * Construction on one side. The RED DOT is the last place the pointer was put (at the start: the top of the leading circle, where
+ * the straight edge leaves it). The POINTER is the next place. The ARC between them is a smooth curve (a cubic) whose direction at
+ * each end is adjustable; unless it is set, the direction at a point is that of the TETHER, the straight rope from the point to the
+ * GREEN DOT, the anchor. Ahead of the pointer the surface is the rope itself, running to the anchor and then on, along a straight
+ * line, to the trailing circle. Every position that has been placed is kept: the drawn curve passes through all of them, joined by
+ * such arcs, with one direction at each point so there is no corner at a placed point. The pointer moves forward along the plate (x)
+ * and outward (y, never below the plate's own surface: material is only added). The anchor starts at the top of the trailing circle
+ * and may be moved. It is a construction constraint chosen by the user, not a flow law, and nothing about the flow decides it.
  *
  * Nothing here knows an airfoil family, a camber line or a Kutta condition: the shape is whatever path the pointer was given.
  * Where the pointer goes is decided by the caller (by hand, or by a measurement through planPointerStep).
@@ -26,55 +27,128 @@ import type { Side, SurfaceGeometry } from './SurfaceGeometry';
 export interface Pt {
   x: number;
   y: number;
+  /** direction of the drawn curve at this point [radians from the plate axis, positive outward]; absent: along the tether (the rope to the anchor) */
+  angle?: number;
 }
 
 export interface PlateSpec {
   /** tip to tip */
   length: number;
-  /** diameter of the two end circles */
+  /** diameter of the leading end circle (and of the trailing one when `trailingThickness` is absent) */
   thickness: number;
+  /** diameter of the trailing end circle; absent: the same as `thickness` */
+  trailingThickness?: number;
 }
 
-/** The pointer paths of both sides, in outward-height coordinates (y ≥ r on either side), each starting at (0, r). */
+/** The pointer paths of both sides, in outward-height coordinates (never below the plate's own surface), each starting where the straight edge leaves the leading circle. */
 export interface PointerPaths {
   upper: Pt[];
   lower: Pt[];
+  /** anchors (green dots) that have been moved; absent: the top of the trailing circle */
+  anchor?: { upper?: Pt; lower?: Pt };
 }
 
 export interface PointerLimits {
   /** greatest height the pointer may be placed above the plate's own surface [d] */
   maxRise: number;
+  /** greatest angle a curve direction may be set to, either way from the plate axis [radians] */
+  maxAngle?: number;
   /** greatest |Δy / Δx| between consecutive pointer positions */
   maxSlope: number;
   /** the tether must keep at least this length (the pointer stops short of the anchor) unless it is placed exactly on it */
   minTether: number;
 }
 
-export const DEFAULT_POINTER_LIMITS: PointerLimits = { maxRise: 6, maxSlope: 1.2, minTether: 0 };
+export const DEFAULT_POINTER_LIMITS: PointerLimits = { maxRise: 6, maxSlope: 1.2, minTether: 0, maxAngle: (80 * Math.PI) / 180 };
 
 /** how long the handles of the joining cubic curves are, as a fraction of the distance between the two points */
 const HANDLE = 0.4;
 
+/** Radius of the leading end circle (the plate-frame origin is its centre, so this is also the offset to the body frame). */
 export const radiusOf = (s: PlateSpec) => s.thickness / 2;
+/** Radius of the trailing end circle. */
+export const trailingRadiusOf = (s: PlateSpec) => (s.trailingThickness ?? s.thickness) / 2;
+/** Distance between the centres of the two circles: the length minus the two radii. */
+export const centreDistance = (s: PlateSpec) => s.length - radiusOf(s) - trailingRadiusOf(s);
 
 export function validatePlate(s: PlateSpec): string | null {
-  if (!(s.thickness > 0) || !(s.length > 0)) return 'length and thickness must be positive';
-  if (s.length < 2 * s.thickness) return 'the plate must be at least twice as long as it is thick (two end circles and a straight stretch between them)';
+  const t = s.trailingThickness ?? s.thickness;
+  if (!(s.thickness > 0) || !(t > 0) || !(s.length > 0)) return 'length and thicknesses must be positive';
+  if (s.length < radiusOf(s) + trailingRadiusOf(s) + Math.max(s.thickness, t)) return 'the plate must be at least twice as long as it is thick (two end circles and a straight stretch between them as long as the thicker end is wide)';
   return null;
 }
 
-/** The anchor: the top of the trailing-edge circle (where its flat edge meets the circle), in outward-height coordinates. */
-export function anchorOf(s: PlateSpec): Pt {
-  return { x: s.length - s.thickness, y: radiusOf(s) };
+/** Slope angle φ of the straight edge between the circles: sin φ = (r_lead − r_trail) / centre distance (positive: the plate tapers toward the trailing edge). */
+const taper = (s: PlateSpec) => Math.asin(Math.max(-1, Math.min(1, (radiusOf(s) - trailingRadiusOf(s)) / centreDistance(s))));
+
+/** Where the straight edge leaves the leading circle (its top when the two diameters are equal): where the pointer starts. */
+export function startOf(s: PlateSpec): Pt {
+  const phi = taper(s);
+  return { x: radiusOf(s) * Math.sin(phi), y: radiusOf(s) * Math.cos(phi) };
+}
+
+/** The default anchor: where the straight edge meets the trailing circle (its top when the diameters are equal), in outward-height coordinates. */
+export function defaultAnchor(s: PlateSpec): Pt {
+  const phi = taper(s);
+  return { x: centreDistance(s) + trailingRadiusOf(s) * Math.sin(phi), y: trailingRadiusOf(s) * Math.cos(phi) };
+}
+
+/** The anchor of one side: the one that was set, or the default. */
+export function anchorOf(s: PlateSpec, paths?: PointerPaths | null, side: Side = 'upper'): Pt {
+  const set = paths?.anchor?.[side];
+  return set ? { x: set.x, y: set.y } : defaultAnchor(s);
+}
+
+/** Whether a side's anchor has been moved off its default place. */
+export const anchorMoved = (s: PlateSpec, paths: PointerPaths, side: Side): boolean => {
+  const set = paths.anchor?.[side];
+  const d = defaultAnchor(s);
+  return !!set && (Math.abs(set.x - d.x) > 1e-9 || Math.abs(set.y - d.y) > 1e-9);
+};
+
+/**
+ * The plate's own surface: the outward height of the bare plate (the two circles and the straight edge between them) at plate-frame
+ * x ∈ [−r, length − r]. Material is only added above it.
+ */
+export function baseHeight(s: PlateSpec, x: number): number {
+  const r = radiusOf(s);
+  const rt = trailingRadiusOf(s);
+  const a = startOf(s);
+  const b = defaultAnchor(s);
+  if (x <= a.x) return Math.sqrt(Math.max(0, r * r - x * x));
+  if (x >= b.x) {
+    const dx = x - centreDistance(s);
+    return Math.sqrt(Math.max(0, rt * rt - dx * dx));
+  }
+  return a.y + ((x - a.x) / (b.x - a.x)) * (b.y - a.y);
+}
+
+/**
+ * Where the straight line from the anchor touches the trailing circle: the surface runs from the anchor along it, then round the
+ * circle to the trailing tip. With the anchor at its default place this is the anchor itself (no line).
+ */
+export function tailPoint(s: PlateSpec, anchor: Pt): Pt {
+  const D = centreDistance(s);
+  const rt = trailingRadiusOf(s);
+  const d0 = defaultAnchor(s);
+  if (Math.abs(anchor.x - d0.x) < 1e-9 && Math.abs(anchor.y - d0.y) < 1e-9) return d0;
+  const vx = anchor.x - D;
+  const vy = anchor.y;
+  const dist = Math.hypot(vx, vy);
+  if (dist <= rt + 1e-9) return d0;
+  const ang = Math.atan2(vy, vx) - Math.acos(rt / dist);
+  return { x: D + rt * Math.cos(ang), y: rt * Math.sin(ang) };
 }
 
 export function initialPaths(s: PlateSpec): PointerPaths {
-  const r = radiusOf(s);
-  return { upper: [{ x: 0, y: r }], lower: [{ x: 0, y: r }] };
+  const a = startOf(s);
+  return { upper: [{ ...a }], lower: [{ ...a }] };
 }
 
 export function clonePaths(p: PointerPaths): PointerPaths {
-  return { upper: p.upper.map((q) => ({ ...q })), lower: p.lower.map((q) => ({ ...q })) };
+  const out: PointerPaths = { upper: p.upper.map((q) => ({ ...q })), lower: p.lower.map((q) => ({ ...q })) };
+  if (p.anchor) out.anchor = { ...(p.anchor.upper ? { upper: { ...p.anchor.upper } } : {}), ...(p.anchor.lower ? { lower: { ...p.anchor.lower } } : {}) };
+  return out;
 }
 
 export const pathOf = (p: PointerPaths, side: Side): Pt[] => (side === 'upper' ? p.upper : p.lower);
@@ -87,17 +161,20 @@ export function pointerOf(p: PointerPaths, side: Side): Pt {
 
 /** Whether a side has anything built on it. */
 export function isBuilt(s: PlateSpec, path: Pt[]): boolean {
-  const r = radiusOf(s);
-  return path.length > 1 || path[0].y > r + 1e-12;
+  return path.length > 1 || path[0].y > startOf(s).y + 1e-12;
 }
 
 /** The unit vector from a point to the anchor (along the plate if it is at the anchor). */
-function tetherDirection(s: PlateSpec, q: Pt): Pt {
-  const a = anchorOf(s);
+function tetherDirection(q: Pt, a: Pt): Pt {
   const dx = a.x - q.x;
   const dy = a.y - q.y;
   const L = Math.hypot(dx, dy);
   return L < 1e-12 ? { x: 1, y: 0 } : { x: dx / L, y: dy / L };
+}
+
+/** The direction of the drawn curve at a placed point: the one that was set, or along the tether. */
+export function directionAt(q: Pt, a: Pt): Pt {
+  return q.angle !== undefined ? { x: Math.cos(q.angle), y: Math.sin(q.angle) } : tetherDirection(q, a);
 }
 
 export interface CubicSegment {
@@ -107,14 +184,15 @@ export interface CubicSegment {
   p3: Pt;
 }
 
-/** The drawn curve: one cubic between each pair of consecutive pointer positions, tangent to the tether at both. */
-export function drawnSegments(s: PlateSpec, path: Pt[]): CubicSegment[] {
+/** The drawn curve: one cubic between each pair of consecutive pointer positions, with the direction of each point at both its ends. */
+export function drawnSegments(s: PlateSpec, path: Pt[], anchor: Pt = anchorOf(s)): CubicSegment[] {
+  void s;
   const out: CubicSegment[] = [];
   for (let k = 0; k + 1 < path.length; k++) {
     const a = path[k];
     const b = path[k + 1];
-    const ua = tetherDirection(s, a);
-    const ub = tetherDirection(s, b);
+    const ua = directionAt(a, anchor);
+    const ub = directionAt(b, anchor);
     const dx = b.x - a.x;
     const d = Math.hypot(dx, b.y - a.y);
     // keep x increasing along the curve, so the surface stays a graph over the plate
@@ -143,58 +221,85 @@ function segmentHeight(seg: CubicSegment, x: number): number {
 
 /**
  * Outward height of one side of the plate at plate-frame x ∈ [−r, length − r]: the leading circle, the drawn curve, the tether
- * to the anchor, and the trailing circle. The drawn curve is never lower than the plate's own surface.
+ * (rope) to the anchor, the straight line on to the trailing circle, and the trailing circle. The drawn curve is never lower
+ * than the plate's own surface.
  */
-export function outwardHeight(s: PlateSpec, path: Pt[], x: number, segs: CubicSegment[] = drawnSegments(s, path)): number {
+export function outwardHeight(s: PlateSpec, path: Pt[], x: number, segs?: CubicSegment[], anchor: Pt = anchorOf(s)): number {
   const r = radiusOf(s);
-  const a = anchorOf(s);
-  if (x <= 0) return Math.sqrt(Math.max(0, r * r - x * x));
-  if (x >= a.x) return Math.sqrt(Math.max(0, r * r - (x - a.x) * (x - a.x)));
+  const rt = trailingRadiusOf(s);
+  const a0 = startOf(s);
+  const tail = tailPoint(s, anchor);
+  if (x <= a0.x) return Math.sqrt(Math.max(0, r * r - x * x));
+  if (x >= tail.x) {
+    const dx = x - centreDistance(s);
+    return Math.sqrt(Math.max(0, rt * rt - dx * dx));
+  }
+  if (x >= anchor.x) {
+    const f = tail.x - anchor.x < 1e-12 ? 1 : (x - anchor.x) / (tail.x - anchor.x);
+    return anchor.y + f * (tail.y - anchor.y);
+  }
   const last = path[path.length - 1];
   if (x >= last.x) {
-    const f = a.x - last.x < 1e-12 ? 1 : (x - last.x) / (a.x - last.x);
-    return last.y + f * (a.y - last.y);
+    const f = anchor.x - last.x < 1e-12 ? 1 : (x - last.x) / (anchor.x - last.x);
+    return last.y + f * (anchor.y - last.y);
   }
+  const sg = segs ?? drawnSegments(s, path, anchor);
   let k = 0;
-  while (k + 1 < segs.length && x > segs[k].p3.x) k++;
-  return Math.max(r, segmentHeight(segs[k], x));
+  while (k + 1 < sg.length && x > sg[k].p3.x) k++;
+  return Math.max(baseHeight(s, x), segmentHeight(sg[k], x));
 }
 
 /** Total thickness of the plate at plate-frame x (both sides). */
 export function thicknessAt(s: PlateSpec, paths: PointerPaths, x: number): number {
-  return outwardHeight(s, paths.upper, x) + outwardHeight(s, paths.lower, x);
+  return outwardHeight(s, paths.upper, x, undefined, anchorOf(s, paths, 'upper')) + outwardHeight(s, paths.lower, x, undefined, anchorOf(s, paths, 'lower'));
 }
 
 /**
  * The plate as a SurfaceGeometry (body frame: leading tip at x = 0, stations closer together around the two round ends so that
  * the semicircles are real polygons, about `spacing` apart elsewhere). Both sides meet in the tips; there are no end faces.
  * The `free` stations are the straight stretch between the circles, the only part the increment rules (Construction,
- * LiveFill) may change.
+ * LiveFill) may change. (The stations are the same on both sides, so the two anchors, which may have been moved separately, set
+ * the stretch between them: the larger of the two.)
  */
 export function plateGeometry(s: PlateSpec, paths: PointerPaths = initialPaths(s), spacing = 1): SurfaceGeometry {
   const err = validatePlate(s);
   if (err) throw new Error(err);
   const r = radiusOf(s);
-  const a = anchorOf(s);
-  const m = Math.max(2, Math.ceil((Math.PI * r) / 2 / (0.8 * spacing)));
-  const nMid = Math.max(2, Math.ceil(a.x / spacing));
+  const rt = trailingRadiusOf(s);
+  const D = centreDistance(s);
+  const phi = taper(s);
+  const a0 = startOf(s);
+  const aU = anchorOf(s, paths, 'upper');
+  const aL = anchorOf(s, paths, 'lower');
+  const tU = tailPoint(s, aU);
+  const tL = tailPoint(s, aL);
+  const anchorX = Math.max(aU.x, aL.x);
+  const tailX = Math.max(tU.x, tL.x);
+  const mL = Math.max(2, Math.ceil((r * (Math.PI / 2 + phi)) / (0.8 * spacing)));
+  const mT = Math.max(2, Math.ceil((rt * (Math.PI / 2 - phi)) / (0.8 * spacing)));
+  const nMid = Math.max(2, Math.ceil((anchorX - a0.x) / spacing));
+  const nTail = tailX - anchorX > 1e-9 ? Math.max(1, Math.ceil((tailX - anchorX) / spacing)) : 0;
   const xp: number[] = [];
-  for (let j = 0; j <= m; j++) xp.push(-r * Math.cos((j / m) * (Math.PI / 2)));
-  for (let k = 1; k <= nMid; k++) xp.push((a.x * k) / nMid);
-  for (let j = 1; j <= m; j++) xp.push(a.x + r * Math.sin((j / m) * (Math.PI / 2)));
-  const su = drawnSegments(s, paths.upper);
-  const sl = drawnSegments(s, paths.lower);
+  // leading arc: from the nose (angle π) to where the straight edge leaves the circle (π/2 − φ)
+  for (let j = 0; j <= mL; j++) xp.push(r * Math.cos(Math.PI - (j / mL) * (Math.PI / 2 + phi)));
+  xp[mL] = a0.x;
+  for (let k = 1; k <= nMid; k++) xp.push(a0.x + ((anchorX - a0.x) * k) / nMid);
+  for (let k = 1; k <= nTail; k++) xp.push(anchorX + ((tailX - anchorX) * k) / nTail);
+  // trailing arc: from where the straight edge meets the circle (π/2 − φ) to the tip (angle 0)
+  for (let j = 1; j <= mT; j++) xp.push(D + rt * Math.cos((1 - j / mT) * (Math.PI / 2 - phi)));
+  const su = drawnSegments(s, paths.upper, aU);
+  const sl = drawnSegments(s, paths.lower, aL);
   const n = xp.length - 1;
   const xs = xp.map((x) => x + r);
   xs[0] = 0;
   xs[n] = s.length;
-  const upper = xp.map((x) => outwardHeight(s, paths.upper, x, su));
-  const lower = xp.map((x) => -outwardHeight(s, paths.lower, x, sl));
+  const upper = xp.map((x) => outwardHeight(s, paths.upper, x, su, aU));
+  const lower = xp.map((x) => -outwardHeight(s, paths.lower, x, sl, aL));
   upper[0] = 0;
   lower[0] = 0;
   upper[n] = 0;
   lower[n] = 0;
-  return { chord: s.length, stations: n, upper, lower, xs, free: [m, m + nMid], pointedEnds: true };
+  return { chord: s.length, stations: n, upper, lower, xs, free: [mL, mL + nMid], pointedEnds: true };
 }
 
 /** Plate frame → body frame (x only: the body frame starts at the leading tip). */
@@ -203,23 +308,112 @@ export const fromBodyX = (s: PlateSpec, x: number) => x - radiusOf(s);
 
 export type AddResult = { ok: true; paths: PointerPaths } | { ok: false; reason: string };
 
+const deg = (rad: number) => ((rad * 180) / Math.PI).toFixed(0);
+
+function checkAngle(angle: number | undefined, limits: PointerLimits): string | null {
+  if (angle === undefined) return null;
+  if (!Number.isFinite(angle)) return 'the direction of the curve is not a number';
+  const max = limits.maxAngle ?? DEFAULT_POINTER_LIMITS.maxAngle!;
+  if (Math.abs(angle) > max + 1e-9) return `the curve may not leave the plate axis by more than ${deg(max)}° either way (this is ${deg(angle)}°)`;
+  return null;
+}
+
+/** Why a point may not be placed after `last` (towards `anchor`), or null. */
+function checkPoint(s: PlateSpec, to: Pt, last: Pt, anchor: Pt, limits: PointerLimits): string | null {
+  if (!Number.isFinite(to.x) || !Number.isFinite(to.y)) return 'the pointer position is not a number';
+  if (!(to.x > last.x + 1e-9)) return `the pointer only moves forward: x must be beyond ${last.x.toFixed(2)} d`;
+  if (to.x > anchor.x + 1e-9) return `the pointer cannot pass the anchor at x = ${anchor.x.toFixed(2)} d`;
+  if (to.x < anchor.x - 1e-9 && anchor.x - to.x < limits.minTether) return `the tether would be shorter than ${limits.minTether} d`;
+  const base = baseHeight(s, to.x);
+  if (to.y < base - 1e-9) return `material is only added: the pointer cannot go below the plate’s own surface (y = ${base.toFixed(2)} d here)`;
+  if (to.y > base + limits.maxRise + 1e-9) return `the pointer is more than ${limits.maxRise} d above the plate`;
+  const slope = Math.abs(to.y - last.y) / (to.x - last.x);
+  if (slope > limits.maxSlope + 1e-9) return `the step is steeper than ${limits.maxSlope} (rise ${(to.y - last.y).toFixed(2)} over ${(to.x - last.x).toFixed(2)} d)`;
+  return checkAngle(to.angle, limits);
+}
+
 /** Place the pointer of one side at a new position. Add-only, forward only, within the limits. */
 export function addPointerPoint(s: PlateSpec, paths: PointerPaths, side: Side, to: Pt, limits: PointerLimits = DEFAULT_POINTER_LIMITS): AddResult {
-  const r = radiusOf(s);
-  const a = anchorOf(s);
   const path = pathOf(paths, side);
   const last = path[path.length - 1];
-  if (!Number.isFinite(to.x) || !Number.isFinite(to.y)) return { ok: false, reason: 'the pointer position is not a number' };
-  if (!(to.x > last.x + 1e-9)) return { ok: false, reason: `the pointer only moves forward: x must be beyond ${last.x.toFixed(2)} d` };
-  if (to.x > a.x + 1e-9) return { ok: false, reason: `the pointer cannot pass the trailing-edge anchor at x = ${a.x.toFixed(2)} d` };
-  if (to.x < a.x - 1e-9 && a.x - to.x < limits.minTether) return { ok: false, reason: `the tether would be shorter than ${limits.minTether} d` };
-  if (to.y < r - 1e-9) return { ok: false, reason: `material is only added: the pointer cannot go below the plate’s own surface (y = ${r.toFixed(2)} d)` };
-  if (to.y > r + limits.maxRise + 1e-9) return { ok: false, reason: `the pointer is more than ${limits.maxRise} d above the plate` };
-  const slope = Math.abs(to.y - last.y) / (to.x - last.x);
-  if (slope > limits.maxSlope + 1e-9) return { ok: false, reason: `the step is steeper than ${limits.maxSlope} (rise ${(to.y - last.y).toFixed(2)} over ${(to.x - last.x).toFixed(2)} d)` };
+  const why = checkPoint(s, to, last, anchorOf(s, paths, side), limits);
+  if (why) return { ok: false, reason: why };
   const next = clonePaths(paths);
-  pathOf(next, side).push({ x: to.x, y: Math.max(r, to.y) });
+  pathOf(next, side).push({ x: to.x, y: Math.max(baseHeight(s, to.x), to.y), ...(to.angle !== undefined ? { angle: to.angle } : {}) });
   return { ok: true, paths: next };
+}
+
+/**
+ * Everything a person can adjust about the three points and the arc, in one change (applied in this order):
+ *   anchor  move the green dot of the side (null: put it back at the trailing circle's top);
+ *   red     put the red dot (the last placed point) somewhere else, or change the direction the curve has there (at the very start
+ *           only the direction can change: the start sits where the straight edge leaves the leading circle);
+ *   to      place the pointer (the arc from the red dot to it is drawn; the rope runs from it to the green dot).
+ * A `to` of its own is optional: with none, the rope simply runs from the red dot.
+ */
+export interface PointerEdit {
+  anchor?: Pt | null;
+  red?: Pt;
+  to?: Pt;
+}
+
+export function applyPointerEdit(s: PlateSpec, paths: PointerPaths, side: Side, edit: PointerEdit, limits: PointerLimits = DEFAULT_POINTER_LIMITS): AddResult {
+  let next = clonePaths(paths);
+  if (edit.anchor !== undefined) {
+    if (edit.anchor === null) {
+      if (next.anchor) {
+        delete next.anchor[side];
+        if (!next.anchor.upper && !next.anchor.lower) delete next.anchor;
+      }
+    } else {
+      const a = edit.anchor;
+      const path = pathOf(next, side);
+      const last = path[path.length - 1];
+      const d = defaultAnchor(s);
+      if (!Number.isFinite(a.x) || !Number.isFinite(a.y)) return { ok: false, reason: 'the anchor position is not a number' };
+      if (!(a.x > last.x + 1e-9)) return { ok: false, reason: `the anchor must lie beyond the red dot (x > ${last.x.toFixed(2)} d)` };
+      if (a.x > d.x + 1e-9) return { ok: false, reason: `the anchor cannot lie beyond the top of the trailing circle (x = ${d.x.toFixed(2)} d)` };
+      const base = baseHeight(s, a.x);
+      if (a.y < base - 1e-9) return { ok: false, reason: `the anchor cannot lie below the plate’s own surface (y = ${base.toFixed(2)} d here)` };
+      if (a.y > base + limits.maxRise + 1e-9) return { ok: false, reason: `the anchor is more than ${limits.maxRise} d above the plate` };
+      next.anchor = { ...(next.anchor ?? {}), [side]: { x: a.x, y: Math.max(base, a.y) } };
+    }
+  }
+  if (edit.red) {
+    const path = pathOf(next, side);
+    const n = path.length;
+    const r = edit.red;
+    const anchor = anchorOf(s, next, side);
+    const why = checkAngle(r.angle, limits);
+    if (why) return { ok: false, reason: why };
+    if (n === 1) {
+      const start = startOf(s);
+      if (Math.abs(r.x - start.x) > 1e-9 || Math.abs(r.y - start.y) > 1e-9) return { ok: false, reason: 'the first red dot sits where the straight edge leaves the leading circle and cannot be moved: place the pointer further on and move that one instead (only the direction of the curve can be changed at the start)' };
+      path[0] = { ...start, ...(r.angle !== undefined ? { angle: r.angle } : {}) };
+    } else {
+      const before = path[n - 2];
+      const bad = checkPoint(s, r, before, anchor, limits);
+      if (bad) return { ok: false, reason: `the red dot cannot go there: ${bad}` };
+      path[n - 1] = { x: r.x, y: Math.max(baseHeight(s, r.x), r.y), ...(r.angle !== undefined ? { angle: r.angle } : {}) };
+    }
+  }
+  if (edit.to) {
+    const added = addPointerPoint(s, next, side, edit.to, limits);
+    if (!added.ok) return added;
+    next = added.paths;
+  }
+  return { ok: true, paths: next };
+}
+
+/** What an edit does, in words (for version labels and the log): where each dot went and the directions that were set. */
+export function describePointerEdit(s: PlateSpec, edit: PointerEdit): string {
+  const at = (q: Pt) => `x = ${q.x.toFixed(1)} d, ${(q.y - baseHeight(s, q.x)).toFixed(2)} d above the plate`;
+  const parts: string[] = [];
+  if (edit.anchor === null) parts.push('green dot (anchor) put back at the trailing circle');
+  else if (edit.anchor) parts.push(`green dot (anchor) moved to ${at(edit.anchor)}`);
+  if (edit.red) parts.push(`red dot ${edit.red.angle !== undefined && !edit.to ? 'direction' : 'moved to ' + at(edit.red)}${edit.red.angle !== undefined ? ` (curve leaves it at ${deg(edit.red.angle)}°)` : ''}`);
+  if (edit.to) parts.push(`pointer to ${at(edit.to)}${edit.to.angle !== undefined ? ` (curve arrives at ${deg(edit.to.angle)}°)` : ''}`);
+  return parts.join('; ');
 }
 
 /** Remove the last pointer position of a side (the pointer goes back one step). */
@@ -263,15 +457,15 @@ export interface PointerStep {
  * measured gap at plate-frame x (0 where the flow touches the surface or nothing is known). Pure.
  */
 export function planPointerStep(s: PlateSpec, paths: PointerPaths, side: Side, gapAt: (x: number) => number, cfg: PointerStepConfig = DEFAULT_POINTER_STEP): PointerStep | null {
-  const a = anchorOf(s);
+  const a = anchorOf(s, paths, side);
   const last = pointerOf(paths, side);
   if (last.x >= a.x - 1e-9) return null;
   const x = Math.min(a.x, last.x + cfg.step);
   const atAnchor = x >= a.x - 1e-9;
-  const surface = outwardHeight(s, pathOf(paths, side), x);
+  const surface = outwardHeight(s, pathOf(paths, side), x, undefined, a);
   const gap = Math.max(0, gapAt(x));
   const rise = Math.min(cfg.maxRise, cfg.relaxation * Math.max(0, gap - cfg.margin));
-  const y = atAnchor ? a.y : Math.max(radiusOf(s), surface + rise);
+  const y = atAnchor ? a.y : Math.max(baseHeight(s, x), surface + rise);
   return {
     to: { x: atAnchor ? a.x : x, y },
     surface,

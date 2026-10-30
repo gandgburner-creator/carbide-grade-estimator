@@ -1,6 +1,6 @@
 import type { ConstructionBasis, ConstructionConfig, PathPoint } from './Construction';
 import { headVersion, type GeometryVersion, type PlateShape, type PointerMove, type Project } from './History';
-import { addPointerPoint, DEFAULT_POINTER_LIMITS, DEFAULT_POINTER_STEP, fromBodyX, pointerOf, plateGeometry, radiusOf, toBodyX, type PointerLimits, type PointerStep, type Pt } from './Pointer';
+import { applyPointerEdit, baseHeight, DEFAULT_POINTER_LIMITS, DEFAULT_POINTER_STEP, describePointerEdit, fromBodyX, pointerOf, plateGeometry, toBodyX, type PointerEdit, type PointerLimits, type PointerStep, type Pt } from './Pointer';
 import { DEFAULT_LIMITS, sideY, stationX, type Side } from './SurfaceGeometry';
 
 const now = () => new Date().toISOString();
@@ -12,8 +12,10 @@ export type PointerDecision =
 
 export interface PointerMoveRequest {
   side: Side;
-  /** plate frame: x from the centre of the leading circle, y the outward height */
-  to: Pt;
+  /** plate frame: x from the centre of the leading circle, y the outward height; absent: only the red dot, the green dot or the arc directions change */
+  to?: Pt;
+  /** the green dot (anchor) moved or put back (null), and the red dot (the last placed point) re-placed or given a direction */
+  edit?: { anchor?: Pt | null; red?: Pt };
   limits?: PointerLimits;
   decision: PointerDecision;
 }
@@ -33,10 +35,12 @@ export function addPointerVersion(p: Project, req: PointerMoveRequest, at = now(
   const shape = shapeOf(parent);
   if (!shape) throw new Error(`the head ${parent.id} was not drawn by the pointer (it is a flat plate or was changed by a proposal or a live fill): undo to a rounded-plate version, or start a new project`);
   const limits = req.limits ?? DEFAULT_POINTER_LIMITS;
-  const r = radiusOf(shape.plate);
   const from = pointerOf(shape.paths, req.side);
-  const added = addPointerPoint(shape.plate, shape.paths, req.side, req.to, limits);
+  const edit: PointerEdit = { ...(req.edit ?? {}), ...(req.to ? { to: req.to } : {}) };
+  if (!edit.to && edit.anchor === undefined && !edit.red) throw new Error('nothing to change: place the pointer, or move the red or the green dot, or set a direction');
+  const added = applyPointerEdit(shape.plate, shape.paths, req.side, edit, limits);
   if (!added.ok) throw new Error(added.reason);
+  const now0 = pointerOf(added.paths, req.side);
   const geometry = plateGeometry(shape.plate, added.paths, shape.spacing);
   const y0 = sideY(parent.geometry, req.side);
   const y1 = sideY(geometry, req.side);
@@ -51,17 +55,19 @@ export function addPointerVersion(p: Project, req: PointerMoveRequest, at = now(
   const step = p.versions.filter((v) => v.origin === 'constructed').length + 1;
   const id = `v${p.versions.length}`;
   const bodyFrom = toBodyX(shape.plate, from.x);
-  const bodyTo = toBodyX(shape.plate, req.to.x);
-  const where = `x = ${req.to.x.toFixed(1)} d, ${(req.to.y - r).toFixed(2)} d above the plate`;
+  const bodyTo = toBodyX(shape.plate, now0.x);
+  const where = describePointerEdit(shape.plate, edit);
+  const placed = req.to ? `pointer to x = ${req.to.x.toFixed(1)} d, ${(req.to.y - baseHeight(shape.plate, req.to.x)).toFixed(2)} d above the plate` : where;
   const moveRecord: PointerMove = {
     side: req.side,
     from,
-    to: { x: req.to.x, y: Math.max(r, req.to.y) },
+    to: { x: now0.x, y: now0.y, ...(now0.angle !== undefined ? { angle: now0.angle } : {}) },
     decided: req.decision.kind,
     ...(req.decision.kind === 'measurement'
       ? { measured: { surface: req.decision.step.surface, gap: req.decision.step.gap, rise: req.decision.step.rise, note: req.decision.step.note, recordId: req.decision.recordId, versionId: req.decision.versionId, seeds: req.decision.seeds } }
       : {}),
     limits,
+    ...(req.edit && (req.edit.anchor !== undefined || req.edit.red) ? { edit: req.edit } : {}),
   };
   const summary =
     req.decision.kind === 'measurement'
@@ -84,7 +90,7 @@ export function addPointerVersion(p: Project, req: PointerMoveRequest, at = now(
     id,
     parent: parent.id,
     origin: 'constructed',
-    label: `step ${step}: pointer on the ${side} side to ${where}`,
+    label: `step ${step}: ${side} side: ${req.to ? placed : where}`,
     createdAt: at,
     geometry,
     shape: { plate: shape.plate, paths: added.paths, spacing: shape.spacing },
@@ -97,7 +103,7 @@ export function addPointerVersion(p: Project, req: PointerMoveRequest, at = now(
       totalPoints: points.length,
       partial: false,
       reason:
-        `The pointer moved from x = ${from.x.toFixed(1)} d to ${where} on the ${side} side. The drawn curve now passes through every pointer position so far and meets the tether (the straight line from the pointer to the top of the trailing-edge circle) without a corner. ` +
+        `On the ${side} side: ${where}. The drawn curve passes through every pointer position so far, with one direction at each, and meets the tether (the straight rope from the pointer to the green dot, the anchor) without a corner. ` +
         `${summary} The anchor is a construction constraint, not a flow law.`,
       hypothesis:
         `Drawing the surface out to the pointer and closing the rest of the way to the trailing edge with the straight tether should leave less empty space beside the ${side} surface over x = ${bodyFrom.toFixed(1)}–${bodyTo.toFixed(1)} d: the contact-layer density ` +
@@ -117,7 +123,7 @@ export function addPointerVersion(p: Project, req: PointerMoveRequest, at = now(
       ...p,
       versions: [...p.versions, v],
       head: id,
-      log: [...p.log, { t: at, type: 'accepted', version: id, detail: `pointer on the ${side} side moved to ${where} (${req.decision.kind === 'measurement' ? 'decided by the measurement' : 'by hand'})` }],
+      log: [...p.log, { t: at, type: 'accepted', version: id, detail: `${side} side: ${where} (${req.decision.kind === 'measurement' ? 'decided by the measurement' : 'by hand'})` }],
     },
   };
 }

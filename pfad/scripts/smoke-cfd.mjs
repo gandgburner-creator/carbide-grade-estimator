@@ -122,7 +122,7 @@ step('streamlines and the vorticity field are drawn from the time-mean result');
 await field('pointer position along the plate in cm').fill('2');
 await field('pointer height above the plate in cm').fill('0.4');
 await button('PLACE POINTER').click();
-await expectText('The pointer moved: v1');
+await expectText('v1 has the new surface');
 step('the pointer moved by hand: v1');
 await button('SIMULATE').click();
 await page.waitForFunction(() => [...document.querySelectorAll('.phase')].some((e) => e.offsetParent !== null && e.textContent === 'RUNNING'), null, { timeout: 30000 });

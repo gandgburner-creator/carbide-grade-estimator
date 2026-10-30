@@ -4,7 +4,7 @@ import { geometrySVG } from '../../geometry/Export';
 import { measuredForces, type ForceMeasure } from '../../geometry/Forces';
 import type { Project } from '../../geometry/History';
 import type { PhysicalInputs } from '../../experiments/FlowGeometryExperiment';
-import { wingForces } from '../../experiments/PhysicalScenario';
+import { toKgf, wingForces } from '../../experiments/PhysicalScenario';
 import type { Est } from '../../measurements/SeparationDetector';
 import { fmt } from '../Panels';
 import { LevelBadge, StationPlots } from './DetectorPanel';
@@ -163,6 +163,8 @@ export function FlowComparePanel({ project, a, b, onChange, getFields, side, sce
                           ? ([
                               ['drag on your wing', wA.drag, wB.drag, ' N'],
                               ['lift on your wing', wA.lift, wB.lift, ' N'],
+                              ['drag on your wing, as weight', toKgf(wA.drag), toKgf(wB.drag), ' kgf'],
+                              ['lift on your wing, as weight', toKgf(wA.lift), toKgf(wB.lift), ' kgf'],
                             ] as const)
                           : []),
                       ] as const

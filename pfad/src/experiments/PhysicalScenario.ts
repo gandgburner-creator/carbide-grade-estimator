@@ -49,6 +49,8 @@ export const MODEL = {
   maxChord: 80,
   defaultChord: 30,
   minThickness: 2,
+  /** the thinnest round trailing end the model draws, in particle diameters */
+  minTrailing: 1,
   maxThickness: 12,
   minRatio: 2,
   maxRatio: 40,
@@ -76,27 +78,42 @@ export const FIELDS: FieldSpec[] = [
   { key: 'alphaDeg', label: 'angle of attack', unit: '°', min: 0, max: 89, step: 1, role: 'sets the angle exactly' },
 ];
 
+/** The optional seventh input: the diameter of the trailing round end (empty: the same as the leading one). */
+export const TRAILING_FIELD: FieldSpec = { key: 'trailingThicknessCm', label: 'trailing edge thickness', unit: 'cm', min: 0.01, max: 500, step: 0.1, role: 'diameter of the trailing round end; empty = the same as the plate thickness' };
+
 export type ScenarioCheck = { ok: true; input: PhysicalInputs } | { ok: false; errors: string[] };
 
 /** Read the six numbers a person typed (as text) and check them. */
-export function parseScenario(text: Record<keyof PhysicalInputs, string>): ScenarioCheck {
+export function parseScenario(text: Record<Exclude<keyof PhysicalInputs, 'trailingThicknessCm'>, string> & { trailingThicknessCm?: string }): ScenarioCheck {
   const errors: string[] = [];
   const input = {} as PhysicalInputs;
   for (const f of FIELDS) {
-    const raw = text[f.key];
+    const raw = text[f.key as Exclude<keyof PhysicalInputs, 'trailingThicknessCm'>];
     const x = Number(raw);
     if (raw.trim() === '' || !Number.isFinite(x)) errors.push(`${f.label}: please enter a number`);
     else if (x < f.min || x > f.max) errors.push(`${f.label} must be between ${f.min} and ${f.max} ${f.unit}`);
     else input[f.key] = x;
   }
-  if (!errors.length && input.thicknessCm * MODEL.minRatio > input.lengthCm) errors.push(`the plate must be at least ${MODEL.minRatio} times longer than it is thick (this is ${(input.lengthCm / input.thicknessCm).toFixed(1)} : 1)`);
+  const rawT = (text.trailingThicknessCm ?? '').trim();
+  if (rawT !== '') {
+    const t = Number(rawT);
+    if (!Number.isFinite(t)) errors.push(`${TRAILING_FIELD.label}: please enter a number, or leave it empty`);
+    else if (t < TRAILING_FIELD.min || t > TRAILING_FIELD.max) errors.push(`${TRAILING_FIELD.label} must be between ${TRAILING_FIELD.min} and ${TRAILING_FIELD.max} ${TRAILING_FIELD.unit}`);
+    else if (t !== input.thicknessCm) input.trailingThicknessCm = t;
+  }
+  const fat = Math.max(input.thicknessCm, input.trailingThicknessCm ?? 0);
+  if (!errors.length && fat * MODEL.minRatio > input.lengthCm) errors.push(`the plate must be at least ${MODEL.minRatio} times longer than its thicker end is wide (this is ${(input.lengthCm / fat).toFixed(1)} : 1)`);
   return errors.length ? { ok: false, errors } : { ok: true, input };
 }
 
 export interface ScenarioModel {
   /** the plate as drawn, in particle diameters */
   chord: number;
+  /** the diameter of the leading round end, and of the trailing one (equal to it when none was asked for) */
   thickness: number;
+  trailingThickness: number;
+  /** a note when the trailing end had to be drawn thicker or thinner than asked */
+  trailingNote: string | null;
   /** the length : thickness ratio asked for, and the one drawn */
   ratioAsked: number;
   ratioDrawn: number;
@@ -121,12 +138,26 @@ export function scenarioToModel(input: PhysicalInputs): ScenarioModel {
   }
   chord = Math.round(chord * 2) / 2;
   thickness = Math.round(thickness * 10) / 10;
+  // the trailing end at the same scale (particle diameters per cm of the plate); the model can draw a round end from one particle diameter across
+  let trailingThickness = thickness;
+  let trailingNote: string | null = null;
+  if (input.trailingThicknessCm !== undefined && input.trailingThicknessCm !== input.thicknessCm) {
+    const wanted = Math.round(thickness * (input.trailingThicknessCm / input.thicknessCm) * 10) / 10;
+    trailingThickness = Math.min(MODEL.maxThickness, Math.max(MODEL.minTrailing, wanted));
+    if (trailingThickness !== wanted) trailingNote = `The trailing end would be ${wanted} particle diameters across; the model draws round ends from ${MODEL.minTrailing} to ${MODEL.maxThickness}, so it draws ${trailingThickness}.`;
+    // the straight stretch between the circles must stay as long as the thicker end is wide
+    const fat = Math.max(thickness, trailingThickness);
+    if (chord < thickness / 2 + trailingThickness / 2 + fat) {
+      trailingThickness = Math.max(MODEL.minTrailing, 2 * (chord - thickness / 2 - fat) );
+      trailingNote = `The plate is too short for a trailing end that thick: it is drawn ${trailingThickness.toFixed(1)} particle diameters across.`;
+    }
+  }
   const air = airReference(input.tempC, input.altitudeM);
   const machAir = input.speedKmh / 3.6 / air.soundSpeed;
   const wanted = machAir * MODEL.soundSpeed;
   const speedBasis = wanted < MODEL.minSpeed ? 'too-slow' : wanted > MODEL.maxSpeed ? 'too-fast' : 'matched';
   const speed = Math.round(Math.min(MODEL.maxSpeed, Math.max(MODEL.minSpeed, wanted)) * 1000) / 1000;
-  return { chord, thickness, ratioAsked, ratioDrawn, speed, speedBasis, alphaDeg: input.alphaDeg };
+  return { chord, thickness, trailingThickness, trailingNote, ratioAsked, ratioDrawn, speed, speedBasis, alphaDeg: input.alphaDeg };
 }
 
 export interface Regime {
@@ -189,6 +220,8 @@ export function describeScenario(input: PhysicalInputs): ScenarioReport {
   const lines: string[] = [];
 
   lines.push(`Shape: your plate ${input.lengthCm} × ${input.thicknessCm} cm (${model.ratioAsked.toFixed(1)} : 1) is drawn as ${model.chord} × ${model.thickness} particle-diameters, at ${input.alphaDeg}°.`);
+  if (model.trailingThickness !== model.thickness) lines.push(`Round ends: the leading end is ${input.thicknessCm} cm across, the trailing end ${input.trailingThicknessCm} cm, drawn ${model.thickness} and ${model.trailingThickness} particle-diameters across and joined by the straight edges that touch both.`);
+  if (model.trailingNote) cautions.push(model.trailingNote);
   if (model.ratioDrawn !== model.ratioAsked) cautions.push(`The model can only draw plates from ${MODEL.minRatio} : 1 to ${MODEL.maxRatio} : 1, so it draws ${model.ratioDrawn} : 1 instead of ${model.ratioAsked.toFixed(1)} : 1.`);
 
   if (model.speedBasis === 'matched') lines.push(`Wind: ${input.speedKmh} km/h (${windMs.toFixed(1)} m/s) is Mach ${sci(real.mach)} in this air. The simulation runs at the same Mach number.`);
@@ -244,6 +277,20 @@ export interface WingForces {
  * finite depth has end effects the 2-D simulation does not have. It exists to put the measured numbers in units a
  * person can picture; the screen says so wherever it is shown.
  */
+/** standard gravity [m/s²]: 1 kilogram-force is the force that 1 kg of mass exerts at rest on a scale */
+export const STANDARD_GRAVITY = 9.80665;
+
+/** a force estimate in kilogram-force (the weight in kg that would press on a scale with that force: not a mass) */
+export function toKgf(e: Est): Est {
+  return { mean: e.mean / STANDARD_GRAVITY, se: e.se / STANDARD_GRAVITY, n: e.n };
+}
+
+/** "1.234 N (0.126 kgf)": a force of the scaled wing in newtons and in kilogram-force */
+export function newtonsAndKgf(newtons: number, digits = 3): string {
+  const f = (v: number) => (Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 10 ? v.toFixed(1) : v.toPrecision(digits));
+  return `${f(newtons)} N (${f(newtons / STANDARD_GRAVITY)} kgf)`;
+}
+
 export function wingForces(m: ForceMeasure, input: PhysicalInputs, depthCm: number): WingForces {
   const air = airReference(input.tempC, input.altitudeM);
   const windMs = input.speedKmh / 3.6;

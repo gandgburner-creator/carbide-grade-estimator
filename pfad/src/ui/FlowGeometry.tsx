@@ -8,7 +8,7 @@ import { CODE_VERSION, makeProvenance } from '../app/provenance';
 import { PFAD_MODEL_VERSION } from '../core/version';
 import type { ExperimentRecord } from '../experiments/Experiment';
 import { FLOW_GEOMETRY_EXTENDED, FLOW_GEOMETRY_QUICK, placementFor, type FlowGeometryParams, type FlowGeometryResults, type PhysicalInputs } from '../experiments/FlowGeometryExperiment';
-import { DEFAULT_DEPTH_CM, DEFAULT_SCENARIO, describeScenario, parseDepth, parseScenario, scenarioToModel, wingForces } from '../experiments/PhysicalScenario';
+import { DEFAULT_DEPTH_CM, DEFAULT_SCENARIO, describeScenario, parseDepth, newtonsAndKgf, parseScenario, scenarioToModel, wingForces } from '../experiments/PhysicalScenario';
 import { measuredForces } from '../geometry/Forces';
 import { nextAutoAction, type StopKind } from '../geometry/AutoBuild';
 import { DEFAULT_LIVE } from '../geometry/LiveFill';
@@ -37,18 +37,19 @@ import {
   type Project,
 } from '../geometry/History';
 import { runSummaryFromRecord } from '../geometry/RunSummary';
-import { addPointerPoint, anchorOf, DEFAULT_POINTER_STEP, initialPaths, outwardHeight, plateGeometry, pointerOf, radiusOf, type PointerStepConfig } from '../geometry/Pointer';
+import { anchorOf, DEFAULT_POINTER_STEP, initialPaths, plateGeometry, pointerOf, radiusOf, type PointerStepConfig } from '../geometry/Pointer';
 import { measuredPointerStep } from '../geometry/PointerMeasure';
 import { addPointerVersion } from '../geometry/PointerVersion';
-import { bodyPolygon, place, type Side, type SurfaceGeometry } from '../geometry/SurfaceGeometry';
-import { insidePolygon, smoothField, traceStreamlines } from '../measurements/Streamlines';
+import { bodyPolygon, place, unplace, type Side, type SurfaceGeometry } from '../geometry/SurfaceGeometry';
+import { insidePolygon, smoothField, traceStreamlines, type Streamline } from '../measurements/Streamlines';
 import { fieldScale } from './colors';
 import { downloadText } from './download';
 import { DetectorPanel, LevelBadge, ProfilePanel, StationPlots } from './flow/DetectorPanel';
 import { ConstructionPanel } from './flow/ConstructionPanel';
 import { AutoBuildPanel, EMPTY_AUTO, type AutoRun } from './flow/AutoBuildPanel';
 import { LiveFillPanel, type LiveSettings } from './flow/LiveFillPanel';
-import { EMPTY_SWEEP, PointerPanel, type PointerSweep, type PointerTexts } from './flow/PointerPanel';
+import { defaultPointerTexts, dotsFromTexts, dragToTexts, EMPTY_POINTER_TEXTS, readPointerInput, type PointerTexts } from '../geometry/PointerInput';
+import { EMPTY_SWEEP, PointerPanel, type PointerSweep } from './flow/PointerPanel';
 import { ForcesPanel } from './flow/ForcesPanel';
 import { ScenarioPanel, scenarioText, type ScenarioText } from './flow/ScenarioPanel';
 import { FlowComparePanel } from './flow/ComparePanel';
@@ -57,7 +58,7 @@ import { HistoryPanel } from './flow/HistoryPanel';
 import { drawStream, makeOverlay } from './flow/overlay';
 import { useSimulation } from './flow/useSimulation';
 import { fmt } from './Panels';
-import { ParticleView, type Camera, type ViewOptions } from './ParticleView';
+import { ParticleView, type Camera, type ViewHandle, type ViewOptions } from './ParticleView';
 
 type Conditions = Omit<FlowGeometryParams, 'geometry'>;
 type FieldChoice = 'none' | 'speed' | 'ux' | 'uy' | 'density' | 'kT';
@@ -89,7 +90,7 @@ function conditionsFor(s: Setup, input: PhysicalInputs): Conditions {
 /** A new project starts from the rounded plate (half-circle ends); the construction pointer sits on top of its leading circle. */
 function makeProject(s: Setup, input: PhysicalInputs): Project {
   const m = scenarioToModel(input);
-  const plate = { length: m.chord, thickness: m.thickness };
+  const plate = { length: m.chord, thickness: m.thickness, ...(m.trailingThickness !== m.thickness ? { trailingThickness: m.trailingThickness } : {}) };
   const paths = initialPaths(plate);
   return newProject(s.name || 'Rounded plate study', conditionsFor(s, input) as unknown as Record<string, unknown>, plateGeometry(plate, paths, 1), undefined, { plate, paths, spacing: 1 });
 }
@@ -173,7 +174,7 @@ export function FlowGeometry() {
   const [liveResult, setLiveResult] = useState<string | null>(null);
   const [auto, setAuto] = useState<AutoRun>(EMPTY_AUTO);
   const [pSide, setPSide] = useState<Side>('upper');
-  const [pTexts, setPTexts] = useState<PointerTexts>({ x: '', rise: '0.5' });
+  const [pTexts, setPTexts] = useState<PointerTexts>({ ...EMPTY_POINTER_TEXTS });
   const [pStep, setPStep] = useState<PointerStepConfig>(DEFAULT_POINTER_STEP);
   const [sweep, setSweep] = useState<PointerSweep>(EMPTY_SWEEP);
   const [autoTarget, setAutoTarget] = useState(3);
@@ -340,9 +341,9 @@ export function FlowGeometry() {
   const sCheck = parseScenario(sText);
   const report = sCheck.ok ? describeScenario(sCheck.input) : null;
   const over: PlainOverride | null =
-    !legacy && sCheck.ok && report ? { alphaDeg: sCheck.input.alphaDeg, speed: report.model.speed, scenario: { ...sCheck.input, lengthCm: projectScenario!.lengthCm, thicknessCm: projectScenario!.thicknessCm } } : null;
+    !legacy && sCheck.ok && report ? { alphaDeg: sCheck.input.alphaDeg, speed: report.model.speed, scenario: { ...sCheck.input, lengthCm: projectScenario!.lengthCm, thicknessCm: projectScenario!.thicknessCm, ...(projectScenario!.trailingThicknessCm !== undefined ? { trailingThicknessCm: projectScenario!.trailingThicknessCm } : { trailingThicknessCm: undefined }) } } : null;
   const readCheck = (d: Draft, base: Conditions) => (!legacy && !sCheck.ok ? { ok: false as const, errors: sCheck.errors } : readDraft(d, base, over));
-  const shapeDiffers = !!projectScenario && sCheck.ok && (sCheck.input.lengthCm !== projectScenario.lengthCm || sCheck.input.thicknessCm !== projectScenario.thicknessCm);
+  const shapeDiffers = !!projectScenario && sCheck.ok && (sCheck.input.lengthCm !== projectScenario.lengthCm || sCheck.input.thicknessCm !== projectScenario.thicknessCm || sCheck.input.trailingThicknessCm !== projectScenario.trailingThicknessCm);
   // lift and drag: the project's wing depth (kept apart from the flow conditions: it changes no simulation)
   const depthCm = project.wingDepthCm ?? DEFAULT_DEPTH_CM;
   const depthCheck = parseDepth(depthText);
@@ -405,6 +406,28 @@ export function FlowGeometry() {
     const lines = traceStreamlines(field, { spacing: streamSpacing, testFraction: 0.5, step: 0.4, maxLength: 3 * Math.max(c.length, c.height), minSpeed: 0.06 * c.speed, inside: (x, y) => insidePolygon(poly, x, y), maxLines: 500 });
     return { lines, arrowEvery: 8 * (streamSpacing / 2.5) + 6 };
   }, [showStreams, grid, viewed, project.conditions, streamSpacing]);
+  // streamlines of a run in progress: from the running average of the cell velocity since the run began (it includes the start-up,
+  // so it is rough at first and drifts); replaced by the measured mean of the window when the run is finished
+  const [liveStreams, setLiveStreams] = useState<{ lines: Streamline[]; arrowEvery: number; snapshots: number } | null>(null);
+  const liveStreamAt = useRef(0);
+  useEffect(() => {
+    if (busy) sim.view('none', 25, true, showStreams);
+    else setLiveStreams(null);
+  }, [showStreams, busy, sim]);
+  const flow = sim.frame?.flow ?? null;
+  useEffect(() => {
+    if (!showStreams || !busy || !flow || flow.snapshots < 10) return;
+    const now = performance.now();
+    if (now - liveStreamAt.current < 1500) return;
+    liveStreamAt.current = now;
+    const c = project.conditions as unknown as Conditions;
+    const valid = Array.from(flow.ux, (u, i) => u !== 0 || flow.uy[i] !== 0);
+    const field = smoothField({ nx: flow.nx, ny: flow.ny, x0: 0, y0: 0, cw: c.length / flow.nx, ch: c.height / flow.ny, ux: Array.from(flow.ux), uy: Array.from(flow.uy), valid }, 2);
+    const poly = place(bodyPolygon(head.geometry), placementFor({ ...c, geometry: head.geometry }));
+    const lines = traceStreamlines(field, { spacing: streamSpacing, testFraction: 0.5, step: 0.4, maxLength: 3 * Math.max(c.length, c.height), minSpeed: 0.06 * c.speed, inside: (x, y) => insidePolygon(poly, x, y), maxLines: 500 });
+    setLiveStreams({ lines, arrowEvery: 8 * (streamSpacing / 2.5) + 6, snapshots: flow.snapshots });
+  }, [showStreams, busy, flow, project.conditions, head, streamSpacing]);
+  const shownStreams = busy && showStreams ? liveStreams : streams;
   const analyses = viewed.run?.analysis ?? null;
   const analysis = analyses?.[side] ?? null;
   const parentAnalysis = overlayParent && parent?.run ? parent.run.analysis[side] : null;
@@ -616,26 +639,31 @@ export function FlowGeometry() {
   // ---- pointer: the rounded plate's construction pointer (geometry/Pointer.ts), by hand, by one measured step, or swept to the anchor
   const shape = head.shape ?? null;
   const cmPerUnit = projectScenario ? projectScenario.lengthCm / head.geometry.chord : 1;
-  const pointerTarget = useMemo((): { ok: true; to: { x: number; y: number }; geometry: SurfaceGeometry } | { ok: false; reason: string } => {
-    if (!shape) return { ok: false, reason: 'the open version was not drawn with the pointer' };
-    const xcm = Number(pTexts.x);
-    const rcm = Number(pTexts.rise);
-    if (pTexts.x.trim() === '' || !Number.isFinite(xcm)) return { ok: false, reason: 'enter how far along the plate the pointer goes [cm]' };
-    if (pTexts.rise.trim() === '' || !Number.isFinite(rcm)) return { ok: false, reason: 'enter how high above the plate the pointer goes [cm]' };
-    const to = { x: xcm / cmPerUnit, y: radiusOf(shape.plate) + rcm / cmPerUnit };
-    const added = addPointerPoint(shape.plate, shape.paths, pSide, to, pStep.limits);
-    if (!added.ok) return { ok: false, reason: added.reason };
-    return { ok: true, to, geometry: plateGeometry(shape.plate, added.paths, shape.spacing) };
-  }, [shape, pTexts, pSide, cmPerUnit, pStep.limits]);
-  // a sensible next position whenever the head or the side changes
+  const pointerTarget = useMemo(() => (shape ? readPointerInput(shape.plate, shape.paths, shape.spacing, pSide, pTexts, cmPerUnit, pStep.limits) : ({ ok: false, reason: 'the open version was not drawn with the pointer' } as const)), [shape, pTexts, pSide, cmPerUnit, pStep.limits]);
+  // the boxes show the current state, with the pointer a step ahead, whenever the head or the side changes
   useEffect(() => {
     if (!shape || sweep.active) return;
-    const at = pointerOf(shape.paths, pSide);
-    const x = Math.min(anchorOf(shape.plate).x, at.x + pStep.step);
-    const h = outwardHeight(shape.plate, pSide === 'upper' ? shape.paths.upper : shape.paths.lower, x) - radiusOf(shape.plate);
-    setPTexts({ x: (x * cmPerUnit).toFixed(2), rise: ((h + 0.5) * cmPerUnit).toFixed(2) });
+    setPTexts(defaultPointerTexts(shape.plate, shape.paths, pSide, cmPerUnit, pStep.step));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [head.id, pSide]);
+  }, [project.id, head.id, pSide]);
+  // the red dot, the pointer and the green dot can be picked up and dragged on the picture: a drag fills in the same boxes
+  const handlePlacement = placementFor({ ...(project.conditions as unknown as Conditions), geometry: head.geometry });
+  const dotHandles = useMemo((): ViewHandle[] => {
+    if (!shape) return [];
+    const sgn = pSide === 'upper' ? 1 : -1;
+    const r0 = radiusOf(shape.plate);
+    const d = dotsFromTexts(shape.plate, shape.paths, pSide, pTexts, cmPerUnit);
+    const toSim = (q: { x: number; y: number }) => {
+      const [x, y] = place([q.x + r0, sgn * q.y], handlePlacement);
+      return { x, y };
+    };
+    return [{ id: 'green', ...toSim(d.green) }, ...(d.pointer ? [{ id: 'pointer', ...toSim(d.pointer) }] : []), { id: 'red', ...toSim(d.red) }];
+  }, [shape, pSide, pTexts, cmPerUnit, handlePlacement]);
+  const onDotDrag = (id: string, sx: number, sy: number) => {
+    if (!shape) return;
+    const [bx, by] = unplace([sx, sy], handlePlacement);
+    setPTexts((t) => dragToTexts(shape.plate, id, bx - radiusOf(shape.plate), (pSide === 'upper' ? 1 : -1) * by, cmPerUnit, t));
+  };
   const afterPointerVersion = (v: { id: string; parent: string | null }, text: string) => {
     setViewId(v.id);
     setCmp([v.parent ?? v.id, v.id]);
@@ -645,9 +673,9 @@ export function FlowGeometry() {
   const placePointer = () => {
     if (!pointerTarget.ok) return setMessage(`Cannot place the pointer: ${pointerTarget.reason}`);
     try {
-      const out = addPointerVersion(project, { side: pSide, to: pointerTarget.to, limits: pStep.limits, decision: { kind: 'hand' } });
+      const out = addPointerVersion(project, { side: pSide, ...(pointerTarget.to ? { to: pointerTarget.to } : {}), ...(pointerTarget.edit ? { edit: pointerTarget.edit } : {}), limits: pStep.limits, decision: { kind: 'hand' } });
       setProject(out.project);
-      afterPointerVersion(out.version, `The pointer moved: ${out.version.id} has the new surface. It has not been simulated: run it to see what the new surface does.`);
+      afterPointerVersion(out.version, `${out.version.label}: ${out.version.id} has the new surface. It has not been simulated: run it to see what the new surface does.`);
     } catch (e) {
       setMessage(`Cannot place the pointer: ${(e as Error).message}`);
     }
@@ -707,7 +735,7 @@ export function FlowGeometry() {
         logSweep(`${head.id} simulated (no comparison with its parent was possible).`, 'warn');
       }
     }
-    if (pointerOf(head.shape.paths, pSide).x >= anchorOf(head.shape.plate).x - 1e-9) return stopSweep('finished', 'the pointer is at the trailing-edge anchor: the curve is complete and its last version has been simulated');
+    if (pointerOf(head.shape.paths, pSide).x >= anchorOf(head.shape.plate, head.shape.paths, pSide).x - 1e-9) return stopSweep('finished', 'the pointer is at the trailing-edge anchor: the curve is complete and its last version has been simulated');
     if (sweep.steps >= 40) return stopSweep('limit', 'forty pointer steps were taken');
     try {
       const out = doMeasuredStep(project, head);
@@ -843,14 +871,15 @@ export function FlowGeometry() {
       showStations,
       alphaDeg: (project.conditions as unknown as Conditions).alphaDeg,
       references: project.references.map((r) => r.geometry),
-      streams,
+      streams: shownStreams,
       pointer:
         head.shape && !liveShape
           ? (() => {
               const r0 = radiusOf(head.shape.plate);
-              const at = pointerOf(head.shape.paths, pSide);
-              const a = anchorOf(head.shape.plate);
-              return { side: pSide, at: { x: at.x + r0, y: at.y }, anchor: { x: a.x + r0, y: a.y }, preview: pointerTarget.ok ? pointerTarget.geometry : null, previewAt: pointerTarget.ok ? { x: pointerTarget.to.x + r0, y: pointerTarget.to.y } : null };
+              const at = pointerTarget.ok ? pointerTarget.redAt : pointerOf(head.shape.paths, pSide);
+              const a = pointerTarget.ok ? pointerTarget.anchorAt : anchorOf(head.shape.plate, head.shape.paths, pSide);
+              const pa = pointerTarget.ok ? pointerTarget.pointerAt : null;
+              return { side: pSide, at: { x: at.x + r0, y: at.y }, anchor: { x: a.x + r0, y: a.y }, preview: pointerTarget.ok ? pointerTarget.geometry : null, previewAt: pa ? { x: pa.x + r0, y: pa.y } : null };
             })()
           : null,
     };
@@ -859,7 +888,7 @@ export function FlowGeometry() {
       draw(g, T);
       drawStream(g, T, frame.domain, (project.conditions as unknown as Conditions).speed, st.alphaDeg);
     };
-  }, [analysis, side, mode, project, head, viewed, proposal, pointIdx, replayFrame, showStations, sim.frame, liveShape, liveFrame, liveSettings.side, pSide, pointerTarget, streams]);
+  }, [analysis, side, mode, project, head, viewed, proposal, pointIdx, replayFrame, showStations, sim.frame, liveShape, liveFrame, liveSettings.side, pSide, pointerTarget, shownStreams]);
 
   const underlay = useMemo(() => {
     if (fieldKind === 'none' || !grid) return undefined;
@@ -1038,6 +1067,7 @@ export function FlowGeometry() {
               texts={pTexts}
               onTexts={setPTexts}
               textError={pointerTarget.ok ? null : pointerTarget.reason}
+              changes={pointerTarget.ok ? pointerTarget.changes : []}
               step={pStep}
               onStep={setPStep}
               sweep={sweep}
@@ -1141,8 +1171,8 @@ export function FlowGeometry() {
               <input type="checkbox" checked={showStations} onChange={(e) => setShowStations(e.target.checked)} />
               stations
             </label>
-            <label className="field-inline" title={`lines everywhere tangent to the seed- and time-averaged velocity of ${viewed.id}: the paths of the mean motion, not of single particles`}>
-              <input type="checkbox" checked={showStreams} disabled={!grid} onChange={(e) => setShowStreams(e.target.checked)} aria-label="show streamlines" />
+            <label className="field-inline" title={grid || busy ? `lines everywhere tangent to the averaged velocity: the paths of the mean motion, not of single particles (while a run is going: the running average since it began; afterwards: the seed- and time-averaged velocity of ${viewed.id})` : 'available while a simulation is running (the running average) and for a version that has been simulated (its measured mean)'}>
+              <input type="checkbox" checked={showStreams} disabled={!grid && !busy} onChange={(e) => setShowStreams(e.target.checked)} aria-label="show streamlines" />
               streamlines
             </label>
             {showStreams && (
@@ -1173,7 +1203,7 @@ export function FlowGeometry() {
             </div>
           )}
           <div className="view-wrap">
-            <ParticleView frame={f} options={options} selected={null} onPick={() => undefined} camera={camera} onCamera={setCamera} canvasRef={canvasRef} overlay={overlay} underlay={underlay} />
+            <ParticleView frame={f} options={options} selected={null} onPick={() => undefined} camera={camera} onCamera={setCamera} canvasRef={canvasRef} overlay={overlay} underlay={underlay} handles={shape && !busy && !sweep.active && !liveActive && !auto.active && viewed.id === head.id && rightTab !== 'compare' ? dotHandles : undefined} onHandleDrag={onDotDrag} />
             {!f && <div className="empty-view">Building the starting state…</div>}
             <div className="legend" style={{ maxWidth: 'min(640px, 80%)' }}>
               <div>
@@ -1184,7 +1214,16 @@ export function FlowGeometry() {
                   <span className="tag measured">MEASURED</span> {FIELD_NOTE[fieldKind].label} [{FIELD_NOTE[fieldKind].units}] — mean of {viewed.run!.seeds.length} seeds over t = {win?.t0} … {win?.t1} τ of {viewed.id}, cell {grid.cell} d
                 </div>
               )}
-              {showStreams && streams && (
+              {!grid && !busy && (
+                <div className="note">Streamlines: switched on while a simulation runs (the running average so far) or for a version that has been simulated (its measured mean). {viewed.id} has not been simulated yet.</div>
+              )}
+              {showStreams && busy && liveStreams && (
+                <div>
+                  <span className="tag derived">DERIVED</span> {liveStreams.lines.length} streamlines of the <b>running average</b> of the velocity since this run began ({liveStreams.snapshots} snapshots, the start-up included): rough at first, it settles as the run goes on, and it is redrawn about every 1.5 s. When the run finishes they are replaced by the measured mean of the measurement window and the seeds.
+                </div>
+              )}
+              {showStreams && busy && !liveStreams && <div className="note">Streamlines: collecting the first snapshots of the running average…</div>}
+              {showStreams && !busy && streams && (
                 <div>
                   <span className="tag derived">DERIVED</span> {streams.lines.length} streamlines of the mean flow of {viewed.id}: integrated through the seed- and time-averaged cell velocities, so they show the path of the <i>mean</i> motion. A single particle does not follow one (it moves thermally and collides); where cells hold few samples a line wanders.
                 </div>
@@ -1300,7 +1339,7 @@ export function FlowGeometry() {
                   const base = `drag ${fmt(f.dragCoeff.mean, 2)} · lift ${fmt(f.liftCoeff.mean, 2)} (coefficients of this simulation)`;
                   if (!sc) return base;
                   const w = wingForces(f, sc, depthCm);
-                  return `${base} → ${fmt(w.drag.mean, 3)} N and ${fmt(w.lift.mean, 3)} N on your ${depthCm} cm wing in your air (scaled estimate, not a prediction)`;
+                  return `${base} → ${newtonsAndKgf(w.drag.mean)} drag and ${newtonsAndKgf(w.lift.mean)} lift on your ${depthCm} cm wing in your air (scaled estimate, not a prediction)`;
                 }}
                 viewId={viewed.id}
                 onView={(id) => {

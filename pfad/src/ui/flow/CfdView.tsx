@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { CFD_FIELD_LABEL, robustRange } from '../../cfd/CfdFields';
 import type { CfdViewKind } from '../../workers/cfdProtocol';
 import { fieldScale } from '../colors';
-import { transformOf, type Camera } from '../ParticleView';
+import { transformOf, type Camera, type ViewHandle } from '../ParticleView';
 
 type T = ReturnType<typeof transformOf>;
 
@@ -18,6 +18,8 @@ export function CfdView({
   onCamera,
   overlay,
   caption,
+  handles,
+  onHandleDrag,
 }: {
   field: { nx: number; ny: number; values: ArrayLike<number> } | null;
   kind: CfdViewKind;
@@ -26,10 +28,23 @@ export function CfdView({
   onCamera: (c: Camera | null) => void;
   overlay: (g: CanvasRenderingContext2D, T: T) => void;
   caption: string;
+  /** points the person can pick up and drag (plate units in the domain); a drag reports where the point was dropped to, and the view does not pan meanwhile */
+  handles?: ViewHandle[];
+  onHandleDrag?: (id: string, x: number, y: number) => void;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const off = useRef<HTMLCanvasElement | null>(null);
   const drag = useRef<{ x: number; y: number; cam: Camera } | null>(null);
+  const handleDrag = useRef<string | null>(null);
+  const at = (e: { clientX: number; clientY: number }) => {
+    const canvas = ref.current;
+    if (!canvas) return null;
+    const rect = canvas.getBoundingClientRect();
+    const T = transformOf({ xmin: 0, xmax: domain.w, ymin: 0, ymax: domain.h } as Parameters<typeof transformOf>[0], canvas.clientWidth, canvas.clientHeight, camera ?? { zoom: 1, cx: domain.w / 2, cy: domain.h / 2 });
+    const px = e.clientX - rect.left;
+    const py = e.clientY - rect.top;
+    return { T, px, py, x: T.invX(px), y: T.invY(py) };
+  };
   const [size, setSize] = useState(0);
   useEffect(() => {
     const c = ref.current;
@@ -109,16 +124,40 @@ export function CfdView({
         }}
         onPointerDown={(e) => {
           (e.target as Element).setPointerCapture?.(e.pointerId);
+          const p = at(e);
+          if (p && handles?.length) {
+            let best: string | null = null;
+            let bestD = 16;
+            for (const h of handles) {
+              const d = Math.hypot(p.T.X(h.x) - p.px, p.T.Y(h.y) - p.py);
+              if (d <= bestD) {
+                bestD = d;
+                best = h.id;
+              }
+            }
+            if (best) {
+              handleDrag.current = best;
+              return;
+            }
+          }
           drag.current = { x: e.clientX, y: e.clientY, cam: camera ?? { zoom: 1, cx: domain.w / 2, cy: domain.h / 2 } };
         }}
         onPointerMove={(e) => {
+          if (handleDrag.current) {
+            const p = at(e);
+            if (p) onHandleDrag?.(handleDrag.current, p.x, p.y);
+            return;
+          }
           const d0 = drag.current;
           const canvas = ref.current;
           if (!d0 || !canvas) return;
           const T = transformOf({ xmin: 0, xmax: domain.w, ymin: 0, ymax: domain.h } as Parameters<typeof transformOf>[0], canvas.clientWidth, canvas.clientHeight, d0.cam);
           onCamera({ ...d0.cam, cx: d0.cam.cx - (e.clientX - d0.x) / T.s, cy: d0.cam.cy + (e.clientY - d0.y) / T.s });
         }}
-        onPointerUp={() => (drag.current = null)}
+        onPointerUp={() => {
+          handleDrag.current = null;
+          drag.current = null;
+        }}
       />
       <div className="legend" style={{ maxWidth: 'min(660px, 82%)' }}>
         <div>{caption}</div>
