@@ -4,18 +4,125 @@ import { cfdActivePath, cfdVersion, type CfdPreset, type CfdProject, type CfdVer
 import type { CfdResult } from '../../cfd/CfdRun';
 import { CFD_PRESETS } from '../../cfd/CfdRun';
 import type { PhysicalInputs } from '../../experiments/FlowGeometryExperiment';
-import { FIELDS, sci, toKgf, TRAILING_FIELD, wingForces } from '../../experiments/PhysicalScenario';
+import { FIELDS, sci, toKgf, TRAILING_FIELD, wingForces, type NumericKey } from '../../experiments/PhysicalScenario';
 import type { CfdSetup } from '../../experiments/CfdScenario';
+import { chooseFluid, fluidInfo, FLUIDS, isaTemperatureC, PRESSURE_MODE_LABEL, pressureModes, type FluidTexts } from '../../experiments/FluidScenario';
 import { fmt } from '../Panels';
+import { PhysicsSheetDetails, ResultPhysicsPanel } from '../physics/PhysicsPanels';
 import { ForcesPanel } from './ForcesPanel';
 import type { ScenarioText } from './ScenarioPanel';
 
 const n = (e: { mean: number; se: number }, d = 3) => `${fmt(e.mean, d)} ± ${fmt(e.se, 1)}`;
 
+/** The fluid, its temperature and its pressure (for air: the height above sea level), with the properties they give. */
+function FluidControls(p: { text: ScenarioText; onText: (key: NumericKey, value: string) => void; fluid: FluidTexts; onFluid: (f: FluidTexts) => void; disabled: boolean; setup: CfdSetup | null }) {
+  const f = p.fluid;
+  const info = fluidInfo(f.id);
+  const modes = pressureModes(f.id);
+  const set = (patch: Partial<FluidTexts>) => p.onFluid({ ...f, ...patch });
+  const st = p.setup?.fluid;
+  return (
+    <div className="fluid-box">
+      <div className="params simple">
+        <label title={info.basis}>
+          fluid
+          <select value={f.id} disabled={p.disabled} aria-label="fluid" onChange={(e) => {
+            const next = chooseFluid(f, e.target.value as FluidTexts['id']);
+            p.onFluid(next);
+            p.onText('tempC', String(fluidInfo(next.id).defaultTempC));
+          }}>
+            {FLUIDS.map((x) => (
+              <option key={x.id} value={x.id}>
+                {x.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label title={`the temperature of the fluid; its property correlations cover ${info.tempRangeC[0]} … ${info.tempRangeC[1]} °C`}>
+          fluid temperature [°C]
+          <input inputMode="decimal" value={p.text.tempC} disabled={p.disabled} onChange={(e) => p.onText('tempC', e.target.value)} aria-label="fluid temperature in °C" />
+          <span className="hint">{info.tempRangeC[0]} … {info.tempRangeC[1]} °C</span>
+        </label>
+        {modes.length > 1 && (
+          <label title="where the ambient pressure comes from">
+            pressure
+            <select value={f.mode} disabled={p.disabled} aria-label="pressure source" onChange={(e) => set({ mode: e.target.value as FluidTexts['mode'] })}>
+              {modes.map((m) => (
+                <option key={m} value={m}>
+                  {PRESSURE_MODE_LABEL[m]}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {f.mode === 'altitude' && (
+          <label title="height above sea level: gives the pressure of the International Standard Atmosphere">
+            height above sea level [m]
+            <input inputMode="decimal" value={p.text.altitudeM} disabled={p.disabled} onChange={(e) => p.onText('altitudeM', e.target.value)} aria-label="height above sea level in m" />
+            <span className="hint">−5000 … 32000 m: sets the air pressure</span>
+          </label>
+        )}
+        {f.mode === 'absolute' && (
+          <label title="absolute (not gauge) pressure of the fluid far from the plate">
+            pressure [kPa]
+            <input inputMode="decimal" value={f.pressureKPa} disabled={p.disabled} onChange={(e) => set({ pressureKPa: e.target.value })} aria-label="pressure in kPa" />
+            <span className="hint">absolute, 101.325 kPa = 1 atm</span>
+          </label>
+        )}
+        {f.mode === 'depth' && (
+          <label title="depth below an open surface: p = p₀ + ρ g d">
+            depth below the surface [m]
+            <input inputMode="decimal" value={f.depthM} disabled={p.disabled} onChange={(e) => set({ depthM: e.target.value })} aria-label="depth in m" />
+            <span className="hint">pressure = 1 atm + ρ g d</span>
+          </label>
+        )}
+        {f.id === 'custom' && (
+          <>
+            <label>
+              density [kg/m³]
+              <input inputMode="decimal" value={f.density} disabled={p.disabled} onChange={(e) => set({ density: e.target.value })} aria-label="custom density in kg/m³" />
+            </label>
+            <label>
+              viscosity [mPa·s]
+              <input inputMode="decimal" value={f.viscosityMPas} disabled={p.disabled} onChange={(e) => set({ viscosityMPas: e.target.value })} aria-label="custom viscosity in mPa·s" />
+              <span className="hint">water 1.0, air 0.018, honey ≈ 10 000</span>
+            </label>
+            <label>
+              speed of sound [m/s]
+              <input inputMode="decimal" placeholder="empty = incompressible" value={f.soundSpeed} disabled={p.disabled} onChange={(e) => set({ soundSpeed: e.target.value })} aria-label="custom speed of sound in m/s" />
+            </label>
+            <label>
+              vapour pressure [kPa]
+              <input inputMode="decimal" placeholder="empty = none" value={f.vaporKPa} disabled={p.disabled} onChange={(e) => set({ vaporKPa: e.target.value })} aria-label="custom vapour pressure in kPa" />
+            </label>
+          </>
+        )}
+      </div>
+      {f.id === 'air' && f.mode === 'altitude' && Number.isFinite(Number(p.text.altitudeM)) && (
+        <button className="ctl" disabled={p.disabled} title="the temperature of the standard atmosphere at this height" onClick={() => p.onText('tempC', String(isaTemperatureC(Number(p.text.altitudeM))))}>
+          USE THE STANDARD-ATMOSPHERE TEMPERATURE AT THIS HEIGHT ({isaTemperatureC(Number(p.text.altitudeM))} °C)
+        </button>
+      )}
+      {st && (
+        <div className="note" data-testid="fluid-properties">
+          <b>{st.label}</b> at {st.tempC} °C, {st.pressureNote}: density <b>{st.density.toFixed(st.density < 10 ? 4 : 2)} kg/m³</b>, dynamic viscosity <b>{sci(st.viscosity)} Pa·s</b>, kinematic viscosity {sci(st.kinematic)} m²/s
+          {Number.isFinite(st.soundSpeed) ? `, speed of sound ${st.soundSpeed.toFixed(st.soundSpeed < 1000 ? 1 : 0)} m/s` : ''}
+          {st.vaporPressure !== null ? `, vapour pressure ${sci(st.vaporPressure)} Pa` : ''}.
+          {st.notes.map((n, i) => (
+            <div key={i} className="note">{n}</div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** The plain inputs, the resolution, and what the CFD run will be (the Reynolds number above all). */
 export function CfdScenarioPanel(p: {
   text: ScenarioText;
-  onText: (key: keyof PhysicalInputs, value: string) => void;
+  onText: (key: NumericKey, value: string) => void;
+  fluid: FluidTexts;
+  onFluid: (f: FluidTexts) => void;
   errors: string[] | null;
   setup: CfdSetup | null;
   disabled: boolean;
@@ -28,8 +135,9 @@ export function CfdScenarioPanel(p: {
   const s = p.setup;
   return (
     <div>
+      <FluidControls text={p.text} onText={p.onText} fluid={p.fluid} onFluid={p.onFluid} disabled={p.disabled} setup={p.setup} />
       <div className="params simple">
-        {FIELDS.flatMap((f) => [
+        {FIELDS.filter((f) => f.key !== 'tempC' && f.key !== 'altitudeM').flatMap((f) => [
           <label key={f.key}>
             {f.label} [{f.unit}]
             <input inputMode="decimal" value={p.text[f.key]} disabled={p.disabled} onChange={(e) => p.onText(f.key, e.target.value)} aria-label={`${f.label} in ${f.unit}`} />
@@ -48,7 +156,7 @@ export function CfdScenarioPanel(p: {
           <input inputMode="decimal" value={p.depthText} onChange={(e) => p.onDepth(e.target.value)} aria-label="wing depth in cm" />
         </label>
       </div>
-      <div className="note">The temperature, height and wind act only through the Reynolds number (and the density when forces are scaled to newtons). The wing depth only scales lift and drag.</div>
+      <div className="note">The fluid, its temperature and pressure, and the wind act only through the Reynolds number (and the density when forces are scaled to newtons). The wing depth only scales lift and drag.</div>
       {p.depthError && <div className="error">{p.depthError}</div>}
       {p.errors && p.errors.map((e, i) => <div key={i} className="error">{e}</div>)}
       <div className="seg" style={{ margin: '6px 0' }}>
@@ -71,6 +179,7 @@ export function CfdScenarioPanel(p: {
           ))}
         </div>
       )}
+      {s && <PhysicsSheetDetails rows={s.physics.rows} />}
     </div>
   );
 }
@@ -108,6 +217,7 @@ export function CfdMeasurements(p: { version: CfdVersion; scenario: PhysicalInpu
       ))}
       <h3 className="h3">Lift and drag of {p.version.id}</h3>
       <ForcesPanel forces={cfdForceMeasure(res)} scenario={p.scenario} depthCm={p.depthCm} cfd={{ run: res.params.reynolds, real: p.realReynolds }} />
+      {p.scenario && <ResultPhysicsPanel scenario={p.scenario} res={res} />}
     </div>
   );
 }

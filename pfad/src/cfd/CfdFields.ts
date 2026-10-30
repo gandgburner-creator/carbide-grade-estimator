@@ -30,6 +30,11 @@ export function fieldFromResult(res: CfdResult, kind: CfdViewKind): { nx: number
         case 'pressure':
           out[n] = (g.rho[n] - res.rhoInf) / 3 / (0.5 * res.rhoInf * U * U);
           break;
+        case 'total': {
+          const s = Math.hypot(g.ux[n], g.uy[n]) / U;
+          out[n] = (g.rho[n] - res.rhoInf) / 3 / (0.5 * res.rhoInf * U * U) + s * s - 1;
+          break;
+        }
         case 'vorticity':
           out[n] = ((at(g.uy, i + 1, j) - at(g.uy, i - 1, j)) - (at(g.ux, i, j + 1) - at(g.ux, i, j - 1))) / (2 * h);
           break;
@@ -65,6 +70,7 @@ export const CFD_FIELD_LABEL: Record<CfdViewKind, { label: string; units: string
   speed: { label: 'speed |u|', units: 'U' },
   vorticity: { label: 'vorticity ∂v/∂x − ∂u/∂y', units: 'U/L' },
   pressure: { label: 'pressure coefficient C_p', units: '½ρU²' },
+  total: { label: 'total pressure C_p + |u|²/U² − 1 (0 where Bernoulli holds)', units: '½ρU²' },
   ux: { label: 'velocity u_x', units: 'U' },
   uy: { label: 'velocity u_y', units: 'U' },
 };

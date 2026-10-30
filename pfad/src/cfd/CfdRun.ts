@@ -339,8 +339,8 @@ export class CfdRun {
     this.blockIdx++;
   }
 
-  /** the instantaneous field for the live view, decimated by `stride` (speed in units of U, vorticity in units of U / L, pressure coefficient) */
-  snapshot(kind: 'speed' | 'vorticity' | 'pressure' | 'ux' | 'uy', stride: number): { nx: number; ny: number; values: Float32Array } {
+  /** the instantaneous field for the live view, decimated by `stride` (speed in units of U, vorticity in units of U / L, pressure coefficient, total pressure coefficient C_p + |u|²/U² − 1) */
+  snapshot(kind: 'speed' | 'vorticity' | 'pressure' | 'total' | 'ux' | 'uy', stride: number): { nx: number; ny: number; values: Float32Array } {
     this.solver.fields(this.rho, this.ux, this.uy);
     const { nx, ny } = this;
     const U = this.p.uLattice;
@@ -362,7 +362,10 @@ export class CfdRun {
         else if (kind === 'ux') v = this.ux[n] / U;
         else if (kind === 'uy') v = this.uy[n] / U;
         else if (kind === 'pressure') v = (this.rho[n] - 1) / 3 / (0.5 * U * U * rhoInf);
-        else {
+        else if (kind === 'total') {
+          const s = Math.hypot(this.ux[n], this.uy[n]) / U;
+          v = (this.rho[n] - 1) / 3 / (0.5 * U * U * rhoInf) + s * s - 1;
+        } else {
           const dvdx = (this.uy[n + 1] - this.uy[n - 1]) / 2;
           const dudy = (this.ux[n + nx] - this.ux[n - nx]) / 2;
           v = ((dvdx - dudy) * this.p.cells) / U;

@@ -1,4 +1,5 @@
 import { airReference, similarityNumbers, type AirState } from '../benchmarks/AirReference';
+import { fluidOfInput, type FluidState } from '../benchmarks/Fluids';
 import type { ForceMeasure } from '../geometry/Forces';
 import type { Est } from '../measurements/SeparationDetector';
 import type { PhysicalInputs } from './FlowGeometryExperiment';
@@ -58,8 +59,11 @@ export const MODEL = {
 
 export const DEFAULT_SCENARIO: PhysicalInputs = { lengthCm: 20, thicknessCm: 2, tempC: 15, altitudeM: 0, speedKmh: 36, alphaDeg: 65 };
 
+/** the plain inputs that are typed as numbers (the fluid is chosen, not typed, and has its own controls) */
+export type NumericKey = Exclude<keyof PhysicalInputs, 'fluid'>;
+
 export interface FieldSpec {
-  key: keyof PhysicalInputs;
+  key: NumericKey;
   label: string;
   unit: string;
   min: number;
@@ -83,15 +87,26 @@ export const TRAILING_FIELD: FieldSpec = { key: 'trailingThicknessCm', label: 't
 
 export type ScenarioCheck = { ok: true; input: PhysicalInputs } | { ok: false; errors: string[] };
 
+/** Different limits and names for the temperature and the height, for a workspace that offers more than air (see FluidScenario.ts). */
+export interface ParseOptions {
+  tempLabel?: string;
+  tempRange?: [number, number];
+  /** the height is not used (a fluid other than air, or a typed pressure): it is read if it is a number and otherwise taken as 0, and not checked here */
+  altitudeUnused?: boolean;
+}
+
 /** Read the six numbers a person typed (as text) and check them. */
-export function parseScenario(text: Record<Exclude<keyof PhysicalInputs, 'trailingThicknessCm'>, string> & { trailingThicknessCm?: string }): ScenarioCheck {
+export function parseScenario(text: Record<Exclude<NumericKey, 'trailingThicknessCm'>, string> & { trailingThicknessCm?: string }, opts: ParseOptions = {}): ScenarioCheck {
   const errors: string[] = [];
   const input = {} as PhysicalInputs;
   for (const f of FIELDS) {
-    const raw = text[f.key as Exclude<keyof PhysicalInputs, 'trailingThicknessCm'>];
+    const raw = text[f.key as Exclude<NumericKey, 'trailingThicknessCm'>];
     const x = Number(raw);
-    if (raw.trim() === '' || !Number.isFinite(x)) errors.push(`${f.label}: please enter a number`);
-    else if (x < f.min || x > f.max) errors.push(`${f.label} must be between ${f.min} and ${f.max} ${f.unit}`);
+    const label = f.key === 'tempC' && opts.tempLabel ? opts.tempLabel : f.label;
+    const [min, max] = f.key === 'tempC' && opts.tempRange ? opts.tempRange : [f.min, f.max];
+    if (f.key === 'altitudeM' && opts.altitudeUnused) input.altitudeM = raw.trim() !== '' && Number.isFinite(x) ? x : 0;
+    else if (raw.trim() === '' || !Number.isFinite(x)) errors.push(`${label}: please enter a number`);
+    else if (x < min || x > max) errors.push(`${label} must be between ${min} and ${max} ${f.unit}`);
     else input[f.key] = x;
   }
   const rawT = (text.trailingThicknessCm ?? '').trim();
@@ -252,6 +267,8 @@ export function parseDepth(text: string): { ok: true; depthCm: number } | { ok: 
 }
 
 export interface WingForces {
+  /** the fluid the forces were scaled to */
+  fluid: FluidState;
   /** the simulation's drag and lift coefficients applied to the wing in the described air [N] */
   drag: Est;
   lift: Est;
@@ -263,7 +280,6 @@ export interface WingForces {
   depthM: number;
   /** N per unit of the simulation's force: multiply a difference of simulated forces by this to scale it too */
   newtonsPerUnit: number;
-  air: AirState;
 }
 
 /**
@@ -292,13 +308,13 @@ export function newtonsAndKgf(newtons: number, digits = 3): string {
 }
 
 export function wingForces(m: ForceMeasure, input: PhysicalInputs, depthCm: number): WingForces {
-  const air = airReference(input.tempC, input.altitudeM);
+  const fluid = fluidOfInput(input);
   const windMs = input.speedKmh / 3.6;
   const chordM = input.lengthCm / 100;
   const depthM = depthCm / 100;
-  const q = 0.5 * air.density * windMs * windMs;
+  const q = 0.5 * fluid.density * windMs * windMs;
   const area = chordM * depthM;
   const k = q * area;
   const sc = (e: Est): Est => ({ mean: e.mean * k, se: Math.abs(k) * e.se, n: e.n });
-  return { drag: sc(m.dragCoeff), lift: sc(m.liftCoeff), dynamicPressure: q, area, aspectRatio: depthM / chordM, chordM, depthM, newtonsPerUnit: k / m.reference, air };
+  return { drag: sc(m.dragCoeff), lift: sc(m.liftCoeff), dynamicPressure: q, area, aspectRatio: depthM / chordM, chordM, depthM, newtonsPerUnit: k / m.reference, fluid };
 }

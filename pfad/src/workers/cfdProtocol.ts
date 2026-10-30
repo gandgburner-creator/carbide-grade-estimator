@@ -4,7 +4,7 @@ import type { PlateSpec, PointerPaths, Pt } from '../geometry/Pointer';
 import type { SurfaceGeometry } from '../geometry/SurfaceGeometry';
 
 /** Messages between the UI thread and the CFD worker. */
-export type CfdViewKind = 'speed' | 'vorticity' | 'pressure' | 'ux' | 'uy';
+export type CfdViewKind = 'speed' | 'vorticity' | 'pressure' | 'total' | 'ux' | 'uy';
 
 export type CfdToWorker =
   | { type: 'start'; epoch: number; params: CfdParams; view: CfdViewKind; vectors?: boolean }

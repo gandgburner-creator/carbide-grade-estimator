@@ -1,7 +1,7 @@
 import type { PhysicalInputs } from '../../experiments/FlowGeometryExperiment';
-import { FIELDS, sci, TRAILING_FIELD, type ScenarioReport } from '../../experiments/PhysicalScenario';
+import { FIELDS, sci, TRAILING_FIELD, type NumericKey, type ScenarioReport } from '../../experiments/PhysicalScenario';
 
-export type ScenarioText = Record<keyof PhysicalInputs, string>;
+export type ScenarioText = Record<NumericKey, string>;
 
 export const scenarioText = (s: PhysicalInputs): ScenarioText => ({
   lengthCm: String(s.lengthCm),
@@ -19,7 +19,7 @@ export const scenarioText = (s: PhysicalInputs): ScenarioText => ({
  */
 export function ScenarioPanel(p: {
   text: ScenarioText;
-  onText: (key: keyof PhysicalInputs, value: string) => void;
+  onText: (key: NumericKey, value: string) => void;
   errors: string[] | null;
   report: ScenarioReport | null;
   disabled: boolean;

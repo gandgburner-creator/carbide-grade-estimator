@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { airReference, similarityNumbers } from '../src/benchmarks/AirReference';
 import { DEFAULT_SCENARIO, describeScenario, FIELDS, MODEL, parseScenario, particleCount, scenarioToModel, sci, simulatedRegime } from '../src/experiments/PhysicalScenario';
 
-const text = (o: Record<string, number>) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, String(v)])) as Record<(typeof FIELDS)[number]['key'], string>;
+const text = (o: object) => Object.fromEntries(Object.entries(o).filter(([k]) => k !== 'fluid').map(([k, v]) => [k, String(v)])) as Record<(typeof FIELDS)[number]['key'], string>;
 const results = (name: string) => JSON.parse(readFileSync(join(__dirname, '..', 'results', name), 'utf8'));
 
 describe('reference air (comparison only)', () => {

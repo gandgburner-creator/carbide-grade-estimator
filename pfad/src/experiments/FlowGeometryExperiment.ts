@@ -1,3 +1,4 @@
+import type { FluidSpec } from './FluidSpec';
 import type { ContactResolution } from '../core/CollisionModel';
 import type { DomainSpec } from '../core/Domain';
 import type { TimestepPolicy } from '../core/Integrator';
@@ -47,10 +48,12 @@ export interface PhysicalInputs {
   thicknessCm: number;
   /** diameter of the trailing round end [cm]; absent: the same as the thickness */
   trailingThicknessCm?: number;
-  /** ambient air temperature [°C] */
+  /** ambient temperature of the fluid [°C] (air unless `fluid` says otherwise) */
   tempC: number;
-  /** height above sea level [m] */
+  /** height above sea level [m]: gives the pressure of air when no other pressure is given (the particle workspace is air only) */
   altitudeM: number;
+  /** the fluid and its pressure, for the CFD workspace; absent: air at `tempC` and `altitudeM` */
+  fluid?: FluidSpec;
   /** wind speed relative to the plate [km/h] */
   speedKmh: number;
   /** angle of attack [°] */

@@ -22,7 +22,7 @@ export function ForcesPanel({ forces, scenario, depthCm, compact = false, cfd = 
             <th />
             <th title="measured momentum-transfer rate on the body, per unit depth, in the simulation's own units">measured</th>
             <th title="divided by ½ρU²c of the simulation (dimensionless, per unit depth)">coefficient</th>
-            {w && <th title="the simulation's coefficient × ½ρU² of your air × (plate length × wing depth)">your wing, your air</th>}
+            {w && <th title="the simulation's coefficient × ½ρU² of your fluid × (plate length × wing depth)">{w.fluid.id === 'air' ? 'your wing, your air' : 'your wing, your fluid'}</th>}
           </tr>
         </thead>
         <tbody>
@@ -74,7 +74,7 @@ export function ForcesPanel({ forces, scenario, depthCm, compact = false, cfd = 
         {w && (
           <>
             {' '}
-            <span className="tag imposed">SCALED ESTIMATE</span> the last column multiplies the coefficients by the dynamic pressure of your air (ρ = {w.air.density.toFixed(3)} kg/m³, wind {(scenario!.speedKmh / 3.6).toFixed(1)} m/s: q = {w.dynamicPressure.toFixed(1)} Pa) and the area of your wing ({(w.chordM * 100).toFixed(0)} × {depthCm} cm = {w.area.toFixed(3)} m², depth : chord = {w.aspectRatio.toFixed(1)}). A kilogram-force (kgf) is the force a 1 kg mass presses with at rest (9.80665 N): the kgf figure is the force expressed as a weight, not a mass of the wing or of the air.
+            <span className="tag imposed">SCALED ESTIMATE</span> the last column multiplies the coefficients by the dynamic pressure of your {w.fluid.id === 'air' ? 'air' : w.fluid.label.toLowerCase()} (ρ = {w.fluid.density.toFixed(w.fluid.density < 10 ? 3 : 1)} kg/m³, wind {(scenario!.speedKmh / 3.6).toFixed(1)} m/s: q = {w.dynamicPressure.toFixed(1)} Pa) and the area of your wing ({(w.chordM * 100).toFixed(0)} × {depthCm} cm = {w.area.toFixed(3)} m², depth : chord = {w.aspectRatio.toFixed(1)}). A kilogram-force (kgf) is the force a 1 kg mass presses with at rest (9.80665 N): the kgf figure is the force expressed as a weight, not a mass of the wing or of the air.
           </>
         )}
       </div>

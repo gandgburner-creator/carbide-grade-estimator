@@ -1308,3 +1308,77 @@ table.results tr.sel td {
 .auto-log li.warn {
   color: var(--inconclusive);
 }
+
+/* fluid controls and the physics sheet of the CFD workspace */
+.params.simple label:has(select) {
+  grid-template-columns: minmax(0, 0.6fr) minmax(0, 1.4fr);
+}
+
+.fluid-box {
+  margin-bottom: 6px;
+}
+
+.fluid-box .note {
+  margin-top: 4px;
+}
+
+details.physics-sheet {
+  margin: 8px 0;
+}
+
+details.physics-sheet > summary {
+  cursor: pointer;
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+
+.physics-list {
+  display: grid;
+  gap: 6px;
+}
+
+.physics-list .prow {
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 10.5px;
+  line-height: 1.35;
+}
+
+.physics-list .prow.lvl-note {
+  border-left-color: var(--accent, #d29922);
+}
+
+.physics-list .prow.lvl-warn {
+  border-left-color: #f85149;
+  background: rgba(248, 81, 73, 0.07);
+}
+
+.physics-list .phead {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.physics-list .pname i {
+  color: var(--muted);
+  font-style: normal;
+  margin-left: 4px;
+}
+
+.physics-list .pvalue {
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.physics-list .pformula {
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9.5px;
+}
+
+.physics-list .pmeaning {
+  margin-top: 2px;
+}

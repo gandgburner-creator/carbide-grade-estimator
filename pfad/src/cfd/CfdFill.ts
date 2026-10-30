@@ -155,7 +155,7 @@ export class CfdFillRun {
   get time(): number {
     return this.base.solver.steps / this.conv;
   }
-  snapshot(kind: 'speed' | 'vorticity' | 'pressure' | 'ux' | 'uy', stride: number) {
+  snapshot(kind: 'speed' | 'vorticity' | 'pressure' | 'total' | 'ux' | 'uy', stride: number) {
     return this.base.snapshot(kind, stride);
   }
   progress(): number {

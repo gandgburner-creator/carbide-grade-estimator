@@ -9,7 +9,8 @@ import { addCfdFillVersion, addCfdPointerMove, attachCfdRun, cfdHead, cfdProject
 import { CFD_BASE, CFD_PRESETS, cfdPlacement, type CfdParams, type CfdResult } from '../cfd/CfdRun';
 import { cfdSetup } from '../experiments/CfdScenario';
 import type { PhysicalInputs } from '../experiments/FlowGeometryExperiment';
-import { DEFAULT_DEPTH_CM, DEFAULT_SCENARIO, newtonsAndKgf, parseDepth, parseScenario, wingForces } from '../experiments/PhysicalScenario';
+import { DEFAULT_DEPTH_CM, DEFAULT_SCENARIO, newtonsAndKgf, parseDepth, wingForces } from '../experiments/PhysicalScenario';
+import { DEFAULT_FLUID_TEXTS, fluidTextsOf, parseCfdInputs, type FluidTexts } from '../experiments/FluidScenario';
 import { anchorOf, camberShift, DEFAULT_POINTER_STEP, initialPaths, pointerOf, radiusOf, type PointerStepConfig } from '../geometry/Pointer';
 import { measuredCfdStep } from '../geometry/PointerMeasure';
 import { bodyPolygon, place, unplace, type Side } from '../geometry/SurfaceGeometry';
@@ -30,7 +31,7 @@ import { useCfd } from './flow/useCfd';
 import type { Camera, ViewHandle } from './ParticleView';
 import { fmt } from './Panels';
 
-const KINDS: CfdViewKind[] = ['speed', 'vorticity', 'pressure', 'ux', 'uy'];
+const KINDS: CfdViewKind[] = ['speed', 'vorticity', 'pressure', 'total', 'ux', 'uy'];
 
 function makeCfdProjectFrom(input: PhysicalInputs, preset: CfdPreset, name: string): CfdProject {
   const setup = cfdSetup(input, preset);
@@ -48,6 +49,7 @@ export function CfdGeometry() {
   const [store, setStore] = useState<{ store: CfdProjectStore; persistent: boolean } | null>(null);
   const [saved, setSaved] = useState<{ id: string; name: string; createdAt: string; versions: number; head: string }[]>([]);
   const [sText, setSText] = useState<ScenarioText>(() => scenarioText(DEFAULT_SCENARIO));
+  const [fTexts, setFTexts] = useState<FluidTexts>(() => ({ ...DEFAULT_FLUID_TEXTS }));
   const [depthText, setDepthText] = useState(String(DEFAULT_DEPTH_CM));
   const [preset, setPreset] = useState<CfdPreset>('quick');
   const [project, setProject] = useState<CfdProject>(() => makeCfdProjectFrom(DEFAULT_SCENARIO, 'quick', ''));
@@ -148,7 +150,7 @@ export function CfdGeometry() {
   const chord = head.geometry.chord;
   const domain = { w: params.widthL * chord, h: params.heightL * chord };
   const cmPerUnit = scenario.lengthCm / chord;
-  const sCheck = parseScenario(sText);
+  const sCheck = parseCfdInputs(sText, fTexts);
   const newSetup = sCheck.ok ? cfdSetup(sCheck.input, preset) : null;
   const depthCm = project.wingDepthCm ?? DEFAULT_DEPTH_CM;
   const depthCheck = parseDepth(depthText);
@@ -182,6 +184,7 @@ export function CfdGeometry() {
     sim.unload();
     setProject(p);
     setSText(scenarioText(p.conditions.scenario));
+    setFTexts(fluidTextsOf(p.conditions.scenario.fluid));
     setPreset(p.conditions.preset);
     setDepthText(String(p.wingDepthCm ?? DEFAULT_DEPTH_CM));
     setViewId(p.head);
@@ -508,6 +511,8 @@ export function CfdGeometry() {
             <CfdScenarioPanel
               text={sText}
               onText={(k, v) => setSText((t) => ({ ...t, [k]: v }))}
+              fluid={fTexts}
+              onFluid={setFTexts}
               errors={sCheck.ok ? null : sCheck.errors}
               setup={newSetup}
               disabled={locked}
