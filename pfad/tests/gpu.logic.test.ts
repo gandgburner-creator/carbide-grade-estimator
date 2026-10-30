@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { CFD_BASE, CFD_PRESETS, CfdRun, GPU_PRESETS, reynoldsCap, type CfdParams } from '../src/cfd/CfdRun';
+import { CFD_BASE, CFD_PRESETS, CfdRun, GPU_PRESETS, presetWork, reynoldsCap, type CfdParams } from '../src/cfd/CfdRun';
 import { LbmSolver, fillInitialPopulations } from '../src/cfd/Lbm';
-import { gpuBytes, WGSL } from '../src/cfd/gpu/LbmGpu';
+import { gpuBytes, isIntegrated, WGSL } from '../src/cfd/gpu/LbmGpu';
 import { flatPlate } from '../src/geometry/SurfaceGeometry';
 import { cfdScale } from '../src/ui/flow/cfdPalette';
 import { Tracers } from '../src/ui/flow/Tracers';
@@ -129,6 +129,22 @@ describe('the pieces a run on the graphics card shares with the CPU', () => {
     expect((36 * nx * ny) / 1048576).toBeLessThan(256);
     expect(reynoldsCap(256)).toBeCloseTo(2048, 6);
     expect(reynoldsCap(24)).toBeCloseTo(192, 6);
+  });
+
+  it('the work of a preset: nodes and steps, for the time estimates', () => {
+    expect(presetWork('fine')).toEqual({ nodes: 864 * 576, steps: 64000 });
+    expect(presetWork('max').nodes).toBe(2304 * 1536);
+    expect(presetWork('max').steps).toBeCloseTo(170667, -1);
+    // quick: 24 000 steps on 124 000 nodes, as measured on the CPU
+    expect(presetWork('quick')).toEqual({ nodes: 432 * 288, steps: 30 * 800 });
+  });
+
+  it('integrated graphics are told from separate cards by what the adapter reports', () => {
+    expect(isIntegrated({ vendor: 'intel', architecture: 'gen-12lp', device: '', description: '' })).toBe(true);
+    expect(isIntegrated({ vendor: 'intel', architecture: 'xe-lpg', description: 'Intel(R) Graphics' })).toBe(true);
+    expect(isIntegrated({ vendor: 'intel', architecture: 'xe-hpg', description: 'Intel(R) Arc(TM) A770' })).toBe(false);
+    expect(isIntegrated({ vendor: 'nvidia', architecture: 'ada-lovelace', description: 'NVIDIA GeForce RTX 4060' })).toBe(false);
+    expect(isIntegrated({ vendor: 'google', architecture: 'swiftshader' })).toBe(false);
   });
 
   it('the shader source has every entry point and binding the host code relies on', () => {

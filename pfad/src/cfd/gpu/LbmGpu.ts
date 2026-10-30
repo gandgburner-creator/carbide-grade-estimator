@@ -331,6 +331,8 @@ export interface GpuInfo {
   maxBufferSize: number;
   /** a software implementation of WebGPU (no graphics card): works, but slowly */
   software: boolean;
+  /** the graphics of the processor (Intel gen / Xe / Iris / UHD) rather than a separate card: a computer that also has a separate card may be giving the browser this one */
+  integrated: boolean;
 }
 
 export interface GpuSummary {
@@ -393,7 +395,16 @@ function describeAdapter(adapter: GPUAdapter): GpuInfo {
     maxStorageBufferBindingSize: adapter.limits.maxStorageBufferBindingSize,
     maxBufferSize: adapter.limits.maxBufferSize,
     software: /swiftshader|llvmpipe|software|basic render/i.test(`${raw.vendor ?? ''} ${raw.architecture ?? ''} ${raw.device ?? ''} ${raw.description ?? ''}`),
+    integrated: isIntegrated(raw),
   };
+}
+
+/** Intel graphics other than the separate Arc cards (architecture xe-hpg), by what the adapter reports. */
+export function isIntegrated(raw: Partial<Pick<GpuInfo, 'vendor' | 'architecture' | 'device' | 'description'>>): boolean {
+  const vendor = String(raw.vendor ?? '');
+  const text = `${raw.architecture ?? ''} ${raw.device ?? ''} ${raw.description ?? ''}`;
+  if (/intel/i.test(vendor) || /intel/i.test(text)) return !/hpg|arc\b/i.test(text);
+  return false;
 }
 
 /** Bytes of device memory a lattice of nx × ny nodes needs. */

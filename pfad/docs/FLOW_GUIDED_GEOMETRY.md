@@ -788,7 +788,10 @@ the card cannot be had a run says so and runs on the CPU.
   a complete run (16 cells, Re = 100, 25°, `scripts/gpu-compare.mjs`) gives a drag coefficient of 0.8557 against 0.8556 on the CPU, a lift
   coefficient of 0.7927 against 0.7927, the same separation point (x = 8.5) and time-mean speed fields that differ by 2 × 10⁻⁵ U at most.
   `tests/gpu.logic.test.ts` checks, without a card, that a run whose blocks are measured elsewhere closes them to the bit as a CPU run does.
-  **Speed was not measured on a real card**: use "TEST THE GPU" on yours.
+  On a real adapter, the integrated Intel gen-12lp graphics of the author's computer, the in-app self-test also passes (channel flow
+  0.35 %, agreeing with the CPU solver) at **70 million node updates per second** on a 576 × 384 lattice (the browser had chosen the integrated
+  graphics rather than the computer's RTX 4060; the panel now says when the adapter is integrated and how to make the browser use the separate
+  card). The speed of a separate card has not been measured here: use "TEST THE GPU" on yours.
 - **Auto fill** still runs on the CPU: it reshapes the body while the flow goes on, which the card path does not do yet. The shape it makes
   can be computed on the card.
 
@@ -813,7 +816,7 @@ the card cannot be had a run says so and runs on the CPU.
    studied.
 
 8. **The CFD on the graphics card** was compared with the CPU solver on a software WebGPU only (channel flow, two cylinder cases, two
-   complete runs); its speed, and the behaviour of a 256-cell lattice on a real card's memory, have not been measured.
+   complete runs) and the channel case on an integrated Intel GPU; the cylinder cases on real hardware, the speed of a separate card, and the behaviour of a 256-cell lattice in a real card's memory have not been measured.
 9. **Reynolds numbers above the resolution's limit** (8 × the number of cells) are not run; a sub-grid model (the solver has a Smagorinsky
    option) has not been validated, and a flat or inclined plate at Re ≈ 10⁵ has a turbulent boundary layer that a two-dimensional lattice does not resolve.
 10. **The physics sheet** states the classical relations of the fluid and wind; whether the incompressible, isothermal, two-dimensional flow computed

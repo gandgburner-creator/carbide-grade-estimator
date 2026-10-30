@@ -54,6 +54,12 @@ export const CFD_PRESETS = {
   max: { cells: 256, warmup: 14, average: 26 },
 } as const;
 
+/** The work of one run of a preset: lattice nodes and time steps (start-up and averaging window), for estimating how long a computer needs. */
+export function presetWork(preset: keyof typeof CFD_PRESETS): { nodes: number; steps: number } {
+  const c = CFD_PRESETS[preset];
+  return { nodes: Math.round(CFD_BASE.widthL * c.cells) * Math.round(CFD_BASE.heightL * c.cells), steps: ((c.warmup + c.average) * c.cells) / CFD_BASE.uLattice };
+}
+
 /** the presets that are only practical on the graphics card */
 export const GPU_PRESETS: readonly (keyof typeof CFD_PRESETS)[] = ['finer', 'ultra', 'max'];
 
