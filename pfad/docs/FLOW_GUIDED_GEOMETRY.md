@@ -758,6 +758,15 @@ vorticity, velocity components and total pressure) with a faint relief shading f
 (the instant of a run in progress, the time mean of a computed version) with fading trails. Both only change how a computed field is drawn;
 they compute nothing and feed nothing back.
 
+**The drawing pad** (`src/ui/flow/DrawingPad.ts`). A slider fades a sheet of **engineering paper** with a **grid in centimetres** between the
+picture of the flow and the construction (the plate, the red dot, the pointer, the green dot, the camber points): at 0 % only the flow, at 100 %
+only the paper, in between both, so the pointers can be read on a quiet background while the separation is still to be seen. The grid is a ruler: its
+origin is the leading tip of the plate and its lines are 1 cm, 5 cm … apart on the real plate (the spacing follows the zoom: 0.1 cm up to 100 cm), with
+the numbers on the two axes through the leading tip; by default it **turns with the plate**, so the heights typed for the pointer and the camber
+points can be read off it, or it can follow the wind. On light paper the construction is drawn in dark ink (the same drawing through an inverting
+filter, cross-faded in as the paper thickens), a **blueprint** (dark blue) paper keeps the pale colours, and the tracers fade as the paper comes in.
+The setting is remembered in the browser. The pad is a picture only: nothing in a run or in the geometry depends on it.
+
 ## Computing on the graphics card (WebGPU)
 
 The CFD can be computed on **this computer's graphics card** instead of the processor (`src/cfd/gpu/`): the same lattice Boltzmann

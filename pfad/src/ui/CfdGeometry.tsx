@@ -28,6 +28,7 @@ import { defaultPointerTexts, dotsFromTexts, dragToTexts, EMPTY_POINTER_TEXTS, r
 import { EMPTY_SWEEP, PointerPanel, type PointerSweep } from './flow/PointerPanel';
 import { scenarioText, type ScenarioText } from './flow/ScenarioPanel';
 import { GpuPanel, type Engine } from './flow/GpuPanel';
+import { PAD_OFF, type PadFrame, type PadSettings, type PadStyle } from './flow/DrawingPad';
 import { probeGpu, type GpuInfo } from '../cfd/gpu/LbmGpu';
 import { StationChart } from './flow/StationChart';
 import { useCfd } from './flow/useCfd';
@@ -61,6 +62,24 @@ export function CfdGeometry() {
   const [kind, setKind] = useState<CfdViewKind>('speed');
   const [showStreams, setShowStreams] = useState(false);
   const [showTracers, setShowTracers] = useState(false);
+  // the drawing pad (paper with a cm grid, faded over the flow): remembered between visits
+  const [pad, setPadState] = useState<PadSettings>(() => {
+    try {
+      const o = JSON.parse(localStorage.getItem('pfad-cfd-pad') ?? 'null') as Partial<PadSettings> | null;
+      if (o && typeof o.opacity === 'number') return { opacity: Math.min(1, Math.max(0, o.opacity)), style: o.style === 'blueprint' ? 'blueprint' : 'pad', frame: o.frame === 'wind' ? 'wind' : 'plate' };
+    } catch {
+      /* no storage */
+    }
+    return PAD_OFF;
+  });
+  const setPad = (p: PadSettings) => {
+    setPadState(p);
+    try {
+      localStorage.setItem('pfad-cfd-pad', JSON.stringify(p));
+    } catch {
+      /* private window: not remembered */
+    }
+  };
   const [streamSpacing, setStreamSpacing] = useState(2.5);
   const [showStations, setShowStations] = useState(false);
   const [showHeight, setShowHeight] = useState(true);
@@ -681,6 +700,23 @@ export function CfdGeometry() {
               <input type="checkbox" checked={showTracers} disabled={!viewed.run && !busy} onChange={(e) => setShowTracers(e.target.checked)} aria-label="show animated tracers" />
               animated tracers
             </label>
+            <label className="field-inline" title="a sheet of engineering paper with a grid in cm (from the leading tip of the plate), laid between the flow and the drawing: fade it in to read the pointer, the dots and the camber points on a quiet background, fade it out to see the flow">
+              drawing pad
+              <input type="range" min={0} max={100} step={1} value={Math.round(pad.opacity * 100)} onChange={(e) => setPad({ ...pad, opacity: Number(e.target.value) / 100 })} aria-label="drawing pad opacity" style={{ width: 110, verticalAlign: 'middle', margin: '0 6px' }} />
+              <span className="muted">{Math.round(pad.opacity * 100)} %</span>
+            </label>
+            {pad.opacity > 0 && (
+              <>
+                <select value={pad.style} onChange={(e) => setPad({ ...pad, style: e.target.value as PadStyle })} aria-label="drawing pad paper">
+                  <option value="pad">engineering pad (light)</option>
+                  <option value="blueprint">blueprint (dark)</option>
+                </select>
+                <select value={pad.frame} onChange={(e) => setPad({ ...pad, frame: e.target.value as PadFrame })} aria-label="drawing pad grid">
+                  <option value="plate">grid turns with the plate</option>
+                  <option value="wind">grid follows the wind</option>
+                </select>
+              </>
+            )}
             {showStreams && (
               <select value={streamSpacing} onChange={(e) => setStreamSpacing(Number(e.target.value))} aria-label="streamline spacing">
                 <option value={4}>sparse</option>
@@ -712,7 +748,7 @@ export function CfdGeometry() {
             </span>
           </div>
           {viewed.id !== head.id && <div className="exp-banner">Viewing the results of {viewed.id}; the open version is {head.id} (head). Select the head in History to return.</div>}
-          <CfdView field={field} kind={kind} domain={domain} camera={camera ?? { zoom: 3.2, cx: params.bodyAtX * domain.w + 0.25 * domain.w * 0.4, cy: domain.h / 2 }} onCamera={setCamera} overlay={overlay} tracers={tracerField} caption={caption} handles={!busy && !sweep.active && viewed.id === head.id && rightTab !== 'compare' ? dotHandles : undefined} onHandleDrag={onDotDrag} />
+          <CfdView field={field} kind={kind} domain={domain} camera={camera ?? { zoom: 3.2, cx: params.bodyAtX * domain.w + 0.25 * domain.w * 0.4, cy: domain.h / 2 }} onCamera={setCamera} overlay={overlay} tracers={tracerField} pad={{ settings: pad, geometry: { origin: cfdPlacement(params, head.geometry), cmPerUnit } }} caption={caption} handles={!busy && !sweep.active && viewed.id === head.id && rightTab !== 'compare' ? dotHandles : undefined} onHandleDrag={onDotDrag} />
           {showStreams && busy && (
             <div className="note">
               <span className="tag derived">DERIVED</span> streamlines of the velocity <b>at this instant</b> of the run in progress ({liveStreams ? `${liveStreams.lines.length} lines, ` : ''}redrawn about every 2 s). Behind a plate the instantaneous flow sheds vortices, so these move; when the run ends they are replaced by the streamlines of the time-mean velocity over the measurement window.

@@ -3,6 +3,7 @@ import { CFD_FIELD_LABEL, robustRange } from '../../cfd/CfdFields';
 import type { CfdViewKind } from '../../workers/cfdProtocol';
 import { cfdScale } from './cfdPalette';
 import type { GridField } from '../../measurements/Streamlines';
+import { drawPad, inkWeight, type PadGeometry, type PadSettings } from './DrawingPad';
 import { FieldGL } from './FieldGL';
 import { Tracers } from './Tracers';
 import { transformOf, type Camera, type ViewHandle } from '../ParticleView';
@@ -24,6 +25,7 @@ export function CfdView({
   handles,
   onHandleDrag,
   tracers,
+  pad,
 }: {
   field: { nx: number; ny: number; values: ArrayLike<number> } | null;
   kind: CfdViewKind;
@@ -37,10 +39,13 @@ export function CfdView({
   onHandleDrag?: (id: string, x: number, y: number) => void;
   /** a velocity field (units of the free-stream speed) to carry animated tracer points, or null for none */
   tracers?: GridField | null;
+  /** the drawing pad: paper with a grid in cm faded over the flow, and where its origin is */
+  pad?: { settings: PadSettings; geometry: PadGeometry } | null;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const off = useRef<HTMLCanvasElement | null>(null);
   const gpuField = useRef<FieldGL | null>(null);
+  const ink = useRef<HTMLCanvasElement | null>(null);
   const drag = useRef<{ x: number; y: number; cam: Camera } | null>(null);
   const handleDrag = useRef<string | null>(null);
   const at = (e: { clientX: number; clientY: number }) => {
@@ -123,7 +128,38 @@ export function CfdView({
     g.strokeStyle = '#2a333d';
     g.lineWidth = 1;
     g.strokeRect(T.X(0), T.Y(domain.h), domain.w * T.s, domain.h * T.s);
-    overlay(g, T);
+    // the drawing pad lies between the flow and the construction; on light paper the construction is drawn in dark ink (the same drawing,
+    // light-for-dark by an inverting filter) and the two are cross-faded as the paper thickens
+    const settings = pad?.settings;
+    const canInk = 'filter' in g;
+    const effective: PadSettings | null = settings && settings.opacity > 0 ? (canInk ? settings : { ...settings, style: 'blueprint' }) : null;
+    if (effective && pad) drawPad(g, T, w, h, effective, pad.geometry);
+    const k = effective ? inkWeight(effective) : 0;
+    if (k < 1) {
+      g.save();
+      g.globalAlpha = 1 - k;
+      overlay(g, T);
+      g.restore();
+    }
+    if (k > 0) {
+      let c = ink.current;
+      if (!c) c = ink.current = document.createElement('canvas');
+      if (c.width !== canvas.width || c.height !== canvas.height) {
+        c.width = canvas.width;
+        c.height = canvas.height;
+      }
+      const og = c.getContext('2d')!;
+      og.setTransform(1, 0, 0, 1, 0, 0);
+      og.clearRect(0, 0, c.width, c.height);
+      og.setTransform(dpr, 0, 0, dpr, 0, 0);
+      overlay(og, T);
+      g.save();
+      g.globalAlpha = k;
+      (g as CanvasRenderingContext2D & { filter: string }).filter = 'invert(1) hue-rotate(180deg)';
+      g.setTransform(1, 0, 0, 1, 0, 0);
+      g.drawImage(c, 0, 0);
+      g.restore();
+    }
   });
   void size;
 
@@ -216,7 +252,7 @@ export function CfdView({
           drag.current = null;
         }}
       />
-      <canvas ref={trRef} aria-hidden="true" style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />
+      <canvas ref={trRef} aria-hidden="true" style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%', pointerEvents: 'none', opacity: 1 - 0.95 * Math.min(1, pad?.settings.opacity ?? 0) }} />
       <div className="legend" style={{ maxWidth: 'min(660px, 82%)' }}>
         <div>{caption}</div>
         <div className="legend-scale" style={{ marginTop: 4 }}>
