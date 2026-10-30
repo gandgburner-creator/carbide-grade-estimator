@@ -441,10 +441,16 @@ a few lattice cells across.
 where the arc ends (and where you put it next), and the **green dot** is the anchor the tether (a rope) is tied to.
 - The **red and the green dot stay on the wall and slide along it**; the pointer is free above it. Drag a dot on the picture (the
   view projects the mouse onto the wall, so the dot follows the edge under your finger) or type where along the plate it is
-  (cm); their heights are not typed, they are the wall's. The boxes, the preview and the checks are the same whichever you use.
+  (cm); their heights are not typed, they are the wall's. **"Along the plate" counts from the leftmost point of the leading edge
+  (0) to the trailing tip (the plate's length)**, so a 20 cm plate runs 0–20 (inside, the geometry code measures from the centre of the
+  leading circle, and converts). The boxes, the preview and the checks are the same whichever you use. Nothing limits a drag except
+  the wall: the dots may go anywhere along it, from the nose to the trailing tip, and a dot dragged into another pushes it along
+  (or pulls it back), so the order red, pointer, green along the plate always holds and a drag is never refused.
 - The **red dot** slides along the wall *as it is now*: the plate, then what has been drawn, then the rope, from the nose of the
-  leading circle to just before the green dot. At the start there is nothing drawn, so the wall is the plate's own and the red
-  dot can be put anywhere on it (a bump can start anywhere). After building it is on the built surface; sliding it back along the
+  leading edge to just before the green dot. At the start there is nothing drawn, so the wall is the plate's own and the red
+  dot can be put anywhere on it, **including the very nose**, and a curve that starts on the plate's own wall **leaves it
+  tangentially** (its default direction there is that of the wall, straight out at the nose; with the dot on the straight edge
+  or at the top of the circle that is the direction of the rope, as before): a bump can start anywhere, with no kink. After building it is on the built surface; sliding it back along the
   drawn curve drops what was drawn beyond it (the version before it stays in the history); sliding it forward along the rope just
   adds a waypoint on the rope (the surface does not change). Dragged past the pointer, it carries the pointer along.
 - The **green dot** slides along the plate's own wall, in front of the red dot and the pointer, to any point up to the trailing
@@ -452,7 +458,7 @@ where the arc ends (and where you put it next), and the **green dot** is the anc
   possible: it is a pin). One button puts it back at the top of the trailing circle. A rope that a straight line would send through
   the plate lies on the wall instead.
 - The **arc** between consecutive points is a cubic whose direction at each end can be set (degrees from the plate axis, positive
-  outward, at most 80° so the surface stays a graph over the plate); empty means along the rope. A point has one direction, shared
+  outward, at most 88° so the surface stays a graph over the plate); empty means along the rope. A point has one direction, shared
   by the arc arriving at it and the arc leaving it, so there is no corner at a placed point.
 Every change is a new version with its own words in the history (undo goes back; nothing is deleted). The anchor and the
 directions are construction choices, not flow laws; nothing about the flow decides them.

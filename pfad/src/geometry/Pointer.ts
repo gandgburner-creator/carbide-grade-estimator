@@ -59,7 +59,7 @@ export interface PointerLimits {
   minTether: number;
 }
 
-export const DEFAULT_POINTER_LIMITS: PointerLimits = { maxRise: 6, maxSlope: 1.2, minTether: 0, maxAngle: (80 * Math.PI) / 180 };
+export const DEFAULT_POINTER_LIMITS: PointerLimits = { maxRise: 6, maxSlope: 1.2, minTether: 0, maxAngle: (88 * Math.PI) / 180 };
 
 /** how long the handles of the joining cubic curves are, as a fraction of the distance between the two points */
 const HANDLE = 0.4;
@@ -174,9 +174,38 @@ function tetherDirection(q: Pt, a: Pt): Pt {
   return L < 1e-12 ? { x: 1, y: 0 } : { x: dx / L, y: dy / L };
 }
 
-/** The direction of the drawn curve at a placed point: the one that was set, or along the tether. */
-export function directionAt(q: Pt, a: Pt): Pt {
-  return q.angle !== undefined ? { x: Math.cos(q.angle), y: Math.sin(q.angle) } : tetherDirection(q, a);
+/**
+ * The direction along the plate's own wall at plate-frame x, going forward (a unit vector): round the leading circle, along the
+ * straight edge, round the trailing circle. At the very nose it points straight out from the plate (up on the upper side).
+ */
+export function wallDirection(s: PlateSpec, x: number): Pt {
+  const r = radiusOf(s);
+  const rt = trailingRadiusOf(s);
+  const a = startOf(s);
+  const b = defaultAnchor(s);
+  if (x <= a.x) {
+    const y = Math.sqrt(Math.max(0, r * r - x * x));
+    const n = Math.hypot(y, x) || 1;
+    return { x: y / n, y: -x / n };
+  }
+  if (x >= b.x) {
+    const dx = x - centreDistance(s);
+    const y = Math.sqrt(Math.max(0, rt * rt - dx * dx));
+    const n = Math.hypot(y, dx) || 1;
+    return { x: y / n, y: -dx / n };
+  }
+  const L = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+  return { x: (b.x - a.x) / L, y: (b.y - a.y) / L };
+}
+
+/**
+ * The direction of the drawn curve at a placed point: the one that was set; else, for a point that lies ON the plate's own wall,
+ * along the wall (so a curve that starts on the wall leaves it tangentially, with no kink); else along the tether.
+ */
+export function directionAt(s: PlateSpec, q: Pt, a: Pt): Pt {
+  if (q.angle !== undefined) return { x: Math.cos(q.angle), y: Math.sin(q.angle) };
+  if (Math.abs(q.y - baseHeight(s, q.x)) < 1e-9) return wallDirection(s, q.x);
+  return tetherDirection(q, a);
 }
 
 export interface CubicSegment {
@@ -188,17 +217,16 @@ export interface CubicSegment {
 
 /** The drawn curve: one cubic between each pair of consecutive pointer positions, with the direction of each point at both its ends. */
 export function drawnSegments(s: PlateSpec, path: Pt[], anchor: Pt = anchorOf(s)): CubicSegment[] {
-  void s;
   const out: CubicSegment[] = [];
   for (let k = 0; k + 1 < path.length; k++) {
     const a = path[k];
     const b = path[k + 1];
-    const ua = directionAt(a, anchor);
-    const ub = directionAt(b, anchor);
+    const ua = directionAt(s, a, anchor);
+    const ub = directionAt(s, b, anchor);
     const dx = b.x - a.x;
     const d = Math.hypot(dx, b.y - a.y);
     // keep x increasing along the curve, so the surface stays a graph over the plate
-    const h = Math.min(HANDLE * d, (0.999 * dx) / (ua.x + ub.x));
+    const h = Math.min(HANDLE * d, (0.999 * dx) / Math.max(1e-6, ua.x + ub.x));
     out.push({ p0: a, c1: { x: a.x + h * ua.x, y: a.y + h * ua.y }, c2: { x: b.x - h * ub.x, y: b.y - h * ub.y }, p3: b });
   }
   return out;
@@ -329,8 +357,10 @@ function checkPoint(s: PlateSpec, to: Pt, last: Pt, anchor: Pt, limits: PointerL
   const base = baseHeight(s, to.x);
   if (to.y < base - 1e-9) return `material is only added: the pointer cannot go below the plate’s own surface (y = ${base.toFixed(2)} d here)`;
   if (to.y > base + limits.maxRise + 1e-9) return `the pointer is more than ${limits.maxRise} d above the plate`;
+  // the step may be as steep as the limit says relative to the plate's own wall there (round the nose the wall itself is nearly vertical)
   const slope = Math.abs(to.y - last.y) / (to.x - last.x);
-  if (slope > limits.maxSlope + 1e-9) return `the step is steeper than ${limits.maxSlope} (rise ${(to.y - last.y).toFixed(2)} over ${(to.x - last.x).toFixed(2)} d)`;
+  const wallSlope = Math.abs(baseHeight(s, to.x) - baseHeight(s, last.x)) / (to.x - last.x);
+  if (slope > limits.maxSlope + wallSlope + 1e-9) return `the step is steeper than ${limits.maxSlope} beyond the wall’s own slope (rise ${(to.y - last.y).toFixed(2)} over ${(to.x - last.x).toFixed(2)} d)`;
   return checkAngle(to.angle, limits);
 }
 
@@ -373,9 +403,11 @@ export function applyPointerEdit(s: PlateSpec, paths: PointerPaths, side: Side, 
     if (!Number.isFinite(r.x)) return { ok: false, reason: 'the red dot position is not a number' };
     const why = checkAngle(r.angle, limits);
     if (why) return { ok: false, reason: why };
-    const xMin = -0.9 * radiusOf(s);
-    if (r.x < xMin - 1e-9) return { ok: false, reason: `the red dot cannot go back past ${(xMin).toFixed(2)} d along the nose of the leading circle` };
-    if (!(r.x < anchor.x - 1e-6)) return { ok: false, reason: `the red dot must lie before the green dot (x < ${anchor.x.toFixed(2)} d)` };
+    const xMin = -radiusOf(s);
+    if (r.x < xMin - 1e-9) return { ok: false, reason: 'the red dot cannot go beyond the leftmost point of the leading edge' };
+    // the green dot as it will be after this change (a red dot may be dragged forward together with the green dot)
+    const anchorAfter = edit.anchor === undefined ? anchor.x : edit.anchor === null ? defaultAnchor(s).x : edit.anchor.x;
+    if (!(r.x < anchorAfter - 1e-6)) return { ok: false, reason: `the red dot must lie before the green dot (x < ${anchorAfter.toFixed(2)} d from the middle of the leading circle)` };
     const y = outwardHeight(s, path, r.x, undefined, anchor);
     // going back along the drawn curve drops what was drawn beyond it (the version before it is kept in the history)
     const kept = path.filter((q) => q.x < r.x - 1e-9);
@@ -411,7 +443,7 @@ export function applyPointerEdit(s: PlateSpec, paths: PointerPaths, side: Side, 
 
 /** What an edit does, in words (for version labels and the log): where each dot went and the directions that were set. */
 export function describePointerEdit(s: PlateSpec, edit: PointerEdit): string {
-  const at = (q: Pt) => `x = ${q.x.toFixed(1)} d, ${(q.y - baseHeight(s, q.x)).toFixed(2)} d above the plate`;
+  const at = (q: Pt) => `x = ${(q.x + radiusOf(s)).toFixed(1)} d from the leading tip, ${(q.y - baseHeight(s, q.x)).toFixed(2)} d above the plate`;
   const parts: string[] = [];
   if (edit.anchor === null) parts.push('green dot (anchor) put back at the trailing circle');
   else if (edit.anchor) parts.push(`green dot (anchor) moved to ${at(edit.anchor)}`);
@@ -476,6 +508,6 @@ export function planPointerStep(s: PlateSpec, paths: PointerPaths, side: Side, g
     gap,
     rise: atAnchor ? 0 : rise,
     atAnchor,
-    note: atAnchor ? 'the pointer reaches the trailing-edge anchor: the drawn curve is complete' : `at x = ${x.toFixed(1)} d the measured gap above the surface is ${gap.toFixed(2)} d, so the pointer rises ${rise.toFixed(2)} d above it`,
+    note: atAnchor ? 'the pointer reaches the trailing-edge anchor: the drawn curve is complete' : `at x = ${(x + radiusOf(s)).toFixed(1)} d from the leading tip the measured gap above the surface is ${gap.toFixed(2)} d, so the pointer rises ${rise.toFixed(2)} d above it`,
   };
 }

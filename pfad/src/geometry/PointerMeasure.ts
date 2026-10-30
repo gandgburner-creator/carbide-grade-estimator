@@ -35,8 +35,7 @@ export function measuredPointerStep(v: GeometryVersion, side: Side, cfg: Pointer
   if (!w) return { ok: false, done: false, reason: `${v.id} has no wake-void measurement: simulate it first` };
   const st = planPointerStep(sh.plate, sh.paths, side, wakeGapAt(w, sh.plate), cfg);
   if (!st) return { ok: false, done: true, reason: 'the pointer is already at the anchor' };
-  const r = radiusOf(sh.plate);
-  const summary = `Wake void of ${v.id} (wake-void/0, experimental): ${w.separation ? `the particles stop touching the ${side} surface from x = ${(w.separation.x - r).toFixed(1)} d on, standing off it by ${w.meanGap.toFixed(1)} d on average over that stretch` : `the particles touch the whole ${side} surface`}.`;
+  const summary = `Wake void of ${v.id} (wake-void/0, experimental): ${w.separation ? `the particles stop touching the ${side} surface from x = ${w.separation.x.toFixed(1)} d on, standing off it by ${w.meanGap.toFixed(1)} d on average over that stretch` : `the particles touch the whole ${side} surface`}.`;
   return { ok: true, st, summary };
 }
 

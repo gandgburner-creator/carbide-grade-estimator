@@ -1,8 +1,10 @@
-import { anchorOf, applyPointerEdit, baseHeight, centreDistance, defaultAnchor, outwardHeight, pathOf, plateGeometry, pointerOf, startOf, trailingRadiusOf, radiusOf, type PlateSpec, type PointerEdit, type PointerLimits, type PointerPaths, type Pt } from './Pointer';
+import { anchorOf, applyPointerEdit, baseHeight, centreDistance, DEFAULT_POINTER_LIMITS, defaultAnchor, outwardHeight, pathOf, plateGeometry, pointerOf, startOf, trailingRadiusOf, radiusOf, type PlateSpec, type PointerEdit, type PointerLimits, type PointerPaths, type Pt } from './Pointer';
 import type { Side, SurfaceGeometry } from './SurfaceGeometry';
 
 /**
- * What a person types about the three points and the two arcs, in centimetres of the plate they described and degrees:
+ * What a person types about the three points and the two arcs, in centimetres of the plate they described and degrees. "Along the
+ * plate" is measured from the LEFTMOST POINT OF THE LEADING EDGE (0) to the trailing tip (the plate's length), not from the centre of the
+ * leading circle that the geometry code uses internally:
  *   red dot   redX, redAngle    where the arc starts, SLIDING ALONG THE WALL (the surface as it is now: the drawn curve, then the
  *                               rope; it starts on the leading circle), and the direction the curve has there
  *   pointer   x, rise, angle    where the arc ends and the rope begins (free above the plate), and the direction the curve arrives with
@@ -29,6 +31,10 @@ const cmStr = (u: number, cmPerUnit: number) => {
   return (Math.abs(v) < 0.005 ? 0 : v).toFixed(2);
 };
 const degStr = (rad: number | undefined) => (rad === undefined ? '' : ((rad / DEG)).toFixed(0));
+/** plate frame (origin at the centre of the leading circle) → the box: cm from the leftmost point of the leading edge */
+const boxX = (plate: PlateSpec, u: number, cmPerUnit: number) => cmStr(u + radiusOf(plate), cmPerUnit);
+/** the box → plate frame */
+const unitX = (plate: PlateSpec, txt: string, cmPerUnit: number) => num(txt) / cmPerUnit - radiusOf(plate);
 
 /** The texts that show the current state: the red dot where it is, the anchor where it is, and the pointer one step ahead of the red dot. */
 export function defaultPointerTexts(plate: PlateSpec, paths: PointerPaths, side: Side, cmPerUnit: number, step: number): PointerTexts {
@@ -41,13 +47,13 @@ export function defaultPointerTexts(plate: PlateSpec, paths: PointerPaths, side:
     return red.y + ((x - red.x) / (anchor.x - red.x)) * (anchor.y - red.y);
   })();
   return {
-    x: cmStr(x, cmPerUnit),
+    x: boxX(plate, x, cmPerUnit),
     rise: cmStr(Math.max(0, surface - baseHeight(plate, x)) + 0.5, cmPerUnit),
     angle: '',
-    redX: cmStr(red.x, cmPerUnit),
+    redX: boxX(plate, red.x, cmPerUnit),
     redRise: cmStr(red.y - baseHeight(plate, red.x), cmPerUnit),
     redAngle: degStr(red.angle),
-    anchorX: cmStr(anchor.x, cmPerUnit),
+    anchorX: boxX(plate, anchor.x, cmPerUnit),
     anchorRise: cmStr(anchor.y - baseHeight(plate, anchor.x), cmPerUnit),
   };
 }
@@ -79,10 +85,10 @@ export function readPointerInput(plate: PlateSpec, paths: PointerPaths, spacing:
   const anchor0 = anchorOf(plate, paths, side);
   // what the boxes show for the current state: a box still showing it means "unchanged" (the typed centimetres are rounded)
   const cur = {
-    redX: cmStr(red0.x, cmPerUnit),
+    redX: boxX(plate, red0.x, cmPerUnit),
     redRise: cmStr(red0.y - baseHeight(plate, red0.x), cmPerUnit),
     redAngle: degStr(red0.angle),
-    anchorX: cmStr(anchor0.x, cmPerUnit),
+    anchorX: boxX(plate, anchor0.x, cmPerUnit),
     anchorRise: cmStr(anchor0.y - baseHeight(plate, anchor0.x), cmPerUnit),
   };
   const changes: string[] = [];
@@ -94,7 +100,7 @@ export function readPointerInput(plate: PlateSpec, paths: PointerPaths, spacing:
   if (t.anchorX.trim() !== '') {
     if (!Number.isFinite(ax)) return { ok: false, reason: 'the green dot: enter where along the plate it is tied [cm]' };
     if (t.anchorX !== cur.anchorX) {
-      const x = ax / cmPerUnit;
+      const x = unitX(plate, t.anchorX, cmPerUnit);
       const d = defaultAnchor(plate);
       edit.anchor = Math.abs(x - d.x) < 1e-6 ? null : { x, y: baseHeight(plate, x) };
       changes.push('the green dot (anchor) slides along the wall');
@@ -110,7 +116,7 @@ export function readPointerInput(plate: PlateSpec, paths: PointerPaths, spacing:
     const moved = t.redX !== cur.redX;
     const turned = t.redAngle.trim() !== cur.redAngle;
     if (moved || turned) {
-      const x = rx / cmPerUnit;
+      const x = unitX(plate, t.redX, cmPerUnit);
       // an unmoved red dot keeps its exact place (the typed centimetres are rounded)
       edit.red = moved ? { x, y: outwardHeight(plate, pathOf(paths, side), x, undefined, anchor0), ...(ang !== undefined ? { angle: ang } : {}) } : { x: red0.x, y: red0.y, ...(ang !== undefined ? { angle: ang } : {}) };
       changes.push(moved ? 'the red dot slides along the wall' : 'the curve leaves the red dot in a new direction');
@@ -126,7 +132,8 @@ export function readPointerInput(plate: PlateSpec, paths: PointerPaths, spacing:
     if (!Number.isFinite(pr)) return { ok: false, reason: 'enter how high above the plate the pointer goes [cm]' };
     const ang = t.angle.trim() === '' ? undefined : num(t.angle) * DEG;
     if (ang !== undefined && !Number.isFinite(ang)) return { ok: false, reason: 'the pointer: the direction of the curve must be a number of degrees (or empty: along the rope)' };
-    to = { x: px / cmPerUnit, y: baseHeight(plate, px / cmPerUnit) + pr / cmPerUnit, ...(ang !== undefined ? { angle: ang } : {}) };
+    const pxu = unitX(plate, t.x, cmPerUnit);
+    to = { x: pxu, y: baseHeight(plate, pxu) + pr / cmPerUnit, ...(ang !== undefined ? { angle: ang } : {}) };
     changes.push('the pointer is placed, with an arc from the red dot to it');
   } else if (!changes.length) return { ok: false, reason: 'enter where the pointer goes, or change the red dot, the green dot or a direction' };
 
@@ -158,47 +165,65 @@ export function readPointerInput(plate: PlateSpec, paths: PointerPaths, spacing:
 export function dotsFromTexts(plate: PlateSpec, paths: PointerPaths, side: Side, t: PointerTexts, cmPerUnit: number): { red: Pt; pointer: Pt | null; green: Pt } {
   const anchor = anchorOf(plate, paths, side);
   const red0 = pointerOf(paths, side);
-  const rx = num(t.redX);
-  const ax = num(t.anchorX);
-  const red = Number.isFinite(rx) ? { x: rx / cmPerUnit, y: outwardHeight(plate, pathOf(paths, side), rx / cmPerUnit, undefined, anchor) } : red0;
-  const green = Number.isFinite(ax) ? { x: ax / cmPerUnit, y: baseHeight(plate, ax / cmPerUnit) } : anchor;
-  const px = num(t.x);
+  const rx = unitX(plate, t.redX, cmPerUnit);
+  const ax = unitX(plate, t.anchorX, cmPerUnit);
+  const red = Number.isFinite(rx) ? { x: rx, y: outwardHeight(plate, pathOf(paths, side), rx, undefined, anchor) } : red0;
+  const green = Number.isFinite(ax) ? { x: ax, y: baseHeight(plate, ax) } : anchor;
+  const px = unitX(plate, t.x, cmPerUnit);
   const pr = num(t.rise);
-  return { red, green, pointer: Number.isFinite(px) && Number.isFinite(pr) ? { x: px / cmPerUnit, y: baseHeight(plate, px / cmPerUnit) + pr / cmPerUnit } : null };
+  return { red, green, pointer: Number.isFinite(px) && Number.isFinite(pr) ? { x: px, y: baseHeight(plate, px) + pr / cmPerUnit } : null };
 }
 
 /**
- * The texts after one of the dots was dragged to plate-frame x (and outward height): the red and the green dot only take the position
- * ALONG the wall (they stay on it, and keep to the stretch they may slide on); the pointer takes both, never below the plate.
+ * The texts after one of the dots was dragged to plate-frame x (and outward height). The red and the green dot only take the position
+ * ALONG the wall (they stay on it, from the leftmost point of the leading edge to the trailing tip: nothing else limits them); the
+ * pointer takes both, never below the plate. The three keep their order along the plate (red, then pointer, then green): a dot dragged
+ * into another pushes it along ahead of it (or pulls it back), so the drag is never refused.
  */
 export function dragToTexts(plate: PlateSpec, paths: PointerPaths, side: Side, id: string, x: number, height: number, cmPerUnit: number, t: PointerTexts): PointerTexts {
   const anchor = anchorOf(plate, paths, side);
   const last = pointerOf(paths, side);
-  const xEnd = centreDistance(plate) + trailingRadiusOf(plate);
-  const unit = (txt: string, fallback: number) => (Number.isFinite(num(txt)) ? num(txt) / cmPerUnit : fallback);
-  // the green dot as it is typed (the pointer must stay before it)
-  const greenX = unit(t.anchorX, anchor.x);
+  const xLo = -radiusOf(plate);
+  const xHi = centreDistance(plate) + trailingRadiusOf(plate) - 0.02;
+  const eps = 0.02;
+  const read = (txt: string, fallback: number | null) => (Number.isFinite(num(txt)) ? unitX(plate, txt, cmPerUnit) : fallback);
+  let r = read(t.redX, last.x) as number;
+  let p = read(t.x, null);
+  let g = read(t.anchorX, anchor.x) as number;
+  const oldGap = p !== null ? Math.max(eps, p - r) : eps;
+  let rise = Number.isFinite(num(t.rise)) ? num(t.rise) : null;
   if (id === 'red') {
-    const xr = Math.min(greenX - 0.04, Math.max(-0.9 * radiusOf(plate), x));
-    // the pointer stays ahead of the red dot: when the red dot is dragged past it, the pointer is carried along at the distance it had
-    const oldRed = unit(t.redX, last.x);
-    const px = num(t.x);
-    let out: PointerTexts = { ...t, redX: cmStr(xr, cmPerUnit) };
-    if (Number.isFinite(px) && px / cmPerUnit <= xr + 0.02) {
-      const gap = Math.max(0.02, px / cmPerUnit - oldRed);
-      out = { ...out, x: cmStr(Math.min(greenX - 0.02, xr + gap), cmPerUnit) };
+    r = Math.min(xHi - 2 * eps, Math.max(xLo, x));
+    if (p !== null && p < r + eps) p = r + oldGap;
+    if (p !== null && g < p + eps) g = p + eps;
+    if (g > xHi) {
+      g = xHi;
+      if (p !== null) p = Math.min(p, g - eps);
+      r = Math.min(r, (p ?? g) - eps);
     }
-    return out;
+  } else if (id === 'green') {
+    g = Math.min(xHi, Math.max(xLo + 2 * eps, x));
+    if (p !== null && p > g - eps) p = g - eps;
+    if (r > (p ?? g) - eps) r = (p ?? g) - eps;
+  } else {
+    p = Math.min(xHi - eps, Math.max(xLo + eps, x));
+    rise = Math.max(0, height - baseHeight(plate, p)) * cmPerUnit;
+    if (r > p - eps) r = p - eps;
+    if (g < p + eps) g = p + eps;
   }
-  if (id === 'green') {
-    // the green dot stays ahead of the red dot and of the pointer as they are now typed (or, with none typed, of the last placed point)
-    const ahead = Math.max(unit(t.redX, last.x), Number.isFinite(num(t.x)) ? num(t.x) / cmPerUnit : -Infinity);
-    const xg = Math.min(xEnd - 0.02, Math.max(ahead + 0.02, x));
-    return { ...t, anchorX: cmStr(xg, cmPerUnit) };
+  const out: PointerTexts = { ...t, redX: boxX(plate, r, cmPerUnit), anchorX: boxX(plate, g, cmPerUnit) };
+  if (p !== null) out.x = boxX(plate, p, cmPerUnit);
+  if (rise !== null && id === 'pointer') out.rise = rise.toFixed(2);
+  // when the dots were pushed close together the pointer's height can make the step too steep: lower it until it is accepted (a drag is never refused)
+  if (p !== null && Number.isFinite(num(out.rise))) {
+    const base = num(out.rise);
+    for (const f of [1, 0.5, 0.25, 0.1, 0]) {
+      const trial = { ...out, rise: (base * f).toFixed(2) };
+      const ok = readPointerInput(plate, paths, 1, side, trial, cmPerUnit, DEFAULT_POINTER_LIMITS);
+      if (ok.ok || !/steeper/.test(ok.reason)) return trial;
+    }
   }
-  const rise = Math.max(0, height - baseHeight(plate, x));
-  const xp = Math.min(greenX - 0.02, x);
-  return { ...t, x: cmStr(xp, cmPerUnit), rise: cmStr(rise, cmPerUnit) };
+  return out;
 }
 
 export { startOf };

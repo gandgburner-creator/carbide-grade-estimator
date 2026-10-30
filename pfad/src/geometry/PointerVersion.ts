@@ -57,7 +57,7 @@ export function addPointerVersion(p: Project, req: PointerMoveRequest, at = now(
   const bodyFrom = toBodyX(shape.plate, from.x);
   const bodyTo = toBodyX(shape.plate, now0.x);
   const where = describePointerEdit(shape.plate, edit);
-  const placed = req.to ? `pointer to x = ${req.to.x.toFixed(1)} d, ${(req.to.y - baseHeight(shape.plate, req.to.x)).toFixed(2)} d above the plate` : where;
+  const placed = req.to ? `pointer to x = ${toBodyX(shape.plate, req.to.x).toFixed(1)} d from the leading tip, ${(req.to.y - baseHeight(shape.plate, req.to.x)).toFixed(2)} d above the plate` : where;
   const moveRecord: PointerMove = {
     side: req.side,
     from,

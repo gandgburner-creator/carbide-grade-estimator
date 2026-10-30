@@ -1,4 +1,4 @@
-import { anchorMoved, anchorOf, baseHeight, defaultAnchor, pointerOf, trailingRadiusOf, type PlateSpec, type PointerPaths, type PointerStepConfig } from '../../geometry/Pointer';
+import { anchorMoved, anchorOf, baseHeight, defaultAnchor, pointerOf, radiusOf, trailingRadiusOf, type PlateSpec, type PointerPaths, type PointerStepConfig } from '../../geometry/Pointer';
 import { dotsFromTexts, type PointerTexts } from '../../geometry/PointerInput';
 import type { Side } from '../../geometry/SurfaceGeometry';
 
@@ -70,7 +70,7 @@ export function PointerPanel(p: {
   const thin = plate.trailingThickness !== undefined && Math.abs(plate.trailingThickness - plate.thickness) > 1e-9;
   const putAnchorBack = () => {
     const d = defaultAnchor(plate);
-    p.onTexts({ ...p.texts, anchorX: cm(d.x), anchorRise: cm(d.y - baseHeight(plate, d.x)) });
+    p.onTexts({ ...p.texts, anchorX: cm(d.x + radiusOf(plate)), anchorRise: cm(d.y - baseHeight(plate, d.x)) });
   };
   // where the two dots are on the wall for the typed positions (they follow the wall: only where along it is typed)
   const dots = dotsFromTexts(plate, paths, p.side, p.texts, p.cmPerUnit);
@@ -95,13 +95,13 @@ export function PointerPanel(p: {
           <tr>
             <td>red dot now</td>
             <td>
-              {cm(at.x)} cm along, {cm(at.y - baseHeight(plate, at.x))} cm above the plate{at.angle !== undefined ? `, curve leaves it at ${((at.angle * 180) / Math.PI).toFixed(0)}°` : ''}
+              {cm(at.x + radiusOf(plate))} cm from the leading tip, {cm(at.y - baseHeight(plate, at.x))} cm above the plate{at.angle !== undefined ? `, curve leaves it at ${((at.angle * 180) / Math.PI).toFixed(0)}°` : ''}
             </td>
           </tr>
           <tr>
             <td>green dot (anchor, tether end)</td>
             <td>
-              {cm(a.x)} cm along, {cm(a.y - baseHeight(plate, a.x))} cm above the plate{moved ? ' (moved)' : ''}
+              {cm(a.x + radiusOf(plate))} cm from the leading tip, {cm(a.y - baseHeight(plate, a.x))} cm above the plate{moved ? ' (moved)' : ''}
             </td>
           </tr>
           <tr>
@@ -122,7 +122,7 @@ export function PointerPanel(p: {
       <div className="note">Pointer: where the arc from the red dot ends and the rope starts.</div>
       <div className="params" style={{ margin: '4px 0' }}>
         <label>
-          along the plate [cm]
+          along the plate [cm] (0 = leading tip)
           <input inputMode="decimal" value={p.texts.x} disabled={p.sweep.active} onChange={(e) => set('x', e.target.value)} aria-label="pointer position along the plate in cm" />
         </label>
         <label>
@@ -137,7 +137,7 @@ export function PointerPanel(p: {
       <details className="effective" open>
         <summary>Red dot, green dot and the arc between them</summary>
         <div className="note">
-          <b>Red dot</b>: where the arc starts. It sits <b>on the wall</b> (the surface as it is now: the plate, the curve you have drawn, then the rope) and slides along it to any point from the nose of the leading circle to just before the green dot; its height is the wall’s. Drag it on the picture or type where along the plate it is. Sliding it back along what you have drawn drops what was drawn beyond it (the version before stays in the history). A direction is in degrees from the plate axis, positive outward; empty means along the rope.
+          <b>Red dot</b>: where the arc starts. It sits <b>on the wall</b> (the surface as it is now: the plate, the curve you have drawn, then the rope) and slides along it to any point from the leftmost point of the leading edge (0) to just before the green dot; its height is the wall’s, and a curve that starts on the plate’s own wall leaves it tangentially. Drag it on the picture or type where along the plate it is (0 at the leftmost point of the leading edge, the plate’s length at the trailing tip). Sliding it back along what you have drawn drops what was drawn beyond it (the version before stays in the history). A direction is in degrees from the plate axis, positive outward; empty means along the rope.
         </div>
         <div className="params" style={{ margin: '4px 0' }}>
           <label>

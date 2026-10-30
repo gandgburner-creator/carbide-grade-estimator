@@ -570,7 +570,7 @@ export function CfdGeometry() {
               active={fillActive}
               status={
                 fillActive && live
-                  ? { phase: live.phase, convective: live.convective, moves: live.blocks, pointerX: live.fill?.pointer.x ?? pointerOf(shape.paths, side).x, lastGap: live.fill?.lastGap ?? null, lastRise: live.fill?.lastRise ?? null }
+                  ? { phase: live.phase, convective: live.convective, moves: live.blocks, pointerX: (live.fill?.pointer.x ?? pointerOf(shape.paths, side).x) + radiusOf(shape.plate), lastGap: live.fill?.lastGap ?? null, lastRise: live.fill?.lastRise ?? null }
                   : null
               }
               onStart={startFill}

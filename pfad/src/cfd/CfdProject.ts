@@ -127,7 +127,7 @@ export function addCfdPointerMove(p: CfdProject, req: { side: Side; to?: Pt; edi
   const step = p.versions.filter((v) => v.origin === 'constructed').length + 1;
   const id = `v${p.versions.length}`;
   const side = req.side;
-  const where = req.to ? `x = ${req.to.x.toFixed(1)} d, ${(req.to.y - baseHeight(sh.plate, req.to.x)).toFixed(2)} d above the plate` : describePointerEdit(sh.plate, edit);
+  const where = req.to ? `x = ${toBodyX(sh.plate, req.to.x).toFixed(1)} d from the leading tip, ${(req.to.y - baseHeight(sh.plate, req.to.x)).toFixed(2)} d above the plate` : describePointerEdit(sh.plate, edit);
   const bodyFrom = toBodyX(sh.plate, from.x);
   const bodyTo = toBodyX(sh.plate, now0.x);
   const summary = req.decision.kind === 'measurement' ? `${req.decision.summary} ${req.decision.step.note}.` : 'Placed by hand (no measurement decided this).';
@@ -148,7 +148,7 @@ export function addCfdPointerMove(p: CfdProject, req: { side: Side; to?: Pt; edi
       limits,
       ...(req.edit && (req.edit.anchor !== undefined || req.edit.red) ? { edit: req.edit } : {}),
       step,
-      reason: `On the ${side} side${req.to ? `, the pointer moved from x = ${from.x.toFixed(1)} d to ${where}` : `: ${where}`}${req.to && describePointerEdit(sh.plate, { ...edit, to: undefined }) ? `; also ${describePointerEdit(sh.plate, { ...edit, to: undefined })}` : ''}. The drawn curve passes through every pointer position so far, with one direction at each, and meets the tether (the straight rope from the pointer to the green dot, the anchor) without a corner. ${summary} The anchor is a construction constraint, not a flow law.`,
+      reason: `On the ${side} side${req.to ? `, the pointer moved from x = ${toBodyX(sh.plate, from.x).toFixed(1)} d to ${where}` : `: ${where}`}${req.to && describePointerEdit(sh.plate, { ...edit, to: undefined }) ? `; also ${describePointerEdit(sh.plate, { ...edit, to: undefined })}` : ''}. The drawn curve passes through every pointer position so far, with one direction at each, and meets the tether (the straight rope from the pointer to the green dot, the anchor) without a corner. ${summary} The anchor is a construction constraint, not a flow law.`,
       hypothesis: `Drawing the surface out to the pointer and closing the rest of the way to the trailing edge with the straight tether should leave a thinner region of reversed flow beside the ${side} surface over x = ${bodyFrom.toFixed(1)}–${bodyTo.toFixed(1)} d. Untested: the next simulation decides, and the flow may simply separate further on.`,
     },
     run: null,
@@ -188,7 +188,7 @@ export function addCfdFillVersion(p: CfdProject, fill: CfdFillResult, at = now()
       convective: fill.convective,
       maxMach: fill.maxMach,
       totalRise: fill.totalRise,
-      reason: `While one CFD run went on, the pointer moved ${fill.moves.length} times along the ${fill.side} side, from x = ${first.from.x.toFixed(1)} d to x = ${hi.toFixed(1)} d. Each move followed the dividing streamline of the reversed flow beside the surface, averaged over ${fill.config.window} convective times (the flow had ${fill.config.settle} convective times to adjust after each move): the pointer rose by ${fill.config.step.relaxation} of the gap above the surface, at most ${fill.config.step.maxRise} d, and passed each station once. In all it rose ${fill.totalRise.toFixed(2)} d (the plate's own surface is ${r.toFixed(2)} d from its middle line); the dividing streamline stood up to ${tallest.toFixed(1)} d above the surface. The anchor is a construction constraint, not a flow law. ${fill.stop.reason}.`,
+      reason: `While one CFD run went on, the pointer moved ${fill.moves.length} times along the ${fill.side} side, from x = ${toBodyX(fill.plate, first.from.x).toFixed(1)} d to x = ${toBodyX(fill.plate, hi).toFixed(1)} d from the leading tip. Each move followed the dividing streamline of the reversed flow beside the surface, averaged over ${fill.config.window} convective times (the flow had ${fill.config.settle} convective times to adjust after each move): the pointer rose by ${fill.config.step.relaxation} of the gap above the surface, at most ${fill.config.step.maxRise} d, and passed each station once. In all it rose ${fill.totalRise.toFixed(2)} d (the plate's own surface is ${r.toFixed(2)} d from its middle line); the dividing streamline stood up to ${tallest.toFixed(1)} d above the surface. The anchor is a construction constraint, not a flow law. ${fill.stop.reason}.`,
       hypothesis: `Drawing the surface out to follow the reversed flow along x = ${lo.toFixed(1)}–${hi.toFixed(1)} d should leave a thinner region of reversed flow beside the ${fill.side} surface. Untested: the flow changed while the pointer moved, so only the next computation of this shape (with its own start-up) can say.`,
     },
     run: null,

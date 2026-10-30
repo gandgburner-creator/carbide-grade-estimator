@@ -87,9 +87,20 @@ async function dots(label, tab, canvasLabel) {
     await page.mouse.up();
   };
 
-  // the red dot starts on the leading circle: it can be pulled along the wall (the box follows; its height is the wall's)
+  // 'along the plate' counts from the leftmost point of the leading edge (0) to the trailing tip (the plate is 20 cm long)
   const redBox = field('red dot position along the plate in cm');
   const redBefore = await redBox.inputValue();
+  const greenStart = Number(await field('green dot position along the plate in cm').inputValue());
+  if (!(Number(redBefore) < 1.6) || !(greenStart > 18.5 && greenStart <= 20)) throw new Error(`${label}: the scale should run 0 to 20 cm from the leading tip (red ${redBefore}, green ${greenStart})`);
+  // it can be put on the very nose and the screen has no complaint
+  await redBox.fill('0');
+  await field('pointer position along the plate in cm').fill('4');
+  await field('pointer height above the plate in cm').fill('1');
+  await page.waitForTimeout(200);
+  if ((await vis.locator('.error').count()) > 0) throw new Error(`${label}: the red dot at the leftmost point of the leading edge was refused: ${await vis.locator('.error').first().innerText()}`);
+  step(`${label}: the scale runs 0 to 20 cm from the leading tip, and the red dot can sit on the very nose`);
+  await redBox.fill(redBefore);
+  // the red dot starts on the leading circle: it can be pulled along the wall (the box follows; its height is the wall's)
   await drag([255, 77, 77], 70, 38, 'red dot');
   const redAfter = await redBox.inputValue();
   if (redBefore === redAfter) throw new Error(`${label}: dragging the red dot did not move it along the wall (${redBefore})`);
@@ -113,8 +124,8 @@ async function dots(label, tab, canvasLabel) {
   await expectText('Applying this:');
   await expectText('red dot slides along the wall');
   if (!(await button('PLACE POINTER').isEnabled())) throw new Error(`${label}: PLACE POINTER should be enabled for these values`);
-  await field('direction of the curve at the pointer in degrees').fill('85');
-  await expectText('80°');
+  await field('direction of the curve at the pointer in degrees').fill('89.5');
+  await expectText('88°');
   if (await button('PLACE POINTER').isEnabled()) throw new Error(`${label}: a direction beyond 80° must be refused`);
   await field('direction of the curve at the pointer in degrees').fill('20');
   await shot(`${label}-3-preview`);

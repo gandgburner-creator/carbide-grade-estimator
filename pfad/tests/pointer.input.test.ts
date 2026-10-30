@@ -11,12 +11,18 @@ import { scenarioText } from '../src/ui/flow/ScenarioPanel';
 const plate: PlateSpec = { length: 30, thickness: 3, trailingThickness: 1.5 };
 const paths = initialPaths(plate);
 const cmPerUnit = 0.5;
+/** a box value (cm from the leading tip) → plate frame */
+const U = (cm: number) => cm / cmPerUnit - plate.thickness / 2;
+/** plate frame → a box value */
+const B = (u: number) => ((u + plate.thickness / 2) * cmPerUnit).toFixed(2);
 const read = (t: Partial<PointerTexts>, p = paths) => readPointerInput(plate, p, 1, 'upper', { ...defaultPointerTexts(plate, p, 'upper', cmPerUnit, 3), ...t }, cmPerUnit, DEFAULT_POINTER_LIMITS);
 
 describe('reading what is typed about the red dot, the pointer and the green dot', () => {
   it('the boxes start out showing the current state, with the pointer a step ahead, and that is a valid placement', () => {
     const t = defaultPointerTexts(plate, paths, 'upper', cmPerUnit, 3);
-    expect(t.redX).toBe((pointerOf(paths, 'upper').x * cmPerUnit).toFixed(2));
+    expect(t.redX).toBe(B(pointerOf(paths, 'upper').x));
+    // the start sits just past the leftmost point of the leading edge: the box counts from that point
+    expect(Number(t.redX)).toBeCloseTo((plate.thickness / 2) * cmPerUnit, 1);
     expect(Number(t.x)).toBeGreaterThan(Number(t.redX));
     const r = read({});
     expect(r.ok).toBe(true);
@@ -24,7 +30,7 @@ describe('reading what is typed about the red dot, the pointer and the green dot
       expect(r.to).toBeDefined();
       expect(r.edit).toBeUndefined();
       expect(r.changes.length).toBe(1);
-      expect(r.pointerAt!.x).toBeCloseTo(Number(t.x) / cmPerUnit, 9);
+      expect(r.pointerAt!.x).toBeCloseTo(U(Number(t.x)), 1);
     }
   });
 
@@ -40,7 +46,7 @@ describe('reading what is typed about the red dot, the pointer and the green dot
     if (!r.ok) return;
     expect(r.edit!.anchor).toBeDefined();
     expect(r.to!.angle).toBeCloseTo((15 * Math.PI) / 180, 12);
-    expect(r.anchorAt.x).toBeCloseTo(12 / cmPerUnit, 9);
+    expect(r.anchorAt.x).toBeCloseTo(U(12), 9);
     expect(r.changes.join(' ')).toMatch(/green dot/);
     expect(r.geometry.stations).toBeGreaterThan(10);
   });
@@ -52,9 +58,9 @@ describe('reading what is typed about the red dot, the pointer and the green dot
     const bad = read({ x: '-1', rise: '0.3' });
     expect(bad.ok).toBe(false);
     if (!bad.ok) expect(bad.reason).toMatch(/forward/);
-    const steep = read({ angle: '89' });
+    const steep = read({ angle: '89.9' });
     expect(steep.ok).toBe(false);
-    if (!steep.ok) expect(steep.reason).toMatch(/80°/);
+    if (!steep.ok) expect(steep.reason).toMatch(/88°/);
     const nan = read({ redAngle: 'x' });
     expect(nan.ok).toBe(false);
   });
@@ -63,9 +69,9 @@ describe('reading what is typed about the red dot, the pointer and the green dot
     const r = read({ redX: '6', redRise: '5', x: '10', rise: '0.4' });
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.edit!.red!.x).toBeCloseTo(6 / cmPerUnit, 12);
+    expect(r.edit!.red!.x).toBeCloseTo(U(6), 12);
     // the typed height is ignored: the dot is on the wall
-    expect(r.redAt.y).toBeCloseTo(baseHeight(plate, 6 / cmPerUnit), 9);
+    expect(r.redAt.y).toBeCloseTo(baseHeight(plate, U(6)), 9);
     expect(r.changes.join(' ')).toMatch(/red dot slides along the wall/);
     const behind = read({ redX: '8', x: '5', rise: '0.4' });
     expect(behind.ok).toBe(false);
@@ -89,29 +95,42 @@ describe('reading what is typed about the red dot, the pointer and the green dot
     const g = read({ anchorX: '12', anchorRise: '7', x: '6', rise: '0.4' });
     expect(g.ok).toBe(true);
     if (g.ok) {
-      expect(g.anchorAt.x).toBeCloseTo(12 / cmPerUnit, 12);
-      expect(g.anchorAt.y).toBeCloseTo(baseHeight(plate, 12 / cmPerUnit), 9);
+      expect(g.anchorAt.x).toBeCloseTo(U(12), 12);
+      expect(g.anchorAt.y).toBeCloseTo(baseHeight(plate, U(12)), 9);
     }
   });
 });
 
-describe('dots that are dragged stay on the wall', () => {
+describe('dots that are dragged stay on the wall, with nothing else in their way', () => {
   const t0 = defaultPointerTexts(plate, paths, 'upper', cmPerUnit, 3);
+  const xEnd = plate.length - plate.thickness / 2;
 
-  it('the red dot and the green dot take only the position along the wall, kept to the stretch they may slide on', () => {
+  it('the red dot and the green dot take only the position along the wall, anywhere from the leading tip to the trailing tip', () => {
     const red = dragToTexts(plate, paths, 'upper', 'red', 10, 99, cmPerUnit, t0);
-    expect(red.redX).toBe((10 * cmPerUnit).toFixed(2));
+    expect(red.redX).toBe(B(10));
     expect(red.redRise).toBe(t0.redRise);
-    expect(Number(dragToTexts(plate, paths, 'upper', 'red', 1000, 0, cmPerUnit, t0).redX)).toBeCloseTo((anchorOf(plate, paths, 'upper').x - 0.04) * cmPerUnit, 1);
-    // dragged past the pointer, the red dot carries the pointer along ahead of it
-    const carried = dragToTexts(plate, paths, 'upper', 'red', 20, 0, cmPerUnit, t0);
-    expect(Number(carried.x)).toBeGreaterThan(Number(carried.redX));
-    expect(Number(dragToTexts(plate, paths, 'upper', 'red', -50, 0, cmPerUnit, t0).redX)).toBeCloseTo(-0.9 * (plate.thickness / 2) * cmPerUnit, 1);
+    // all the way to the leftmost point of the leading edge (0 on the scale), not one unit short of it
+    expect(Number(dragToTexts(plate, paths, 'upper', 'red', -50, 0, cmPerUnit, t0).redX)).toBe(0);
+    expect(Number(dragToTexts(plate, paths, 'upper', 'green', 1e6, 0, cmPerUnit, t0).anchorX)).toBeCloseTo(plate.length * cmPerUnit, 1);
     const green = dragToTexts(plate, paths, 'upper', 'green', 20, 99, cmPerUnit, t0);
-    expect(green.anchorX).toBe((20 * cmPerUnit).toFixed(2));
-    // the green dot cannot be pulled back behind the red dot
-    const behind = dragToTexts(plate, paths, 'upper', 'green', -5, 0, cmPerUnit, { ...t0, redX: (8 * cmPerUnit).toFixed(2) });
-    expect(Number(behind.anchorX)).toBeGreaterThan(8 * cmPerUnit);
+    expect(green.anchorX).toBe(B(20));
+  });
+
+  it('dragging a dot into another pushes it along (or pulls it back) instead of refusing, and the order red < pointer < green holds', () => {
+    const ordered = (t: PointerTexts) => Number(t.redX) < Number(t.x) && Number(t.x) < Number(t.anchorX);
+    expect(ordered(t0)).toBe(true);
+    for (const [id, x] of [['red', 20], ['red', xEnd + 5], ['red', -10], ['green', 0.3], ['green', 5], ['green', 1e6], ['pointer', -10], ['pointer', 1e6], ['pointer', 15]] as const) {
+      const t = dragToTexts(plate, paths, 'upper', id, x, 3, cmPerUnit, t0);
+      expect(ordered(t), `${id} to ${x}: ${t.redX} ${t.x} ${t.anchorX}`).toBe(true);
+      // every typed position is a place on the plate
+      for (const v of [t.redX, t.x, t.anchorX]) {
+        expect(Number(v)).toBeGreaterThanOrEqual(0);
+        expect(Number(v)).toBeLessThanOrEqual(plate.length * cmPerUnit + 1e-9);
+      }
+      // and the result is accepted as a request, so a drag never leaves the screen with an error
+      const r = readPointerInput(plate, paths, 1, 'upper', t, cmPerUnit, DEFAULT_POINTER_LIMITS);
+      expect(r.ok, `${id} to ${x}: ${r.ok ? '' : r.reason}`).toBe(true);
+    }
   });
 
   it('the pointer is free above the wall but never below it', () => {
@@ -122,8 +141,9 @@ describe('dots that are dragged stay on the wall', () => {
 
   it('the dots drawn for the typed texts follow the wall, also while a value is refused', () => {
     const d = dotsFromTexts(plate, paths, 'upper', { ...t0, redX: '5', anchorX: '12', x: '', rise: '' }, cmPerUnit);
-    expect(d.red.y).toBeCloseTo(baseHeight(plate, 5 / cmPerUnit), 9);
-    expect(d.green.y).toBeCloseTo(baseHeight(plate, 12 / cmPerUnit), 9);
+    expect(d.red.y).toBeCloseTo(baseHeight(plate, U(5)), 9);
+    expect(d.green.y).toBeCloseTo(baseHeight(plate, U(12)), 9);
+    expect(d.red.x).toBeCloseTo(U(5), 12);
     expect(d.pointer).toBeNull();
   });
 
@@ -131,10 +151,21 @@ describe('dots that are dragged stay on the wall', () => {
     const built = applyPointerEdit(plate, paths, 'upper', { to: { x: 12, y: baseHeight(plate, 12) + 1.2 } });
     if (!built.ok) throw new Error(built.reason);
     const t = defaultPointerTexts(plate, built.paths, 'upper', cmPerUnit, 3);
-    const d = dotsFromTexts(plate, built.paths, 'upper', { ...t, redX: (11 * cmPerUnit).toFixed(2) }, cmPerUnit);
+    const d = dotsFromTexts(plate, built.paths, 'upper', { ...t, redX: B(11) }, cmPerUnit);
     expect(d.red.y).toBeGreaterThan(baseHeight(plate, 11) + 0.5);
-    expect(d.red.y).toBeCloseTo(outwardHeight(plate, built.paths.upper, 11 / cmPerUnit * cmPerUnit, undefined, anchorOf(plate, built.paths, 'upper')), 1);
+    expect(d.red.y).toBeCloseTo(outwardHeight(plate, built.paths.upper, 11, undefined, anchorOf(plate, built.paths, 'upper')), 1);
     expect(d.green.y).toBeCloseTo(baseHeight(plate, d.green.x), 12);
+  });
+
+  it('a red dot dragged to the nose and the pointer placed makes a curve that leaves the leading edge tangentially', () => {
+    const t = dragToTexts(plate, paths, 'upper', 'red', -plate.thickness / 2 + 0.3, 0, cmPerUnit, t0);
+    const r = readPointerInput(plate, paths, 1, 'upper', t, cmPerUnit, DEFAULT_POINTER_LIMITS);
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.redAt.x).toBeCloseTo(-plate.thickness / 2 + 0.3, 1);
+      expect(r.redAt.y).toBeCloseTo(baseHeight(plate, r.redAt.x), 9);
+      expect(r.geometry.stations).toBeGreaterThan(10);
+    }
   });
 });
 
@@ -153,7 +184,7 @@ describe('versions made with the red dot, the green dot and the arc directions',
     expect(v.move!.edit?.anchor).toBeDefined();
     expect(v.label).toMatch(/pointer on the upper side/);
     expect(cfdHead(out.project).id).toBe(v.id);
-    expect(anchorOf(plate, v.shape.paths, 'upper').x).toBeCloseTo(12 / cmPerUnit, 9);
+    expect(anchorOf(plate, v.shape.paths, 'upper').x).toBeCloseTo(U(12), 9);
     // the parent is untouched
     expect(p0.versions[0].shape.paths.anchor).toBeUndefined();
     expect(v.geometry).toEqual(plateGeometry(plate, v.shape.paths, 1));

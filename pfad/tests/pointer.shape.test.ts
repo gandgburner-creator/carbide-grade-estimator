@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addPointerPoint, anchorMoved, anchorOf, applyPointerEdit, baseHeight, centreDistance, defaultAnchor, drawnSegments, initialPaths, outwardHeight, plateGeometry, pointerOf, radiusOf, startOf, trailingRadiusOf, validatePlate, type PlateSpec } from '../src/geometry/Pointer';
+import { addPointerPoint, anchorMoved, anchorOf, applyPointerEdit, baseHeight, centreDistance, defaultAnchor, drawnSegments, initialPaths, outwardHeight, plateGeometry, pointerOf, radiusOf, startOf, trailingRadiusOf, validatePlate, wallDirection, type PlateSpec } from '../src/geometry/Pointer';
 import { bodyPolygon, stationX, validateGeometry } from '../src/geometry/SurfaceGeometry';
 import { polygonArea } from '../src/walls/SolidBody';
 
@@ -188,7 +188,7 @@ describe('the arc between the red dot and the pointer can be bent', () => {
       expect(stationX(g).every((x, i, xs) => i === 0 || x > xs[i - 1])).toBe(true);
       for (let x = -1.4; x <= 28.4; x += 0.37) expect(outwardHeight(S, p.paths.upper, x)).toBeGreaterThanOrEqual(baseHeight(S, x) - 1e-9);
     }
-    expect(addPointerPoint(S, base.paths, 'upper', { x: 16, y: 2.6, angle: (85 * Math.PI) / 180 }).ok).toBe(false);
+    expect(addPointerPoint(S, base.paths, 'upper', { x: 16, y: 2.6, angle: (89 * Math.PI) / 180 }).ok).toBe(false);
     expect(addPointerPoint(S, base.paths, 'upper', { x: 16, y: 2.6, angle: Number.NaN }).ok).toBe(false);
   });
 });
@@ -201,7 +201,7 @@ describe('the red dot slides along the wall', () => {
   if (!drawn2.ok) throw new Error('setup');
 
   it('at the start it can be put anywhere along the plate’s own wall, and its height is the wall’s there', () => {
-    for (const x of [-1.0, 0, 6, 15, 26]) {
+    for (const x of [-1.5, -1.0, 0, 6, 15, 26]) {
       const r = applyPointerEdit(S, initialPaths(S), 'upper', { red: { x, y: 99 } });
       expect(r.ok).toBe(true);
       if (!r.ok) continue;
@@ -210,7 +210,7 @@ describe('the red dot slides along the wall', () => {
       expect(p.y).toBeCloseTo(baseHeight(S, x), 12);
     }
     // it cannot go round the nose, nor on to or past the green dot
-    expect(applyPointerEdit(S, initialPaths(S), 'upper', { red: { x: -1.45, y: 0 } }).ok).toBe(false);
+    expect(applyPointerEdit(S, initialPaths(S), 'upper', { red: { x: -1.6, y: 0 } }).ok).toBe(false);
     expect(applyPointerEdit(S, initialPaths(S), 'upper', { red: { x: 27, y: 0 } }).ok).toBe(false);
   });
 
@@ -238,6 +238,27 @@ describe('the red dot slides along the wall', () => {
     expect(ahead.ok).toBe(true);
     if (!ahead.ok) return;
     for (const x of [8, 14, 16, 18, 21, 24]) expect(outwardHeight(S, ahead.paths.upper, x)).toBeCloseTo(outwardHeight(S, drawn2.paths.upper, x), 6);
+  });
+
+  it('a curve that starts on the plate’s wall leaves it tangentially, at the nose, on the circle, or on the straight edge', () => {
+    for (const x of [-1.5, -1.2, -0.6, 0, 8]) {
+      const r = applyPointerEdit(S, initialPaths(S), 'upper', { red: { x, y: 0 }, to: { x: 16, y: baseHeight(S, 16) + 1.4 } });
+      expect(r.ok).toBe(true);
+      if (!r.ok) continue;
+      const seg = drawnSegments(S, r.paths.upper)[0];
+      const leave = { x: seg.c1.x - seg.p0.x, y: seg.c1.y - seg.p0.y };
+      const n = Math.hypot(leave.x, leave.y);
+      const w = wallDirection(S, x);
+      expect(leave.x / n).toBeCloseTo(w.x, 9);
+      expect(leave.y / n).toBeCloseTo(w.y, 9);
+      // and it never goes below the wall, and the surface is a graph over the plate
+      for (let q = -1.5; q <= 28.4; q += 0.31) expect(outwardHeight(S, r.paths.upper, q)).toBeGreaterThanOrEqual(baseHeight(S, q) - 1e-9);
+      expect(stationX(plateGeometry(S, r.paths, 1)).every((v, i, xs) => i === 0 || v > xs[i - 1])).toBe(true);
+    }
+    // the wall direction is straight up at the nose and along the edge on the straight stretch
+    expect(wallDirection(S, -1.5).x).toBeCloseTo(0, 12);
+    expect(wallDirection(S, -1.5).y).toBeCloseTo(1, 12);
+    expect(wallDirection(S, 10)).toEqual({ x: 1, y: 0 });
   });
 
   it('the direction of the curve at the red dot can be set where it is', () => {
