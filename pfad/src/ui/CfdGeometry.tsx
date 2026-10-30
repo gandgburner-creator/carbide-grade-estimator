@@ -10,7 +10,7 @@ import { CFD_BASE, CFD_PRESETS, cfdPlacement, type CfdParams, type CfdResult } f
 import { cfdSetup } from '../experiments/CfdScenario';
 import type { PhysicalInputs } from '../experiments/FlowGeometryExperiment';
 import { DEFAULT_DEPTH_CM, DEFAULT_SCENARIO, newtonsAndKgf, parseDepth, parseScenario, wingForces } from '../experiments/PhysicalScenario';
-import { anchorOf, DEFAULT_POINTER_STEP, initialPaths, pointerOf, radiusOf, type PointerStepConfig } from '../geometry/Pointer';
+import { anchorOf, camberShift, DEFAULT_POINTER_STEP, initialPaths, pointerOf, radiusOf, type PointerStepConfig } from '../geometry/Pointer';
 import { measuredCfdStep } from '../geometry/PointerMeasure';
 import { bodyPolygon, place, unplace, type Side } from '../geometry/SurfaceGeometry';
 import { insidePolygon, smoothField, traceStreamlines, type Streamline } from '../measurements/Streamlines';
@@ -20,6 +20,8 @@ import { CfdFillPanel, type CfdFillSettings } from './flow/CfdFillPanel';
 import { CfdView } from './flow/CfdView';
 import { CfdCompare, CfdHistory, CfdMeasurements, CfdScenarioPanel } from './flow/CfdPanels';
 import { makeOverlay } from './flow/overlay';
+import { addCamberPoint, camberControlsOf, camberTextsOf, dragCamberPoint, readCamberInput, type CamberTexts } from '../geometry/CamberInput';
+import { CAMBER_LIMITS } from '../geometry/Camber';
 import { defaultPointerTexts, dotsFromTexts, dragToTexts, EMPTY_POINTER_TEXTS, readPointerInput, type PointerTexts } from '../geometry/PointerInput';
 import { EMPTY_SWEEP, PointerPanel, type PointerSweep } from './flow/PointerPanel';
 import { scenarioText, type ScenarioText } from './flow/ScenarioPanel';
@@ -195,6 +197,23 @@ export function CfdGeometry() {
     setPTexts(defaultPointerTexts(shape.plate, shape.paths, side, cmPerUnit, pStep.step));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project.id, head.id, side]);
+  // the camber spline: control points typed or dragged, a preview, and APPLY makes a new version
+  const [camberTexts, setCamberTexts] = useState<CamberTexts>({ points: [] });
+  useEffect(() => {
+    setCamberTexts(camberTextsOf(shape.plate, cmPerUnit));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project.id, head.id]);
+  const camberInput = useMemo(() => readCamberInput(shape.plate, shape.paths, shape.spacing, camberTexts, cmPerUnit), [shape, camberTexts, cmPerUnit]);
+  const applyCamber = () => {
+    if (!camberInput.ok) return setMessage(`Cannot apply the camber: ${camberInput.reason}`);
+    try {
+      const out = addCfdPointerMove(project, { side, camber: camberInput.camber, limits: pStep.limits, decision: { kind: 'hand' } });
+      setProject(out.project);
+      afterMove(out.version, `${out.version.label}: ${out.version.id} has the new surface. It has not been simulated: run it to compute its flow.`);
+    } catch (e) {
+      setMessage(`Cannot apply the camber: ${(e as Error).message}`);
+    }
+  };
   // the red dot, the pointer and the green dot can be picked up and dragged on the picture: a drag fills in the same boxes
   const dotPlacement = cfdPlacement(params, head.geometry);
   const dotHandles = useMemo((): ViewHandle[] => {
@@ -202,15 +221,21 @@ export function CfdGeometry() {
     const r0 = radiusOf(shape.plate);
     const d = dotsFromTexts(shape.plate, shape.paths, side, pTexts, cmPerUnit);
     const toSim = (q: { x: number; y: number }) => {
-      const [x, y] = place([q.x + r0, sgn * q.y], dotPlacement);
+      const [x, y] = place([q.x + r0, sgn * q.y + camberShift(shape.plate, q.x)], dotPlacement);
       return { x, y };
     };
-    return [{ id: 'green', ...toSim(d.green) }, ...(d.pointer ? [{ id: 'pointer', ...toSim(d.pointer) }] : []), { id: 'red', ...toSim(d.red) }];
+    const cam = camberControlsOf(camberTexts, cmPerUnit).map((q, k) => {
+      const [x, y] = place([q.x, q.y], dotPlacement);
+      return { id: `camber:${k}`, x, y };
+    });
+    return [...cam, { id: 'green', ...toSim(d.green) }, ...(d.pointer ? [{ id: 'pointer', ...toSim(d.pointer) }] : []), { id: 'red', ...toSim(d.red) }];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shape, side, pTexts, cmPerUnit, params, head.geometry]);
+  }, [shape, side, pTexts, camberTexts, cmPerUnit, params, head.geometry]);
   const onDotDrag = (id: string, sx: number, sy: number) => {
     const [bx, by] = unplace([sx, sy], dotPlacement);
-    setPTexts((t) => dragToTexts(shape.plate, shape.paths, side, id, bx - radiusOf(shape.plate), (side === 'upper' ? 1 : -1) * by, cmPerUnit, t));
+    if (id.startsWith('camber:')) return setCamberTexts((t) => dragCamberPoint(shape.plate, t, Number(id.slice(7)), bx, by, cmPerUnit));
+    const xp = bx - radiusOf(shape.plate);
+    setPTexts((t) => dragToTexts(shape.plate, shape.paths, side, id, xp, (side === 'upper' ? 1 : -1) * (by - camberShift(shape.plate, xp)), cmPerUnit, t));
   };
   const afterMove = (v: CfdVersion, text: string) => {
     setViewId(v.id);
@@ -344,9 +369,11 @@ export function CfdGeometry() {
       const showPreview = pointerTarget.ok && !live?.fill;
       const a = live?.fill ? anchorOf(shape.plate, shape.paths, side) : dd.green;
       const pa = showPreview && pointerTarget.ok ? pointerTarget.pointerAt : null;
-      return { side, at: { x: at.x + r0, y: at.y }, anchor: { x: a.x + r0, y: a.y }, preview: showPreview && pointerTarget.ok ? pointerTarget.geometry : null, previewAt: pa ? { x: pa.x + r0, y: pa.y } : null };
+      const sg = side === 'upper' ? 1 : -1;
+      const body = (q: { x: number; y: number }) => ({ x: q.x + r0, y: sg * q.y + camberShift(shape.plate, q.x) });
+      return { side, at: body(at), anchor: body(a), preview: showPreview && pointerTarget.ok ? pointerTarget.geometry : null, previewAt: pa ? body(pa) : null };
     })();
-    const st = { placement: pl, geometry: live?.fill?.geometry ?? head.geometry, previous: null, proposal: null, pointIdx: -1, region: null, dividing: null, replay: null, viewed: null, showStations, alphaDeg: params.alphaDeg, references: [], streams: shownStreams, pointer };
+    const st = { placement: pl, geometry: live?.fill?.geometry ?? head.geometry, previous: null, proposal: null, pointIdx: -1, region: null, dividing: null, replay: null, viewed: null, showStations, alphaDeg: params.alphaDeg, references: [], streams: shownStreams, pointer, camber: camberInput.ok ? { controls: camberInput.controls, line: camberInput.line, preview: camberInput.unchanged ? null : camberInput.geometry } : null };
     const draw = makeOverlay(st);
     return (g: CanvasRenderingContext2D, T: Parameters<typeof draw>[1]) => {
       // the body: drawn solid over the field
@@ -404,7 +431,7 @@ export function CfdGeometry() {
       }
       draw(g, T);
     };
-  }, [params, head, viewed, shape, side, pointerTarget, showStations, shownStreams, showHeight, live, domain.w, domain.h, chord]);
+  }, [params, head, viewed, shape, side, pointerTarget, camberInput, pTexts, showStations, shownStreams, showHeight, live, domain.w, domain.h, chord]);
 
   // ---- charts
   const stationsOf = (v: CfdVersion | null) => (v?.run ? v.run.result.stations[side] : null);
@@ -550,6 +577,7 @@ export function CfdGeometry() {
               onTexts={setPTexts}
               textError={pointerTarget.ok ? null : pointerTarget.reason}
               changes={pointerTarget.ok ? pointerTarget.changes : []}
+              camber={{ texts: camberTexts, onTexts: setCamberTexts, error: !camberInput.ok ? camberInput.reason : null, changed: camberInput.ok && !camberInput.unchanged, onAdd: () => setCamberTexts((t) => addCamberPoint(shape.plate, t, cmPerUnit)), onApply: applyCamber, maxPoints: CAMBER_LIMITS.maxPoints }}
               step={pStep}
               onStep={setPStep}
               sweep={sweep}

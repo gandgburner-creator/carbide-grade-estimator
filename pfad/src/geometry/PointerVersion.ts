@@ -1,6 +1,7 @@
+import { describeCamber, withCamber, type CamberSpec } from './Camber';
 import type { ConstructionBasis, ConstructionConfig, PathPoint } from './Construction';
 import { headVersion, type GeometryVersion, type PlateShape, type PointerMove, type Project } from './History';
-import { applyPointerEdit, baseHeight, DEFAULT_POINTER_LIMITS, DEFAULT_POINTER_STEP, describePointerEdit, fromBodyX, pointerOf, plateGeometry, toBodyX, type PointerEdit, type PointerLimits, type PointerStep, type Pt } from './Pointer';
+import { applyPointerEdit, baseHeight, validatePlate, DEFAULT_POINTER_LIMITS, DEFAULT_POINTER_STEP, describePointerEdit, fromBodyX, pointerOf, plateGeometry, toBodyX, type PointerEdit, type PointerLimits, type PointerStep, type Pt } from './Pointer';
 import { DEFAULT_LIMITS, sideY, stationX, type Side } from './SurfaceGeometry';
 
 const now = () => new Date().toISOString();
@@ -16,6 +17,8 @@ export interface PointerMoveRequest {
   to?: Pt;
   /** the green dot (anchor) moved or put back (null), and the red dot (the last placed point) re-placed or given a direction */
   edit?: { anchor?: Pt | null; red?: Pt };
+  /** the camber of the plate set (null: made straight again); the heights drawn with the pointer stay heights above the wall, which the camber carries along */
+  camber?: CamberSpec | null;
   limits?: PointerLimits;
   decision: PointerDecision;
 }
@@ -37,11 +40,18 @@ export function addPointerVersion(p: Project, req: PointerMoveRequest, at = now(
   const limits = req.limits ?? DEFAULT_POINTER_LIMITS;
   const from = pointerOf(shape.paths, req.side);
   const edit: PointerEdit = { ...(req.edit ?? {}), ...(req.to ? { to: req.to } : {}) };
-  if (!edit.to && edit.anchor === undefined && !edit.red) throw new Error('nothing to change: place the pointer, or move the red or the green dot, or set a direction');
-  const added = applyPointerEdit(shape.plate, shape.paths, req.side, edit, limits);
+  const camberChange = req.camber !== undefined;
+  if (!edit.to && edit.anchor === undefined && !edit.red && !camberChange) throw new Error('nothing to change: place the pointer, or move the red or the green dot, set a direction, or change the camber');
+  const plate = camberChange ? withCamber(shape.plate, req.camber) : shape.plate;
+  if (camberChange) {
+    const bad = validatePlate(plate);
+    if (bad) throw new Error(bad);
+  }
+  const added = applyPointerEdit(plate, shape.paths, req.side, edit, limits);
   if (!added.ok) throw new Error(added.reason);
   const now0 = pointerOf(added.paths, req.side);
-  const geometry = plateGeometry(shape.plate, added.paths, shape.spacing);
+  const geometry = plateGeometry(plate, added.paths, shape.spacing);
+  const camberText = camberChange ? describeCamber(req.camber, plate.length) : '';
   const y0 = sideY(parent.geometry, req.side);
   const y1 = sideY(geometry, req.side);
   const xs = stationX(geometry);
@@ -56,8 +66,8 @@ export function addPointerVersion(p: Project, req: PointerMoveRequest, at = now(
   const id = `v${p.versions.length}`;
   const bodyFrom = toBodyX(shape.plate, from.x);
   const bodyTo = toBodyX(shape.plate, now0.x);
-  const where = describePointerEdit(shape.plate, edit);
-  const placed = req.to ? `pointer to x = ${toBodyX(shape.plate, req.to.x).toFixed(1)} d from the leading tip, ${(req.to.y - baseHeight(shape.plate, req.to.x)).toFixed(2)} d above the plate` : where;
+  const where = [describePointerEdit(plate, edit), camberText].filter(Boolean).join('; ');
+  const placed = req.to ? `pointer to x = ${toBodyX(plate, req.to.x).toFixed(1)} d from the leading tip, ${(req.to.y - baseHeight(plate, req.to.x)).toFixed(2)} d above the plate${camberText ? `; ${camberText}` : ''}` : where;
   const moveRecord: PointerMove = {
     side: req.side,
     from,
@@ -67,7 +77,7 @@ export function addPointerVersion(p: Project, req: PointerMoveRequest, at = now(
       ? { measured: { surface: req.decision.step.surface, gap: req.decision.step.gap, rise: req.decision.step.rise, note: req.decision.step.note, recordId: req.decision.recordId, versionId: req.decision.versionId, seeds: req.decision.seeds } }
       : {}),
     limits,
-    ...(req.edit && (req.edit.anchor !== undefined || req.edit.red) ? { edit: req.edit } : {}),
+    ...((req.edit && (req.edit.anchor !== undefined || req.edit.red)) || camberChange ? { edit: { ...(req.edit ?? {}), ...(camberChange ? { camber: req.camber } : {}) } } : {}),
   };
   const summary =
     req.decision.kind === 'measurement'
@@ -93,7 +103,7 @@ export function addPointerVersion(p: Project, req: PointerMoveRequest, at = now(
     label: `step ${step}: ${side} side: ${req.to ? placed : where}`,
     createdAt: at,
     geometry,
-    shape: { plate: shape.plate, paths: added.paths, spacing: shape.spacing },
+    shape: { plate, paths: added.paths, spacing: shape.spacing },
     construction: {
       step,
       proposalId: `${parent.id}-pointer`,

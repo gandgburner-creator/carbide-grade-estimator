@@ -1,5 +1,6 @@
 import type { PlateShape, PointerMove } from '../geometry/History';
-import { applyPointerEdit, baseHeight, describePointerEdit, fromBodyX, pointerOf, plateGeometry, toBodyX, type PointerEdit, type PointerLimits, type PointerStep, type Pt, DEFAULT_POINTER_LIMITS } from '../geometry/Pointer';
+import { describeCamber, withCamber, type CamberSpec } from '../geometry/Camber';
+import { applyPointerEdit, baseHeight, validatePlate, describePointerEdit, fromBodyX, pointerOf, plateGeometry, toBodyX, type PointerEdit, type PointerLimits, type PointerStep, type Pt, DEFAULT_POINTER_LIMITS } from '../geometry/Pointer';
 import type { Side, SurfaceGeometry } from '../geometry/SurfaceGeometry';
 import type { PhysicalInputs } from '../experiments/FlowGeometryExperiment';
 import type { CfdFillConfig, CfdFillMove, CfdFillResult, CfdFillStop } from './CfdFill';
@@ -113,21 +114,28 @@ export function cfdActivePath(p: CfdProject): CfdVersion[] {
 export type CfdDecision = { kind: 'hand' } | { kind: 'measurement'; step: PointerStep; versionId: string; summary: string };
 
 /** Move the pointer of the head version: a new version, with no run yet. Throws with the reason if the move is not allowed. */
-export function addCfdPointerMove(p: CfdProject, req: { side: Side; to?: Pt; edit?: { anchor?: Pt | null; red?: Pt }; limits?: PointerLimits; decision: CfdDecision }, at = now()): { project: CfdProject; version: CfdVersion } {
+export function addCfdPointerMove(p: CfdProject, req: { side: Side; to?: Pt; edit?: { anchor?: Pt | null; red?: Pt }; camber?: CamberSpec | null; limits?: PointerLimits; decision: CfdDecision }, at = now()): { project: CfdProject; version: CfdVersion } {
   const parent = cfdHead(p);
   const limits = req.limits ?? DEFAULT_POINTER_LIMITS;
   const sh = parent.shape;
   const from = pointerOf(sh.paths, req.side);
   const edit: PointerEdit = { ...(req.edit ?? {}), ...(req.to ? { to: req.to } : {}) };
-  if (!edit.to && edit.anchor === undefined && !edit.red) throw new Error('nothing to change: place the pointer, or move the red or the green dot, or set a direction');
-  const added = applyPointerEdit(sh.plate, sh.paths, req.side, edit, limits);
+  const camberChange = req.camber !== undefined;
+  if (!edit.to && edit.anchor === undefined && !edit.red && !camberChange) throw new Error('nothing to change: place the pointer, or move the red or the green dot, set a direction, or change the camber');
+  const plate = camberChange ? withCamber(sh.plate, req.camber) : sh.plate;
+  if (camberChange) {
+    const bad = validatePlate(plate);
+    if (bad) throw new Error(bad);
+  }
+  const added = applyPointerEdit(plate, sh.paths, req.side, edit, limits);
   if (!added.ok) throw new Error(added.reason);
   const now0 = pointerOf(added.paths, req.side);
-  const geometry = plateGeometry(sh.plate, added.paths, sh.spacing);
+  const geometry = plateGeometry(plate, added.paths, sh.spacing);
+  const camberText = camberChange ? describeCamber(req.camber, plate.length) : '';
   const step = p.versions.filter((v) => v.origin === 'constructed').length + 1;
   const id = `v${p.versions.length}`;
   const side = req.side;
-  const where = req.to ? `x = ${toBodyX(sh.plate, req.to.x).toFixed(1)} d from the leading tip, ${(req.to.y - baseHeight(sh.plate, req.to.x)).toFixed(2)} d above the plate` : describePointerEdit(sh.plate, edit);
+  const where = (req.to ? `x = ${toBodyX(plate, req.to.x).toFixed(1)} d from the leading tip, ${(req.to.y - baseHeight(plate, req.to.x)).toFixed(2)} d above the plate` : describePointerEdit(plate, edit)) + (camberText ? `${req.to || describePointerEdit(plate, edit) ? '; ' : ''}${camberText}` : '');
   const bodyFrom = toBodyX(sh.plate, from.x);
   const bodyTo = toBodyX(sh.plate, now0.x);
   const summary = req.decision.kind === 'measurement' ? `${req.decision.summary} ${req.decision.step.note}.` : 'Placed by hand (no measurement decided this).';
@@ -138,7 +146,7 @@ export function addCfdPointerMove(p: CfdProject, req: { side: Side; to?: Pt; edi
     label: `step ${step}: ${req.to ? `pointer on the ${side} side to ${where}` : `${side} side: ${where}`}`,
     createdAt: at,
     geometry,
-    shape: { plate: sh.plate, paths: added.paths, spacing: sh.spacing },
+    shape: { plate, paths: added.paths, spacing: sh.spacing },
     move: {
       side,
       from,
@@ -146,7 +154,7 @@ export function addCfdPointerMove(p: CfdProject, req: { side: Side; to?: Pt; edi
       decided: req.decision.kind,
       ...(req.decision.kind === 'measurement' ? { measured: { surface: req.decision.step.surface, gap: req.decision.step.gap, rise: req.decision.step.rise, note: req.decision.step.note, recordId: null, versionId: req.decision.versionId, seeds: [] } } : {}),
       limits,
-      ...(req.edit && (req.edit.anchor !== undefined || req.edit.red) ? { edit: req.edit } : {}),
+      ...((req.edit && (req.edit.anchor !== undefined || req.edit.red)) || camberChange ? { edit: { ...(req.edit ?? {}), ...(camberChange ? { camber: req.camber } : {}) } } : {}),
       step,
       reason: `On the ${side} side${req.to ? `, the pointer moved from x = ${toBodyX(sh.plate, from.x).toFixed(1)} d to ${where}` : `: ${where}`}${req.to && describePointerEdit(sh.plate, { ...edit, to: undefined }) ? `; also ${describePointerEdit(sh.plate, { ...edit, to: undefined })}` : ''}. The drawn curve passes through every pointer position so far, with one direction at each, and meets the tether (the straight rope from the pointer to the green dot, the anchor) without a corner. ${summary} The anchor is a construction constraint, not a flow law.`,
       hypothesis: `Drawing the surface out to the pointer and closing the rest of the way to the trailing edge with the straight tether should leave a thinner region of reversed flow beside the ${side} surface over x = ${bodyFrom.toFixed(1)}–${bodyTo.toFixed(1)} d. Untested: the next simulation decides, and the flow may simply separate further on.`,

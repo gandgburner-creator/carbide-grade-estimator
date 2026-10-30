@@ -37,7 +37,7 @@ import {
   type Project,
 } from '../geometry/History';
 import { runSummaryFromRecord } from '../geometry/RunSummary';
-import { anchorOf, DEFAULT_POINTER_STEP, initialPaths, plateGeometry, pointerOf, radiusOf, type PointerStepConfig } from '../geometry/Pointer';
+import { anchorOf, camberShift, DEFAULT_POINTER_STEP, initialPaths, plateGeometry, pointerOf, radiusOf, type PointerStepConfig } from '../geometry/Pointer';
 import { measuredPointerStep } from '../geometry/PointerMeasure';
 import { addPointerVersion } from '../geometry/PointerVersion';
 import { bodyPolygon, place, unplace, type Side, type SurfaceGeometry } from '../geometry/SurfaceGeometry';
@@ -48,6 +48,8 @@ import { DetectorPanel, LevelBadge, ProfilePanel, StationPlots } from './flow/De
 import { ConstructionPanel } from './flow/ConstructionPanel';
 import { AutoBuildPanel, EMPTY_AUTO, type AutoRun } from './flow/AutoBuildPanel';
 import { LiveFillPanel, type LiveSettings } from './flow/LiveFillPanel';
+import { addCamberPoint, camberControlsOf, camberTextsOf, dragCamberPoint, readCamberInput, type CamberTexts } from '../geometry/CamberInput';
+import { CAMBER_LIMITS } from '../geometry/Camber';
 import { defaultPointerTexts, dotsFromTexts, dragToTexts, EMPTY_POINTER_TEXTS, readPointerInput, type PointerTexts } from '../geometry/PointerInput';
 import { EMPTY_SWEEP, PointerPanel, type PointerSweep } from './flow/PointerPanel';
 import { ForcesPanel } from './flow/ForcesPanel';
@@ -646,6 +648,26 @@ export function FlowGeometry() {
     setPTexts(defaultPointerTexts(shape.plate, shape.paths, pSide, cmPerUnit, pStep.step));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project.id, head.id, pSide]);
+  // the camber spline: control points typed or dragged, a preview, and APPLY makes a new version
+  const [camberTexts, setCamberTexts] = useState<CamberTexts>({ points: [] });
+  useEffect(() => {
+    if (shape) setCamberTexts(camberTextsOf(shape.plate, cmPerUnit));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project.id, head.id]);
+  const camberInput = useMemo(() => (shape ? readCamberInput(shape.plate, shape.paths, shape.spacing, camberTexts, cmPerUnit) : null), [shape, camberTexts, cmPerUnit]);
+  const applyCamber = () => {
+    if (!camberInput || !camberInput.ok) return setMessage(`Cannot apply the camber: ${camberInput ? camberInput.reason : 'the open version was not drawn with the pointer'}`);
+    try {
+      const out = addPointerVersion(project, { side: pSide, camber: camberInput.camber, limits: pStep.limits, decision: { kind: 'hand' } });
+      setProject(out.project);
+      setViewId(out.version.id);
+      setCmp([out.version.parent ?? out.version.id, out.version.id]);
+      setPlaying(false);
+      setMessage(`${out.version.label}: ${out.version.id} has the new surface. It has not been simulated: run it to see what the new surface does.`);
+    } catch (e) {
+      setMessage(`Cannot apply the camber: ${(e as Error).message}`);
+    }
+  };
   // the red dot, the pointer and the green dot can be picked up and dragged on the picture: a drag fills in the same boxes
   const handlePlacement = placementFor({ ...(project.conditions as unknown as Conditions), geometry: head.geometry });
   const dotHandles = useMemo((): ViewHandle[] => {
@@ -654,15 +676,21 @@ export function FlowGeometry() {
     const r0 = radiusOf(shape.plate);
     const d = dotsFromTexts(shape.plate, shape.paths, pSide, pTexts, cmPerUnit);
     const toSim = (q: { x: number; y: number }) => {
-      const [x, y] = place([q.x + r0, sgn * q.y], handlePlacement);
+      const [x, y] = place([q.x + r0, sgn * q.y + camberShift(shape.plate, q.x)], handlePlacement);
       return { x, y };
     };
-    return [{ id: 'green', ...toSim(d.green) }, ...(d.pointer ? [{ id: 'pointer', ...toSim(d.pointer) }] : []), { id: 'red', ...toSim(d.red) }];
-  }, [shape, pSide, pTexts, cmPerUnit, handlePlacement]);
+    const cam = camberControlsOf(camberTexts, cmPerUnit).map((q, k) => {
+      const [x, y] = place([q.x, q.y], handlePlacement);
+      return { id: `camber:${k}`, x, y };
+    });
+    return [...cam, { id: 'green', ...toSim(d.green) }, ...(d.pointer ? [{ id: 'pointer', ...toSim(d.pointer) }] : []), { id: 'red', ...toSim(d.red) }];
+  }, [shape, pSide, pTexts, camberTexts, cmPerUnit, handlePlacement]);
   const onDotDrag = (id: string, sx: number, sy: number) => {
     if (!shape) return;
     const [bx, by] = unplace([sx, sy], handlePlacement);
-    setPTexts((t) => dragToTexts(shape.plate, shape.paths, pSide, id, bx - radiusOf(shape.plate), (pSide === 'upper' ? 1 : -1) * by, cmPerUnit, t));
+    if (id.startsWith('camber:')) return setCamberTexts((t) => dragCamberPoint(shape.plate, t, Number(id.slice(7)), bx, by, cmPerUnit));
+    const xp = bx - radiusOf(shape.plate);
+    setPTexts((t) => dragToTexts(shape.plate, shape.paths, pSide, id, xp, (pSide === 'upper' ? 1 : -1) * (by - camberShift(shape.plate, xp)), cmPerUnit, t));
   };
   const afterPointerVersion = (v: { id: string; parent: string | null }, text: string) => {
     setViewId(v.id);
@@ -872,6 +900,10 @@ export function FlowGeometry() {
       alphaDeg: (project.conditions as unknown as Conditions).alphaDeg,
       references: project.references.map((r) => r.geometry),
       streams: shownStreams,
+      camber:
+        head.shape && !liveShape && camberInput?.ok
+          ? { controls: camberInput.controls, line: camberInput.line, preview: camberInput.unchanged ? null : camberInput.geometry }
+          : null,
       pointer:
         head.shape && !liveShape
           ? (() => {
@@ -881,7 +913,9 @@ export function FlowGeometry() {
               const at = dd.red;
               const a = dd.green;
               const pa = pointerTarget.ok ? pointerTarget.pointerAt : null;
-              return { side: pSide, at: { x: at.x + r0, y: at.y }, anchor: { x: a.x + r0, y: a.y }, preview: pointerTarget.ok ? pointerTarget.geometry : null, previewAt: pa ? { x: pa.x + r0, y: pa.y } : null };
+              const sg = pSide === 'upper' ? 1 : -1;
+              const body = (q: { x: number; y: number }) => ({ x: q.x + r0, y: sg * q.y + camberShift(head.shape!.plate, q.x) });
+              return { side: pSide, at: body(at), anchor: body(a), preview: pointerTarget.ok ? pointerTarget.geometry : null, previewAt: pa ? body(pa) : null };
             })()
           : null,
     };
@@ -890,7 +924,7 @@ export function FlowGeometry() {
       draw(g, T);
       drawStream(g, T, frame.domain, (project.conditions as unknown as Conditions).speed, st.alphaDeg);
     };
-  }, [analysis, side, mode, project, head, viewed, proposal, pointIdx, replayFrame, showStations, sim.frame, liveShape, liveFrame, liveSettings.side, pSide, pointerTarget, shownStreams]);
+  }, [analysis, side, mode, project, head, viewed, proposal, pointIdx, replayFrame, showStations, sim.frame, liveShape, liveFrame, liveSettings.side, pSide, pointerTarget, camberInput, shownStreams]);
 
   const underlay = useMemo(() => {
     if (fieldKind === 'none' || !grid) return undefined;
@@ -1070,6 +1104,7 @@ export function FlowGeometry() {
               onTexts={setPTexts}
               textError={pointerTarget.ok ? null : pointerTarget.reason}
               changes={pointerTarget.ok ? pointerTarget.changes : []}
+              camber={shape ? { texts: camberTexts, onTexts: setCamberTexts, error: camberInput && !camberInput.ok ? camberInput.reason : null, changed: !!camberInput && camberInput.ok && !camberInput.unchanged, onAdd: () => setCamberTexts((t) => addCamberPoint(shape.plate, t, cmPerUnit)), onApply: applyCamber, maxPoints: CAMBER_LIMITS.maxPoints } : undefined}
               step={pStep}
               onStep={setPStep}
               sweep={sweep}

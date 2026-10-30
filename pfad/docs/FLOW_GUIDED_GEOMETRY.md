@@ -463,6 +463,24 @@ where the arc ends (and where you put it next), and the **green dot** is the anc
 Every change is a new version with its own words in the history (undo goes back; nothing is deleted). The anchor and the
 directions are construction choices, not flow laws; nothing about the flow decides them.
 
+**Camber: a spline instead of a straight line.** The line between the leading and the trailing circle need not be straight. The
+**camber** panel (in both workspaces) lets you add up to 8 **control points** along the plate, each with a position along it (0 = the
+leftmost point of the leading edge, the plate's length = the trailing tip) and a height above the **chord line** (the straight line
+from tip to tip, also what the angle of attack is measured against; negative heights bend toward the lower side). The mid-line is
+the natural cubic spline through the control points with the two tips fixed on the chord line (`src/geometry/Camber.ts`). Type
+them, or drag the purple diamonds on the picture; a dashed purple outline previews the plate before APPLY CAMBER makes it a new
+version (STRAIGHT puts it back). How it is built, and what it is not:
+- The camber **warps** the plate: the whole outline, and everything drawn on it, is lifted by the height of the spline at that place
+  along the chord. The thicknesses stay the same measured straight up and down, and heights drawn with the pointer stay heights
+  above the (now curved) wall, so the red dot, the green dot, the arcs and the auto fill all work on an arched plate as they did on a flat
+  one. Where the spline is steep the round ends are slightly sheared (not exact circles): that is the price of keeping the
+  surface a graph over the chord, and the reason the spline's slope is limited (45°) and its height too (35 % of the length).
+- Control points keep 3 % of the plate length from the tips and from each other, and the spline may not rise past the height limit
+  between them (a natural spline overshoots when two nearby points differ a lot: the screen says so instead of drawing it).
+- Camber is a construction choice, like the anchor: no camber is optimal, nothing here knows an airfoil family, and the next
+  simulation, not the construction, says what the shape does. Changing the camber of a version that has been simulated makes a
+  new version that has not been.
+
 **What is not claimed.** The pointer path is not an optimum, no shape it makes is optimised, and
 nothing about it has been validated.
 

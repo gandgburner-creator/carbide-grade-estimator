@@ -29,13 +29,15 @@ export interface OverlayState {
   references: SurfaceGeometry[];
   /** a live fill in progress: where the particles stopped touching the surface, and how far the front has got */
   live?: { side: Side; onset: number | null; front: number | null } | null;
-  /** the construction pointer: where it is, the anchor its tether runs to (body frame; y outward on `side`), and an unplaced candidate */
+  /** the construction pointer: where it is, the anchor its tether runs to and an unplaced candidate (all in the body frame: x from the leading tip, y already signed for the side and lifted by the camber) */
   /** streamlines of the measured mean flow, in simulation coordinates */
   streams?: { lines: Streamline[]; arrowEvery: number } | null;
   pointer?: { side: Side; at: { x: number; y: number }; anchor: { x: number; y: number }; preview: SurfaceGeometry | null; previewAt: { x: number; y: number } | null } | null;
+  /** the camber spline: its control points (body frame, on the mid-line) and the outline the typed ones would give */
+  camber?: { controls: { x: number; y: number }[]; line: { x: number; y: number }[]; preview: SurfaceGeometry | null } | null;
 }
 
-const COLORS = { tether: '#7ee787', reversed: '#f85149', reduced: '#d29922', exploratory: '#d29922', proposal: '#f0b429', dividing: '#39c5cf', marker: '#ff4d4d' };
+const COLORS = { tether: '#7ee787', reversed: '#f85149', reduced: '#d29922', exploratory: '#d29922', proposal: '#f0b429', dividing: '#39c5cf', marker: '#ff4d4d', camber: '#c297ff' };
 
 /** Annotations of the construction workflow, drawn over the particle view in simulation coordinates. */
 export function makeOverlay(st: OverlayState) {
@@ -200,7 +202,6 @@ export function makeOverlay(st: OverlayState) {
     // the pointer, its tether to the anchor, and the surface a candidate position would give
     if (st.pointer && !st.replay) {
       const pt = st.pointer;
-      const sgn = pt.side === 'upper' ? 1 : -1;
       if (pt.preview) {
         outline(pt.preview);
         g.setLineDash([4, 4]);
@@ -209,7 +210,7 @@ export function makeOverlay(st: OverlayState) {
         g.stroke();
         g.setLineDash([]);
         if (pt.previewAt) {
-          const [qx, qy] = P(pt.previewAt.x, sgn * pt.previewAt.y);
+          const [qx, qy] = P(pt.previewAt.x, pt.previewAt.y);
           g.beginPath();
           g.arc(qx, qy, 5, 0, 2 * Math.PI);
           g.strokeStyle = COLORS.proposal;
@@ -220,10 +221,10 @@ export function makeOverlay(st: OverlayState) {
           g.fillText('pointer', qx + 8, qy + 14);
         }
       }
-      const a = P(pt.at.x, sgn * pt.at.y);
-      const b = P(pt.anchor.x, sgn * pt.anchor.y);
+      const a = P(pt.at.x, pt.at.y);
+      const b = P(pt.anchor.x, pt.anchor.y);
       // the rope runs from the pointer when one is being placed, else from the red dot
-      const rope = pt.preview && pt.previewAt ? P(pt.previewAt.x, sgn * pt.previewAt.y) : a;
+      const rope = pt.preview && pt.previewAt ? P(pt.previewAt.x, pt.previewAt.y) : a;
       line([rope, b]);
       g.setLineDash([6, 4]);
       g.strokeStyle = COLORS.tether;
@@ -246,6 +247,44 @@ export function makeOverlay(st: OverlayState) {
       g.fillText('red dot', a[0] + 8, a[1] - 8);
       g.fillStyle = COLORS.tether;
       g.fillText('green dot (anchor) · tether', b[0] - 110, b[1] - 8);
+    }
+
+    // the camber spline: the mid-line, its control points, and the outline the typed ones would give
+    if (st.camber && !st.replay) {
+      const cm = st.camber;
+      if (cm.preview) {
+        outline(cm.preview);
+        g.setLineDash([3, 3]);
+        g.strokeStyle = COLORS.camber;
+        g.lineWidth = 1.6;
+        g.stroke();
+        g.setLineDash([]);
+      }
+      if (cm.line.length > 1) {
+        line(cm.line.map((q) => P(q.x, q.y)));
+        g.setLineDash([2, 4]);
+        g.strokeStyle = COLORS.camber;
+        g.lineWidth = 1.4;
+        g.stroke();
+        g.setLineDash([]);
+      }
+      g.font = '10px ui-monospace, monospace';
+      cm.controls.forEach((q, k) => {
+        const [cx, cy] = P(q.x, q.y);
+        g.beginPath();
+        g.moveTo(cx, cy - 6);
+        g.lineTo(cx + 6, cy);
+        g.lineTo(cx, cy + 6);
+        g.lineTo(cx - 6, cy);
+        g.closePath();
+        g.fillStyle = COLORS.camber;
+        g.fill();
+        g.strokeStyle = '#fff';
+        g.lineWidth = 1.2;
+        g.stroke();
+        g.fillStyle = COLORS.camber;
+        g.fillText(`camber ${k + 1}`, cx + 8, cy + 14);
+      });
     }
 
     // measured dividing streamline: the surface of zero net near-wall flux, at its measured height along the normal

@@ -1,4 +1,5 @@
 import { anchorMoved, anchorOf, baseHeight, defaultAnchor, pointerOf, radiusOf, trailingRadiusOf, type PlateSpec, type PointerPaths, type PointerStepConfig } from '../../geometry/Pointer';
+import type { CamberTexts } from '../../geometry/CamberInput';
 import { dotsFromTexts, type PointerTexts } from '../../geometry/PointerInput';
 import type { Side } from '../../geometry/SurfaceGeometry';
 
@@ -50,6 +51,8 @@ export function PointerPanel(p: {
   blocked: string | null;
   /** extra text shown under the card heading (the workspace's own caveats) */
   caveat: string;
+  /** the camber editor: the wing's mid-line as a spline */
+  camber?: { texts: CamberTexts; onTexts: (t: CamberTexts) => void; error: string | null; changed: boolean; onAdd: () => void; onApply: () => void; maxPoints: number };
 }) {
   const { plate, paths } = p;
   const cm = (u: number) => (u * p.cmPerUnit).toFixed(2);
@@ -165,6 +168,44 @@ export function PointerPanel(p: {
           </button>
         </div>
       </details>
+      {p.camber && (
+        <details className="effective" open>
+          <summary>Camber: curve the wing’s mid-line (a spline)</summary>
+          <div className="note">
+            The straight line from the leading tip to the trailing tip is the <b>chord line</b>. Add <b>control points</b> and move them (drag the purple diamonds on the picture, or type) to make the mid-line between the two round ends a smooth <b>spline</b> that arches away from the chord line instead of running straight; the two tips stay on it. Positive heights bend toward the upper side. The whole plate and everything drawn on it is lifted with the spline (the thicknesses stay the same measured straight up and down; where the spline is steep the round ends are slightly sheared). Apply makes a new version.
+          </div>
+          {p.camber.texts.points.length === 0 && <div className="note">No control points: the mid-line is straight.</div>}
+          {p.camber.texts.points.map((q, k) => (
+            <div key={k} className="params" style={{ margin: '4px 0', alignItems: 'end' }}>
+              <label>
+                point {k + 1} along [cm]
+                <input inputMode="decimal" value={q.x} onChange={(e) => p.camber!.onTexts({ points: p.camber!.texts.points.map((r, i) => (i === k ? { ...r, x: e.target.value } : r)) })} aria-label={`camber point ${k + 1} along the plate in cm`} />
+              </label>
+              <label>
+                above the chord line [cm]
+                <input inputMode="decimal" value={q.y} onChange={(e) => p.camber!.onTexts({ points: p.camber!.texts.points.map((r, i) => (i === k ? { ...r, y: e.target.value } : r)) })} aria-label={`camber point ${k + 1} height above the chord line in cm`} />
+              </label>
+              <button className="ctl" onClick={() => p.camber!.onTexts({ points: p.camber!.texts.points.filter((_, i) => i !== k) })} aria-label={`remove camber point ${k + 1}`}>
+                REMOVE
+              </button>
+            </div>
+          ))}
+          <div className="seg" style={{ margin: '4px 0' }}>
+            <button className="ctl" onClick={p.camber.onAdd} disabled={p.camber.texts.points.length >= p.camber.maxPoints}>
+              ADD CAMBER POINT
+            </button>
+            <button className="ctl" onClick={() => p.camber!.onTexts({ points: [] })} disabled={p.camber.texts.points.length === 0}>
+              STRAIGHT (NO CAMBER)
+            </button>
+          </div>
+          {p.camber.error && <div className="error">{p.camber.error}</div>}
+          <div className="seg" style={{ margin: '4px 0' }}>
+            <button className="ctl primary" onClick={p.camber.onApply} disabled={!!p.blocked || !!p.camber.error || !p.camber.changed || p.sweep.active} title={p.blocked ?? 'make the plate’s mid-line this spline and keep it as a new version'}>
+              APPLY CAMBER
+            </button>
+          </div>
+        </details>
+      )}
       {p.textError && (left > 1e-9 || !hasPointerBox) && <div className="error">{p.textError}</div>}
       {!p.textError && p.changes && p.changes.length > 0 && <div className="note">Applying this: {p.changes.join('; ')}. The dashed yellow line shows the surface it would give.</div>}
       <div className="seg" style={{ margin: '6px 0' }}>

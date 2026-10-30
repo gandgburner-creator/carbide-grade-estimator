@@ -1,3 +1,4 @@
+import { camberFunction, validateCamber, type CamberSpec } from './Camber';
 import type { Side, SurfaceGeometry } from './SurfaceGeometry';
 
 /**
@@ -38,6 +39,8 @@ export interface PlateSpec {
   thickness: number;
   /** diameter of the trailing end circle; absent: the same as `thickness` */
   trailingThickness?: number;
+  /** the mid-line as a spline instead of a straight line (see Camber.ts); absent or without points: straight */
+  camber?: CamberSpec;
 }
 
 /** The pointer paths of both sides, in outward-height coordinates (never below the plate's own surface), each starting where the straight edge leaves the leading circle. */
@@ -68,6 +71,15 @@ const HANDLE = 0.4;
 export const radiusOf = (s: PlateSpec) => s.thickness / 2;
 /** Radius of the trailing end circle. */
 export const trailingRadiusOf = (s: PlateSpec) => (s.trailingThickness ?? s.thickness) / 2;
+/**
+ * How far the camber lifts the plate at plate-frame x (the origin is the centre of the leading circle): the height of the mid-line
+ * spline above the chord line there; 0 for a straight plate. Heights in this file are heights above the plate's own wall, which
+ * the camber carries with it, so a point at plate-frame (x, ±h) is at body-frame height ±h + camberShift(x).
+ */
+export function camberShift(s: PlateSpec, x: number): number {
+  return s.camber && s.camber.points.length ? camberFunction(s.camber, s.length)(x + radiusOf(s)) : 0;
+}
+
 /** Distance between the centres of the two circles: the length minus the two radii. */
 export const centreDistance = (s: PlateSpec) => s.length - radiusOf(s) - trailingRadiusOf(s);
 
@@ -75,6 +87,7 @@ export function validatePlate(s: PlateSpec): string | null {
   const t = s.trailingThickness ?? s.thickness;
   if (!(s.thickness > 0) || !(t > 0) || !(s.length > 0)) return 'length and thicknesses must be positive';
   if (s.length < radiusOf(s) + trailingRadiusOf(s) + Math.max(s.thickness, t)) return 'the plate must be at least twice as long as it is thick (two end circles and a straight stretch between them as long as the thicker end is wide)';
+  if (s.camber && s.camber.points.length) return validateCamber(s.camber, s.length);
   return null;
 }
 
@@ -323,8 +336,9 @@ export function plateGeometry(s: PlateSpec, paths: PointerPaths = initialPaths(s
   const xs = xp.map((x) => x + r);
   xs[0] = 0;
   xs[n] = s.length;
-  const upper = xp.map((x) => outwardHeight(s, paths.upper, x, su, aU));
-  const lower = xp.map((x) => -outwardHeight(s, paths.lower, x, sl, aL));
+  const lift = camberFunction(s.camber, s.length);
+  const upper = xp.map((x, i) => outwardHeight(s, paths.upper, x, su, aU) + lift(xs[i]));
+  const lower = xp.map((x, i) => -outwardHeight(s, paths.lower, x, sl, aL) + lift(xs[i]));
   upper[0] = 0;
   lower[0] = 0;
   upper[n] = 0;
