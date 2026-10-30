@@ -58,12 +58,12 @@ export function useCfd(onResult: (result: CfdResult, activeMs: number) => void, 
 
   const send = useCallback((m: CfdToWorker) => workerRef.current?.postMessage(m), []);
   const start = useCallback(
-    (params: CfdParams, view: CfdViewKind, vectors = false) => {
+    (params: CfdParams, view: CfdViewKind, vectors = false, engine: 'gpu' | 'cpu' = 'cpu') => {
       epochRef.current++;
       setError(null);
       setFrame(null);
       setPhase('running');
-      send({ type: 'start', epoch: epochRef.current, params, view, vectors });
+      send({ type: 'start', epoch: epochRef.current, params, view, vectors, engine });
     },
     [send],
   );

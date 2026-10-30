@@ -6,7 +6,7 @@ import { CFD_FIELD_LABEL, fieldFromResult, streamField } from '../cfd/CfdFields'
 import { DEFAULT_CFD_FILL, type CfdFillResult } from '../cfd/CfdFill';
 import { cfdForceMeasure } from '../cfd/CfdForces';
 import { addCfdFillVersion, addCfdPointerMove, attachCfdRun, cfdHead, cfdProjectToJSON, cfdVersion, logCfdEnd, newCfdProject, parseCfdProject, setCfdWingDepth, undoCfd, type CfdPreset, type CfdProject, type CfdVersion } from '../cfd/CfdProject';
-import { CFD_BASE, CFD_PRESETS, cfdPlacement, type CfdParams, type CfdResult } from '../cfd/CfdRun';
+import { CFD_BASE, CFD_PRESETS, GPU_PRESETS, cfdPlacement, type CfdParams, type CfdResult } from '../cfd/CfdRun';
 import { cfdSetup } from '../experiments/CfdScenario';
 import type { PhysicalInputs } from '../experiments/FlowGeometryExperiment';
 import { DEFAULT_DEPTH_CM, DEFAULT_SCENARIO, newtonsAndKgf, parseDepth, wingForces } from '../experiments/PhysicalScenario';
@@ -19,6 +19,7 @@ import type { CfdViewKind } from '../workers/cfdProtocol';
 import { downloadText } from './download';
 import { CfdFillPanel, type CfdFillSettings } from './flow/CfdFillPanel';
 import { CfdView } from './flow/CfdView';
+import type { GridField } from '../measurements/Streamlines';
 import { CfdCompare, CfdHistory, CfdMeasurements, CfdScenarioPanel } from './flow/CfdPanels';
 import { makeOverlay } from './flow/overlay';
 import { addCamberPoint, camberControlsOf, camberTextsOf, dragCamberPoint, readCamberInput, type CamberTexts } from '../geometry/CamberInput';
@@ -26,6 +27,8 @@ import { CAMBER_LIMITS } from '../geometry/Camber';
 import { defaultPointerTexts, dotsFromTexts, dragToTexts, EMPTY_POINTER_TEXTS, readPointerInput, type PointerTexts } from '../geometry/PointerInput';
 import { EMPTY_SWEEP, PointerPanel, type PointerSweep } from './flow/PointerPanel';
 import { scenarioText, type ScenarioText } from './flow/ScenarioPanel';
+import { GpuPanel, type Engine } from './flow/GpuPanel';
+import { probeGpu, type GpuInfo } from '../cfd/gpu/LbmGpu';
 import { StationChart } from './flow/StationChart';
 import { useCfd } from './flow/useCfd';
 import type { Camera, ViewHandle } from './ParticleView';
@@ -57,6 +60,7 @@ export function CfdGeometry() {
   const [cmp, setCmp] = useState<[string, string]>(['v0', 'v0']);
   const [kind, setKind] = useState<CfdViewKind>('speed');
   const [showStreams, setShowStreams] = useState(false);
+  const [showTracers, setShowTracers] = useState(false);
   const [streamSpacing, setStreamSpacing] = useState(2.5);
   const [showStations, setShowStations] = useState(false);
   const [showHeight, setShowHeight] = useState(true);
@@ -71,6 +75,36 @@ export function CfdGeometry() {
   const fillingRef = useRef(false);
   const computeAfterRef = useRef(true);
   computeAfterRef.current = fillSettings.computeAfter;
+  // where to compute: the graphics card when there is one (remembered), otherwise the CPU
+  const [gpuInfo, setGpuInfo] = useState<GpuInfo | null | undefined>(undefined);
+  const [engine, setEngineState] = useState<Engine>('cpu');
+  const setEngine = (e: Engine) => {
+    setEngineState(e);
+    try {
+      localStorage.setItem('pfad-cfd-engine', e);
+    } catch {
+      /* private window: the choice is not remembered */
+    }
+    if (e === 'cpu' && GPU_PRESETS.includes(preset)) setPreset('fine');
+  };
+  useEffect(() => {
+    let live = true;
+    probeGpu().then((i) => {
+      if (!live) return;
+      setGpuInfo(i);
+      let saved: string | null = null;
+      try {
+        saved = localStorage.getItem('pfad-cfd-engine');
+      } catch {
+        /* no storage */
+      }
+      if (i && !i.software && saved !== 'cpu') setEngineState('gpu');
+      else if (i && saved === 'gpu') setEngineState('gpu');
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
   const [camera, setCamera] = useState<Camera | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [rightTab, setRightTab] = useState<'results' | 'compare' | 'history'>('results');
@@ -162,7 +196,7 @@ export function CfdGeometry() {
     if (busy) return;
     setMessage(null);
     runningVersion.current = head.id;
-    sim.start({ ...params, geometry: head.geometry }, kind, showStreams);
+    sim.start({ ...params, geometry: head.geometry }, kind, showStreams || showTracers, engine === 'gpu' && gpuInfo ? 'gpu' : 'cpu');
   };
 
   // ---- project
@@ -291,7 +325,7 @@ export function CfdGeometry() {
     runningVersion.current = null;
     fillingRef.current = true;
     setFillActive(true);
-    sim.startFill({ ...params, geometry: head.geometry }, shape.plate, shape.paths, shape.spacing, { ...DEFAULT_CFD_FILL, side, step: pStep, settle: fillSettings.settle, window: fillSettings.window }, kind, showStreams);
+    sim.startFill({ ...params, geometry: head.geometry }, shape.plate, shape.paths, shape.spacing, { ...DEFAULT_CFD_FILL, side, step: pStep, settle: fillSettings.settle, window: fillSettings.window }, kind, showStreams || showTracers);
   };
   useEffect(() => {
     if (!pendingCompute || busy) return;
@@ -324,9 +358,9 @@ export function CfdGeometry() {
 
   // ---- what is drawn
   useEffect(() => {
-    if (busy) sim.setView(kind, showStreams);
+    if (busy) sim.setView(kind, showStreams || showTracers);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kind, showStreams]);
+  }, [kind, showStreams, showTracers]);
   const stored = useMemo(() => (viewed.run && !live ? fieldFromResult(viewed.run.result, kind) : null), [viewed.run, kind, live]);
   const field = live ? { nx: live.field.nx, ny: live.field.ny, values: live.field.values } : stored;
   const streams = useMemo((): { lines: Streamline[]; arrowEvery: number } | null => {
@@ -358,6 +392,17 @@ export function CfdGeometry() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [busy, showStreams, flow, streamSpacing]);
   const shownStreams = busy && showStreams ? liveStreams : streams;
+  // the velocity the animated tracers ride on: the instant of a run in progress, the time mean of a computed version
+  const tracerField = useMemo((): GridField | null => {
+    if (!showTracers) return null;
+    if (busy) {
+      if (!flow) return null;
+      const cell = flow.stride / live!.cellsPerUnit;
+      return { nx: flow.nx, ny: flow.ny, x0: 0, y0: 0, cw: cell, ch: cell, ux: Array.from(flow.ux, (u) => (Number.isNaN(u) ? 0 : u)), uy: Array.from(flow.uy, (u) => (Number.isNaN(u) ? 0 : u)), valid: Array.from(flow.ux, (u) => !Number.isNaN(u)) };
+    }
+    return viewed.run ? streamField(viewed.run.result) : null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showTracers, busy, flow, viewed.run]);
   const caption = live
     ? `${CFD_FIELD_LABEL[live.field.kind].label} at this instant — the run of ${head.id}, ${(100 * live.progress).toFixed(0)} %, ${live.phase}`
     : viewed.run
@@ -518,6 +563,7 @@ export function CfdGeometry() {
               disabled={locked}
               preset={preset}
               onPreset={setPreset}
+              gpuPresets={engine === 'gpu' && !!gpuInfo}
               depthText={depthText}
               onDepth={(v) => {
                 setDepthText(v);
@@ -538,6 +584,7 @@ export function CfdGeometry() {
 
           <div className="section run-section">
             <h2>2 · Compute {head.id}</h2>
+            <GpuPanel engine={engine} onEngine={setEngine} info={gpuInfo} disabled={locked} />
             <div className="controls">
               <button className="ctl primary" disabled={locked} onClick={run} title="run the CFD of the current geometry">
                 SIMULATE
@@ -556,13 +603,14 @@ export function CfdGeometry() {
               <span className={`phase ${sim.phase}`}>{sim.phase.toUpperCase()}</span>
               {f && busy && (
                 <span>
-                  {(100 * f.progress).toFixed(0)} % · {f.phase} · {f.convective.toFixed(1)} flow-throughs of the plate · {Math.round(f.stepsPerSecond)} steps/s{eta !== null ? ` · about ${Math.max(1, Math.round(eta / 60))} min left` : ''}
+                  {(100 * f.progress).toFixed(0)} % · {f.phase} · {f.convective.toFixed(1)} flow-throughs of the plate · {Math.round(f.stepsPerSecond)} steps/s · {f.engine.kind === 'gpu' ? 'GPU' : 'CPU'}{eta !== null ? ` · about ${Math.max(1, Math.round(eta / 60))} min left` : ''}
                 </span>
               )}
             </div>
             <div className="progress">
               <div style={{ width: `${(100 * (busy || sim.phase === 'finished' ? f?.progress ?? 0 : 0)).toFixed(1)}%` }} />
             </div>
+            {f?.engineNote && <div className="warn">{f.engineNote}</div>}
             {sim.error && <div className="error">{sim.error}</div>}
             {message && <div className={/^(Cannot|No pointer|Import failed|Inputs:|Failed)/.test(message) ? 'warn' : 'info'}>{message}</div>}
             <div className="note run-help">
@@ -629,6 +677,10 @@ export function CfdGeometry() {
               <input type="checkbox" checked={showStreams} disabled={!viewed.run && !busy} onChange={(e) => setShowStreams(e.target.checked)} aria-label="show streamlines" />
               streamlines
             </label>
+            <label className="field-inline" title="a few thousand marker points carried by the velocity on screen (the instant of a run in progress, the time mean of a computed version), with fading trails: only a picture of the flow">
+              <input type="checkbox" checked={showTracers} disabled={!viewed.run && !busy} onChange={(e) => setShowTracers(e.target.checked)} aria-label="show animated tracers" />
+              animated tracers
+            </label>
             {showStreams && (
               <select value={streamSpacing} onChange={(e) => setStreamSpacing(Number(e.target.value))} aria-label="streamline spacing">
                 <option value={4}>sparse</option>
@@ -660,7 +712,7 @@ export function CfdGeometry() {
             </span>
           </div>
           {viewed.id !== head.id && <div className="exp-banner">Viewing the results of {viewed.id}; the open version is {head.id} (head). Select the head in History to return.</div>}
-          <CfdView field={field} kind={kind} domain={domain} camera={camera ?? { zoom: 3.2, cx: params.bodyAtX * domain.w + 0.25 * domain.w * 0.4, cy: domain.h / 2 }} onCamera={setCamera} overlay={overlay} caption={caption} handles={!busy && !sweep.active && viewed.id === head.id && rightTab !== 'compare' ? dotHandles : undefined} onHandleDrag={onDotDrag} />
+          <CfdView field={field} kind={kind} domain={domain} camera={camera ?? { zoom: 3.2, cx: params.bodyAtX * domain.w + 0.25 * domain.w * 0.4, cy: domain.h / 2 }} onCamera={setCamera} overlay={overlay} tracers={tracerField} caption={caption} handles={!busy && !sweep.active && viewed.id === head.id && rightTab !== 'compare' ? dotHandles : undefined} onHandleDrag={onDotDrag} />
           {showStreams && busy && (
             <div className="note">
               <span className="tag derived">DERIVED</span> streamlines of the velocity <b>at this instant</b> of the run in progress ({liveStreams ? `${liveStreams.lines.length} lines, ` : ''}redrawn about every 2 s). Behind a plate the instantaneous flow sheds vortices, so these move; when the run ends they are replaced by the streamlines of the time-mean velocity over the measurement window.

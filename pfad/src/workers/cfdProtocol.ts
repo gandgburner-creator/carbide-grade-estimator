@@ -7,7 +7,8 @@ import type { SurfaceGeometry } from '../geometry/SurfaceGeometry';
 export type CfdViewKind = 'speed' | 'vorticity' | 'pressure' | 'total' | 'ux' | 'uy';
 
 export type CfdToWorker =
-  | { type: 'start'; epoch: number; params: CfdParams; view: CfdViewKind; vectors?: boolean }
+  /** `engine`: where to compute (default the CPU); a request for the graphics card that cannot be met runs on the CPU and the frame says so */
+  | { type: 'start'; epoch: number; params: CfdParams; view: CfdViewKind; vectors?: boolean; engine?: 'gpu' | 'cpu' }
   | { type: 'view'; kind: CfdViewKind; vectors?: boolean }
   /** the auto fill: the pointer moves by itself during one run (see cfd/CfdFill.ts) */
   | { type: 'startFill'; epoch: number; params: CfdParams; plate: PlateSpec; paths: PointerPaths; spacing: number; fill: CfdFillConfig; view: CfdViewKind; vectors?: boolean }
@@ -36,6 +37,9 @@ export interface CfdFrame {
   nx: number;
   ny: number;
   cellsPerUnit: number;
+  /** where this run is computed, and why it is not where it was asked to be (if that is so) */
+  engine: { kind: 'cpu' | 'gpu'; adapter: string };
+  engineNote?: string;
   field: { kind: CfdViewKind; nx: number; ny: number; values: Float32Array; stride: number };
   /** both velocity components (in units of the free-stream speed, NaN inside the body) at this instant, when asked for: what the streamlines of a run in progress are drawn from */
   flow?: { nx: number; ny: number; ux: Float32Array; uy: Float32Array; stride: number };

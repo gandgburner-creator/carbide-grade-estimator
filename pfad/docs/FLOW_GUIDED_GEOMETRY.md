@@ -691,6 +691,107 @@ does not close such a region, and says so.
 **Status.** Experimental. The forces and the wall measurements of a plate are computed numbers with
 the stated limits, no more.
 
+## Fluids, temperature, pressure and the physics sheet (CFD workspace)
+
+The CFD workspace is not limited to air. A **fluid** can be chosen (dry air, nitrogen, oxygen, carbon dioxide, helium, hydrogen, fresh
+water, sea water of 35 g/kg, ISO VG 32 mineral oil, or a **custom** fluid whose density, viscosity and optional speed of sound and vapour
+pressure are typed), with its **temperature** and its **pressure**:
+
+- **air**: the pressure follows from the **height above sea level** by the International Standard Atmosphere (troposphere to 11 km, the
+  isothermal layer to 20 km, the +1 K/km layer to 32 km; −5000 … 32000 m), or a pressure is typed. The temperature is the one typed
+  (a button offers the standard-atmosphere temperature at that height).
+- **other gases**: an absolute pressure is typed.
+- **liquids**: an absolute pressure is typed, or a **depth** below an open surface (p = p₀ + ρ g d, with the slight compression of the liquid).
+
+`src/benchmarks/Fluids.ts` turns the choice into density, viscosity, speed of sound and vapour pressure by published correlations, each
+with its stated accuracy (gases: ideal gas, Sutherland's law, c = √(γ R T); fresh water: Kell density, the CRC/Kestin–Sokolov–Wakeham
+viscosity, Marczak's speed of sound, Antoine's vapour pressure; sea water: the EOS-80 salinity terms, Sharqawy's viscosity, Medwin's
+speed of sound, Raoult's vapour-pressure lowering; oil: the Walther viscosity–temperature line through the catalogue anchors, 32 cSt at
+40 °C and 5.4 cSt at 100 °C). `tests/fluids.test.ts` checks them against handbook values (air at 15 °C and sea level: 1.225 kg/m³,
+1.789×10⁻⁵ Pa s, 340.3 m/s; water at 20 °C: 998.2 kg/m³, 1.002 mPa s, 1482 m/s, 2.34 kPa; sea water at 15 °C: 1025.97 kg/m³, and so on).
+These are comparison and scaling data: **the fluid enters the solver through one number, the Reynolds number ρ U L / μ**, and the forces
+are scaled to newtons with ½ ρ U² of the fluid and the wing area.
+
+The **physics sheet** (`src/experiments/CfdPhysics.ts`, shown under "What the simulation will run") lists every dimensionless number and
+pressure relation of the fluid, the wind and the plate, each with its formula and what it means for this run:
+
+| row | formula | what it tells you |
+|---|---|---|
+| Reynolds number (plate length, leading edge) | ρ U L / μ | the regime; the run's own Reynolds number is the largest the resolution allows |
+| kinematic viscosity | μ / ρ | how fast vorticity diffuses |
+| Mach number | U / c | incompressible below 0.3; above it the sheet says the solver is not valid and **no correction is applied** |
+| Knudsen number (gases) | λ / L | continuum below 10⁻³, slip flow, then rarefied: where the particle model is the better description |
+| dynamic pressure | ½ ρ U² | the scale of every pressure coefficient and force |
+| stagnation (total) pressure | p + ½ρU², isentropic for a fast gas | Bernoulli's equation, and the compressible correction |
+| stagnation heating (gases) | U² / (2 c_p) | the heating the isothermal solver does not contain |
+| cavitation number (liquids) | (p − p_v) / q | where the liquid would form vapour (C_p = −σ) |
+| Froude number (a liquid at a depth) | U / √(g L) | a plate near the surface would make waves, which are not modelled |
+| laminar boundary-layer thickness | 5 / √Re_L | for comparison with the cell size |
+| vortex shedding (Strouhal number) | f L / U, f h / U | measured from the lift of the run (below), and what it means in Hz for your plate in your fluid |
+
+After a run the sheet is completed with the computed flow (`resultPhysics`): the highest and lowest pressure in the fluid's own units
+(kPa), the local Mach number the lowest pressure implies, the cavitation margin against the vapour pressure, a note when the pressure
+would be negative, and a **check against Bernoulli's equation**. The solver advances the Navier–Stokes equations and never uses
+Bernoulli's equation (the guards forbid it in the solver code); but p + ½ρ|u|² = constant along a streamline follows from them where
+viscosity does not matter, so the computed flow can be tested against it. The total-pressure coefficient C_p0 = C_p + |u|²/U² − 1
+is zero where it holds; the **total pressure view** draws it, and the sheet reports the share of the fluid where |C_p0| < 0.02 and the
+deepest loss (the boundary layers and the wake, where viscosity has taken total pressure out of the flow).
+
+**Vortex shedding** (`src/cfd/Shedding.ts`). The run keeps the mean lift and drag over every sampling interval of its window (on the CPU and on
+the card alike). The period of the lift oscillation is read from the upward crossings of its mean (with hysteresis, so noise around the mean
+does not count): the Strouhal number f L / U is the inverse of the period in flow-throughs, and f h / U uses the height of the body across the
+stream. Nothing is assumed: a steady lift, fewer than two cycles in the window, an irregular rhythm, or an oscillation many times faster than a
+vortex street can shed (sound waves of the start-up in the lattice) all give "no frequency" with the reason. The sheet then says what the same
+Strouhal number would mean in Hz for your plate in your fluid, with the caveat that the Strouhal number depends on the Reynolds number.
+
+What is **not** in the solver, and is therefore only estimated on the sheet: compressibility (shocks, density changes), the energy
+equation (heating, conduction), a free surface and waves, cavitation, rarefied-gas slip, turbulence of a third dimension.
+The particle universe ignores the fluid choice: it models a thin gas of hard disks and uses air only for its disclosed Mach conversion.
+
+## The pictures
+
+The field of a run is drawn by the graphics card as well (`src/ui/flow/FieldGL.ts`, WebGL2): every pixel interpolates the grid of computed
+values with a cubic B-spline, weighted by which of the neighbouring values lie in the fluid (so the colours run smoothly up to the body and
+the grid is not visible), through a 256-colour scale (an inferno-like one for speed, a dark-centred diverging one for signed fields: pressure,
+vorticity, velocity components and total pressure) with a faint relief shading from the field's own gradient. Where there is no WebGL2 the
+2-D canvas draws it as before. **Animated tracers** (`Tracers.ts`) are a few thousand marker points carried by the velocity that is on screen
+(the instant of a run in progress, the time mean of a computed version) with fading trails. Both only change how a computed field is drawn;
+they compute nothing and feed nothing back.
+
+## Computing on the graphics card (WebGPU)
+
+The CFD can be computed on **this computer's graphics card** instead of the processor (`src/cfd/gpu/`): the same lattice Boltzmann
+scheme as the CPU solver, written as WebGPU compute shaders (WGSL), run by thousands of threads. The particle universe stays on the CPU.
+Choose **GPU** or **CPU** under "Compute"; the browser needs WebGPU (a current Chrome or Edge with hardware acceleration), and when
+the card cannot be had a run says so and runs on the CPU.
+
+- **Same equations, same lattice, same measurements.** `GpuCfdRun` builds the run exactly as `CfdRun` does (the body on the lattice, the
+  relaxation times, the near-wall profiles, the integrity checks) and only takes the steps on the card; the card's time block
+  (sums of the time-mean fields, the mean force, the monitors) is closed by the same code as a CPU block. The first populations come from the
+  same function as the CPU solver's.
+- **Arithmetic.** 32-bit floats on the card, 64-bit on the CPU. The force and the mass fluxes, which many threads add up at once, are summed
+  as fixed-point integers (exact, independent of thread order). The result of a run records where it was computed
+  (`engine`: kind, adapter, precision).
+- **Resolution.** Because the card is far faster, three finer resolutions are offered: 128, 192 and 256 cells along the plate (up to
+  2304 × 1536 = 3.5 million nodes, about 0.5 GB of the card's memory) and a coarse DRAFT of 24 cells for a quick look. The Reynolds number the
+  lattice can run is 8 × the number of cells (2048 at 256 cells). Higher Reynolds numbers need a sub-grid model; the solver carries the
+  Smagorinsky option (`smagorinsky` in the run parameters, on the CPU and on the card) but the workspace does not offer it yet, because it has
+  not been validated here.
+- **Self-test.** "TEST THE GPU" runs, on your card, the channel flow against its exact parabola (and against the CPU solver), measures the
+  speed in million node updates per second, and "FULL TEST" also runs the two cylinder cases (Re = 20 and 100) with the same thresholds as
+  `tests/cfd.lbm.test.ts` (C_d, Strouhal number, lift amplitude). A pass means the card reproduces what the CPU solver reproduces.
+- **What was checked here.** The shaders were run on a **software** WebGPU implementation (no graphics card was available in the
+  development environment), so correctness was checked and speed was not:
+  the channel flow agrees with the exact parabola to 0.35 % of the centre velocity (the 32-bit rounding of a body force of 10⁻⁶ per step; the CPU solver
+  is exact to its 64-bit rounding) and with the CPU solver; the cylinder at Re = 20 gives C_d = 2.278 and no shedding (CPU: 2.28), and at
+  Re = 100 St = 0.175, C_d = 1.489 and a lift amplitude of 0.442 (CPU: 0.174–0.176, 1.48–1.53, 0.43), with the same thresholds as the CPU tests;
+  a complete run (16 cells, Re = 100, 25°, `scripts/gpu-compare.mjs`) gives a drag coefficient of 0.8557 against 0.8556 on the CPU, a lift
+  coefficient of 0.7927 against 0.7927, the same separation point (x = 8.5) and time-mean speed fields that differ by 2 × 10⁻⁵ U at most.
+  `tests/gpu.logic.test.ts` checks, without a card, that a run whose blocks are measured elsewhere closes them to the bit as a CPU run does.
+  **Speed was not measured on a real card**: use "TEST THE GPU" on yours.
+- **Auto fill** still runs on the CPU: it reshapes the body while the flow goes on, which the card path does not do yet. The shape it makes
+  can be computed on the card.
+
 ## What remains unvalidated, and open scientific questions
 
 1. **The detector is not validated** against any independent separation
@@ -710,6 +811,15 @@ the stated limits, no more.
 7. **Resolution.** The polyline surface is rough on the mean-free-path scale; the
    effect of station length and particle count on the measurements has not been
    studied.
+
+8. **The CFD on the graphics card** was compared with the CPU solver on a software WebGPU only (channel flow, two cylinder cases, two
+   complete runs); its speed, and the behaviour of a 256-cell lattice on a real card's memory, have not been measured.
+9. **Reynolds numbers above the resolution's limit** (8 × the number of cells) are not run; a sub-grid model (the solver has a Smagorinsky
+   option) has not been validated, and a flat or inclined plate at Re ≈ 10⁵ has a turbulent boundary layer that a two-dimensional lattice does not resolve.
+10. **The physics sheet** states the classical relations of the fluid and wind; whether the incompressible, isothermal, two-dimensional flow computed
+    at a lower Reynolds number says anything about a real wing is the open question of the whole workspace.
+11. **The shedding frequency** is read from a window of 20–26 flow-throughs: a coarse estimate (a few cycles), and it is a property of the
+    two-dimensional flow at the run's Reynolds number.
 
 None of this validates airfoil performance, and none of it unlocks Universe B
 or alters the UB-0 plan or its approval interlock.

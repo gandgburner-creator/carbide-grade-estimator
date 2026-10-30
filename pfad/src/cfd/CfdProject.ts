@@ -4,14 +4,14 @@ import { applyPointerEdit, baseHeight, validatePlate, describePointerEdit, fromB
 import type { Side, SurfaceGeometry } from '../geometry/SurfaceGeometry';
 import type { PhysicalInputs } from '../experiments/FlowGeometryExperiment';
 import type { CfdFillConfig, CfdFillMove, CfdFillResult, CfdFillStop } from './CfdFill';
-import type { CfdParams, CfdResult } from './CfdRun';
+import type { CFD_PRESETS, CfdParams, CfdResult } from './CfdRun';
 
 /**
  * The history of a CFD construction: an append-only record of versions of the rounded plate (each the plate plus the curve
  * the pointer has drawn so far), the CFD run of each, and what moved the pointer. Nothing is deleted: undo moves the head back
  * to the parent and marks the undone version. Pure functions: every change returns a new project.
  */
-export type CfdPreset = 'quick' | 'standard' | 'fine';
+export type CfdPreset = keyof typeof CFD_PRESETS;
 
 export interface CfdConditions {
   /** the plain inputs this project was set up from */

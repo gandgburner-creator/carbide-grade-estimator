@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { cfdForceMeasure } from '../../cfd/CfdForces';
 import { cfdActivePath, cfdVersion, type CfdPreset, type CfdProject, type CfdVersion } from '../../cfd/CfdProject';
 import type { CfdResult } from '../../cfd/CfdRun';
-import { CFD_PRESETS } from '../../cfd/CfdRun';
+import { CFD_PRESETS, GPU_PRESETS } from '../../cfd/CfdRun';
 import type { PhysicalInputs } from '../../experiments/FlowGeometryExperiment';
 import { FIELDS, sci, toKgf, TRAILING_FIELD, wingForces, type NumericKey } from '../../experiments/PhysicalScenario';
 import type { CfdSetup } from '../../experiments/CfdScenario';
@@ -128,6 +128,8 @@ export function CfdScenarioPanel(p: {
   disabled: boolean;
   preset: CfdPreset;
   onPreset: (k: CfdPreset) => void;
+  /** the three finest resolutions are offered when the run is computed on the graphics card */
+  gpuPresets: boolean;
   depthText: string;
   onDepth: (v: string) => void;
   depthError: string | null;
@@ -160,13 +162,13 @@ export function CfdScenarioPanel(p: {
       {p.depthError && <div className="error">{p.depthError}</div>}
       {p.errors && p.errors.map((e, i) => <div key={i} className="error">{e}</div>)}
       <div className="seg" style={{ margin: '6px 0' }}>
-        {(['quick', 'standard', 'fine'] as const).map((k) => (
-          <button key={k} className={`ctl ${p.preset === k ? 'on' : ''}`} disabled={p.disabled} onClick={() => p.onPreset(k)} aria-label={`resolution ${k}`} title={`${CFD_PRESETS[k].cells} lattice cells along the plate`}>
+        {(Object.keys(CFD_PRESETS) as CfdPreset[]).map((k) => (
+          <button key={k} className={`ctl ${p.preset === k ? 'on' : ''}`} disabled={p.disabled || (GPU_PRESETS.includes(k) && !p.gpuPresets)} onClick={() => p.onPreset(k)} aria-label={`resolution ${k}`} title={`${CFD_PRESETS[k].cells} lattice cells along the plate${GPU_PRESETS.includes(k) ? (p.gpuPresets ? ' (graphics card)' : ': needs the graphics card (choose GPU)') : ''}`}>
             {k.toUpperCase()}
           </button>
         ))}
       </div>
-      <div className="note">Resolution: {s ? s.cells : CFD_PRESETS[p.preset].cells} cells along the plate. A finer lattice resolves more of the boundary layer and can run a higher Reynolds number, and takes longer: about 2 minutes (quick), 6 (standard) or 20 (fine) per version on a laptop.</div>
+      <div className="note">Resolution: {s ? s.cells : CFD_PRESETS[p.preset].cells} cells along the plate. A finer lattice resolves more of the boundary layer and can run a higher Reynolds number, and takes longer: about 2 minutes (quick), 6 (standard) or 20 (fine) per version on a laptop CPU; on a graphics card seconds to a few minutes, the three finest (128, 192 and 256 cells) only on the card. The lattice runs Reynolds numbers up to 8 × the number of cells ({s ? Math.round(s.reynoldsCap) : 8 * CFD_PRESETS[p.preset].cells}).</div>
       {s && (
         <div className="exp-banner" style={{ margin: '6px 0' }}>
           <b>What the simulation will run</b>
@@ -192,7 +194,7 @@ export function CfdMeasurements(p: { version: CfdVersion; scenario: PhysicalInpu
   return (
     <div>
       <div className="exp-banner">
-        CFD result of {p.version.id}: Reynolds number {Math.round(res.params.reynolds)} ({res.params.cells} cells along the plate), mean over {res.windowSteps} steps in {res.params.blocks} time blocks (± 1 standard error of the block means). The solver is deterministic: there is no seed, and the only uncertainty is the time variation of the flow.
+        CFD result of {p.version.id}: Reynolds number {Math.round(res.params.reynolds)} ({res.params.cells} cells along the plate), mean over {res.windowSteps} steps in {res.params.blocks} time blocks (± 1 standard error of the block means). The solver is deterministic: there is no seed, and the only uncertainty is the time variation of the flow. Computed {res.engine ? `${res.engine.kind === 'gpu' ? 'on the graphics card' : 'on the CPU'} (${res.engine.adapter}, ${res.engine.precision === 'float32' ? '32-bit' : '64-bit'} arithmetic)` : 'on the CPU'}.
       </div>
       <h3 className="h3">Integrity of the run <span className={`tag ${res.integrity.status === 'PASSED' ? 'measured' : 'stopped'}`}>{res.integrity.status}</span></h3>
       <table className="results">

@@ -75,6 +75,28 @@ function rng(seed: number) {
   };
 }
 
+/** The equilibrium population of direction k at density ρ and velocity (u_x, u_y). */
+export function equilibrium(k: number, rho: number, ux: number, uy: number): number {
+  const cu = CX[k] * ux + CY[k] * uy;
+  return WGT[k] * rho * (1 + 3 * cu + 4.5 * cu * cu - 1.5 * (ux * ux + uy * uy));
+}
+
+/**
+ * The starting state of a lattice: the free stream (or rest), with an optional seeded perturbation, in the layout k·N + n. Shared by the
+ * CPU solver and by the GPU solver (cfd/gpu), so that both start from the same populations.
+ */
+export function fillInitialPopulations(c: LbmConfig, solid: Uint8Array, out: Float64Array | Float32Array): void {
+  const N = c.nx * c.ny;
+  const rand = rng(c.seed ?? 1);
+  const u0 = c.rest || (c.rampSteps ?? 0) > 0 ? 0 : c.uIn;
+  for (let n = 0; n < N; n++) {
+    const pert = c.noise ? c.noise * c.uIn * (rand() - 0.5) * 2 : 0;
+    const ux = solid[n] ? 0 : u0 + pert;
+    const uy = solid[n] ? 0 : pert;
+    for (let k = 0; k < 9; k++) out[k * N + n] = equilibrium(k, 1, ux, uy);
+  }
+}
+
 export class LbmSolver {
   readonly nx: number;
   readonly ny: number;
@@ -152,15 +174,7 @@ export class LbmSolver {
         this.kind[n] = general ? 1 : 0;
       }
     }
-    // initial state: the free stream (or rest), with an optional seeded perturbation
-    const rand = rng(c.seed ?? 1);
-    const u0 = c.rest || (c.rampSteps ?? 0) > 0 ? 0 : c.uIn;
-    for (let n = 0; n < this.N; n++) {
-      const pert = c.noise ? c.noise * c.uIn * (rand() - 0.5) * 2 : 0;
-      const ux = this.solid[n] ? 0 : u0 + pert;
-      const uy = this.solid[n] ? 0 : pert;
-      for (let k = 0; k < 9; k++) this.fa[k * this.N + n] = this.feq(k, 1, ux, uy);
-    }
+    fillInitialPopulations(c, this.solid, this.fa);
   }
 
   /**
@@ -195,8 +209,7 @@ export class LbmSolver {
   }
 
   private feq(k: number, rho: number, ux: number, uy: number): number {
-    const cu = CX[k] * ux + CY[k] * uy;
-    return WGT[k] * rho * (1 + 3 * cu + 4.5 * cu * cu - 1.5 * (ux * ux + uy * uy));
+    return equilibrium(k, rho, ux, uy);
   }
 
   /** density and velocity at a node (post-streaming populations) */

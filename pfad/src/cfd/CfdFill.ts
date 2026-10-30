@@ -2,6 +2,7 @@ import { cfdGapAt, type CfdGapStation } from '../geometry/PointerMeasure';
 import { addPointerPoint, anchorOf, clonePaths, DEFAULT_POINTER_STEP, planPointerStep, plateGeometry, pointerOf, type PlateSpec, type PointerPaths, type PointerStepConfig, type Pt } from '../geometry/Pointer';
 import { bodyPolygon, place, type Side, type SurfaceGeometry } from '../geometry/SurfaceGeometry';
 import { CfdRun, profileSpec, type CfdParams } from './CfdRun';
+import type { LbmSolver } from './Lbm';
 import { rasterize } from './Raster';
 import { dividingStreamline, sampleProfiles, wallStations, type ProfileSpec } from './Walls';
 
@@ -140,6 +141,10 @@ export class CfdFillRun {
   get solver() {
     return this.base.solver;
   }
+  /** the fill is computed on the CPU solver (it moves the body inside the running flow); a run on the graphics card has none */
+  private get cpuSolver(): LbmSolver {
+    return this.base.solver as LbmSolver;
+  }
   get nx() {
     return this.base.nx;
   }
@@ -250,7 +255,7 @@ export class CfdFillRun {
       this.sUx[n] /= m;
       this.sUy[n] /= m;
     }
-    const mon = b.solver.monitor();
+    const mon = this.cpuSolver.monitor();
     this.maxMach = Math.max(this.maxMach, mon.maxSpeed * Math.sqrt(3));
     if (!mon.finite) return this.finish('failed', 'the state became non-finite');
     const side = this.cfg.side;
@@ -271,7 +276,7 @@ export class CfdFillRun {
     this.geometry = plateGeometry(this.plate, this.paths, this.spacing);
     const poly = place(bodyPolygon(this.geometry), b.placement).map((v) => v * b.cpu);
     const r = rasterize(b.nx, b.ny, poly);
-    b.solver.reshape(r.solid, r.wallQ);
+    this.cpuSolver.reshape(r.solid, r.wallQ);
     this.moves.push({ n: this.moves.length + 1, t: this.time, from, to: next.to, surface: next.surface, gap: next.gap, rise: next.rise, reversedStations: reversed.length, maxH, note: next.note });
     if (next.atAnchor) return this.finishAtAnchor();
     if (this.moves.length >= this.cfg.maxMoves) return this.finish('limit', `the limit of ${this.cfg.maxMoves} moves was reached before the anchor`);

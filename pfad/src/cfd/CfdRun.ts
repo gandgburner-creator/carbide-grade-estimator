@@ -1,6 +1,7 @@
 import { bodyPolygon, placementAt, place, type Placement, type Side, type SurfaceGeometry } from '../geometry/SurfaceGeometry';
-import { LbmSolver } from './Lbm';
-import { rasterize } from './Raster';
+import { LbmSolver, type LbmConfig } from './Lbm';
+import { rasterize, type Raster } from './Raster';
+import { analyseShedding, type Shedding } from './Shedding';
 import { dividingStreamline, sampleProfiles, wallGradient, wallStations, type ProfileSpec, type WallStation } from './Walls';
 
 /**
@@ -42,10 +43,19 @@ export interface CfdParams {
 }
 
 export const CFD_PRESETS = {
+  /** a coarse preview: seconds on a graphics card; thin plates are drawn thicker than asked (see the note under the resolution) */
+  draft: { cells: 24, warmup: 6, average: 10 },
   quick: { cells: 48, warmup: 10, average: 20 },
   standard: { cells: 64, warmup: 12, average: 22 },
   fine: { cells: 96, warmup: 14, average: 26 },
+  /** the three finest are meant for the graphics card: the CPU would need hours (the lattice has 4 to 8 times more nodes and takes more steps per flow-through) */
+  finer: { cells: 128, warmup: 14, average: 26 },
+  ultra: { cells: 192, warmup: 14, average: 26 },
+  max: { cells: 256, warmup: 14, average: 26 },
 } as const;
+
+/** the presets that are only practical on the graphics card */
+export const GPU_PRESETS: readonly (keyof typeof CFD_PRESETS)[] = ['finer', 'ultra', 'max'];
 
 /**
  * Lattice speed 0.06 keeps the largest local speed (about 2.5 U in the vortices) below Mach 0.3; the domain is 9 plate
@@ -75,6 +85,39 @@ const batch = (v: number[]): Est => {
   const sd = Math.sqrt(v.reduce((a, b) => a + (b - mean) ** 2, 0) / (n - 1));
   return { mean, se: sd / Math.sqrt(n), n };
 };
+
+/** What a run needs from the engine that advances the flow: the CPU solver of Lbm.ts, or (for a run on the graphics card) a stand-in that the card's driver keeps up to date. */
+export interface RunSolver {
+  readonly solid: Uint8Array;
+  steps: number;
+  fx: number;
+  fy: number;
+  step(): boolean;
+  fields(rho: Float64Array, ux: Float64Array, uy: Float64Array): void;
+}
+
+/** The stand-in of a run whose steps are taken on the graphics card: it only carries the body, the step count and the force. */
+class ExternalSolver implements RunSolver {
+  steps = 0;
+  fx = 0;
+  fy = 0;
+  constructor(readonly solid: Uint8Array) {}
+  step(): boolean {
+    throw new Error('this run is advanced on the graphics card');
+  }
+  fields(): void {
+    throw new Error('this run is advanced on the graphics card');
+  }
+}
+
+/** Where a run was computed (provenance of a result). */
+export interface CfdEngineInfo {
+  kind: 'cpu' | 'gpu';
+  /** the graphics adapter, for a run on the card */
+  adapter: string;
+  /** the precision of the populations */
+  precision: 'float64' | 'float32';
+}
 
 export interface CfdStationResult {
   side: Side;
@@ -123,6 +166,8 @@ export interface CfdGrid {
 
 export interface CfdResult {
   schema: 'pfad-cfd-run/1';
+  /** where it was computed; absent in results saved before the graphics-card solver existed (those ran on the CPU) */
+  engine?: CfdEngineInfo;
   params: Omit<CfdParams, 'geometry'>;
   tau: number;
   nu: number;
@@ -138,6 +183,8 @@ export interface CfdResult {
   blockForces: { dragCoeff: number[]; liftCoeff: number[] };
   stations: Record<Side, CfdStationResult[]>;
   separation: Record<Side, CfdSeparation>;
+  /** the shedding of vortices seen in the lift over the window (absent in results saved before it was measured) */
+  shedding?: Shedding;
   grid: CfdGrid;
   integrity: { status: 'PASSED' | 'WARNING' | 'FAILED'; checks: { id: string; label: string; pass: boolean; /** failing this makes the whole run FAILED rather than a WARNING */ hard: boolean; value: string; criterion: string }[]; maxMach: number; fluxImbalance: number; densityDrift: number; forceDrift: number };
   /** the profile sampling used (lattice cells) */
@@ -159,7 +206,9 @@ export function cfdPlacement(p: Pick<CfdParams, 'alphaDeg' | 'widthL' | 'heightL
 
 export class CfdRun {
   readonly p: CfdParams;
-  readonly solver: LbmSolver;
+  readonly solver: RunSolver;
+  /** the body on the lattice (solid nodes and wall-link fractions) */
+  readonly raster: Raster;
   readonly nx: number;
   readonly ny: number;
   readonly cpu: number;
@@ -191,6 +240,12 @@ export class CfdRun {
   private blockFy: number[] = [];
   private blockRho: number[] = [];
   private blockIdx = 0;
+  /** the mean lift and drag per step over each sampling interval of the window (lattice units): the time series the shedding is read from */
+  private liftSeries: number[] = [];
+  private dragSeries: number[] = [];
+  private sinceFx = 0;
+  private sinceFy = 0;
+  private sinceN = 0;
   private readonly profUt: Record<Side, Float64Array[][]> = { upper: [], lower: [] };
   private readonly profRho: Record<Side, Float64Array[][]> = { upper: [], lower: [] };
   private fluxIn = 0;
@@ -201,7 +256,8 @@ export class CfdRun {
   private diverged = false;
   phase: 'warm-up' | 'averaging' | 'done' = 'warm-up';
 
-  constructor(p: CfdParams) {
+  /** `external`: the steps are taken elsewhere (the graphics card); no CPU solver is built, and the measurements are fed in with ingestBlock */
+  constructor(p: CfdParams, opts: { external?: boolean } = {}) {
     if (!(p.cells >= 16)) throw new Error('at least 16 cells along the plate');
     this.p = p;
     const g = p.geometry;
@@ -226,7 +282,8 @@ export class CfdRun {
     }
     this.blockage = (ymax - ymin) / this.ny;
     const r = rasterize(this.nx, this.ny, poly);
-    this.solver = new LbmSolver({ nx: this.nx, ny: this.ny, tau: this.tau, uIn: p.uLattice, solid: r.solid, wallQ: r.wallQ, noise: 0.01, seed: p.seed, smagorinsky: p.smagorinsky, rampSteps: p.ramp, sponge: p.spongeL > 0 ? { cells: Math.round(p.spongeL * p.cells), tau: p.spongeTau } : undefined });
+    this.raster = r;
+    this.solver = opts.external ? new ExternalSolver(r.solid) : new LbmSolver(this.lbmConfig());
     const N = this.nx * this.ny;
     this.rho = new Float64Array(N);
     this.ux = new Float64Array(N);
@@ -246,8 +303,55 @@ export class CfdRun {
     }
   }
 
+  /** The lattice, the body and the flow conditions of this run, as the solver takes them (the CPU solver and the one on the graphics card are built from the same). */
+  lbmConfig(): LbmConfig {
+    const p = this.p;
+    return { nx: this.nx, ny: this.ny, tau: this.tau, uIn: p.uLattice, solid: this.raster.solid, wallQ: this.raster.wallQ, noise: 0.01, seed: p.seed, smagorinsky: p.smagorinsky, rampSteps: p.ramp, sponge: p.spongeL > 0 ? { cells: Math.round(p.spongeL * p.cells), tau: p.spongeTau } : undefined };
+  }
+
   get time(): number {
     return this.solver.steps / this.conv;
+  }
+
+  /** the upstream reference density of the run so far (1 until the first time block is closed) */
+  get rhoInfNow(): number {
+    return this.rhoProbe.length ? this.rhoProbe[this.rhoProbe.length - 1] : 1;
+  }
+
+  /** the lattice node where the upstream reference density is read */
+  get probeNode(): number {
+    return (this.ny >> 1) * this.nx + Math.round(0.4 * this.p.cells);
+  }
+
+  /** a run advanced elsewhere has found the solution non-finite */
+  markDiverged(): void {
+    this.diverged = true;
+    this.phase = 'done';
+  }
+
+  /**
+   * The measurements of one time block, taken elsewhere (the graphics card): the SUMS of density and velocity over `samples` samples,
+   * the mean force per step, the sum of the upstream density probe, the mass fluxes through the two reference columns, and the extremes
+   * seen. Closes the block exactly as a block of a CPU run is closed.
+   */
+  ingestBlock(b: { series?: { fx: number[]; fy: number[] }; rho: ArrayLike<number>; ux: ArrayLike<number>; uy: ArrayLike<number>; samples: number; fx: number; fy: number; probe: number; fluxIn: number; fluxOut: number; maxSpeed: number; rhoMin: number; rhoMax: number }): void {
+    if (b.series) {
+      this.dragSeries.push(...b.series.fx);
+      this.liftSeries.push(...b.series.fy);
+    }
+    this.blkRho.set(b.rho);
+    this.blkUx.set(b.ux);
+    this.blkUy.set(b.uy);
+    this.blkN = b.samples;
+    this.blockFx = [b.fx];
+    this.blockFy = [b.fy];
+    this.blockRho = [b.probe / Math.max(1, b.samples)];
+    this.fluxIn += b.fluxIn;
+    this.fluxOut += b.fluxOut;
+    this.maxSpeed = Math.max(this.maxSpeed, b.maxSpeed);
+    this.rhoMin = Math.min(this.rhoMin, b.rhoMin);
+    this.rhoMax = Math.max(this.rhoMax, b.rhoMax);
+    this.closeBlock();
   }
 
   progress(): number {
@@ -270,7 +374,15 @@ export class CfdRun {
         this.phase = 'averaging';
         this.blockFx.push(this.solver.fx);
         this.blockFy.push(this.solver.fy);
-        if ((t - this.warmSteps) % this.p.sampleEvery === 0) this.sample();
+        this.sinceFx += this.solver.fx;
+        this.sinceFy += this.solver.fy;
+        this.sinceN++;
+        if ((t - this.warmSteps) % this.p.sampleEvery === 0) {
+          this.dragSeries.push(this.sinceFx / this.sinceN);
+          this.liftSeries.push(this.sinceFy / this.sinceN);
+          this.sinceFx = this.sinceFy = this.sinceN = 0;
+          this.sample();
+        }
         if ((t - this.warmSteps) % this.blockSteps === 0) this.closeBlock();
       }
       if (t >= total) this.phase = 'done';
@@ -332,6 +444,8 @@ export class CfdRun {
     this.blockFx = [];
     this.blockFy = [];
     this.blockRho = [];
+    // the force series restarts with every block (as on the graphics card, where the sums are read back and cleared per block)
+    this.sinceFx = this.sinceFy = this.sinceN = 0;
     this.blkRho.fill(0);
     this.blkUx.fill(0);
     this.blkUy.fill(0);
@@ -502,6 +616,7 @@ export class CfdRun {
     void geometry;
     return {
       schema: 'pfad-cfd-run/1',
+      engine: { kind: 'cpu', adapter: 'JavaScript on the CPU', precision: 'float64' },
       params,
       tau: this.tau,
       nu,
@@ -514,6 +629,11 @@ export class CfdRun {
       blockForces: { dragCoeff: dragBlocks.map((f) => f / ref), liftCoeff: liftBlocks.map((f) => f / ref) },
       stations: stationsOut,
       separation,
+      shedding: analyseShedding(
+        this.liftSeries.map((f) => f / ref),
+        p.sampleEvery / this.conv,
+        (this.blockage * this.ny) / p.cells,
+      ),
       grid,
       integrity: { status, checks, maxMach, fluxImbalance, densityDrift, forceDrift },
       profile: spec,

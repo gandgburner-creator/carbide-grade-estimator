@@ -1,0 +1,9 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>PFAD GPU test (development only)</title></head>
+<body><pre id="out">loading…</pre>
+<script type="module">
+  import { runGpuSelfTest } from '/src/cfd/gpu/GpuSelfTest.ts';
+  import { compareRuns, comparisonParams } from '/src/cfd/gpu/GpuRunCompare.ts';
+  window.__gpuTest = { run: (o) => runGpuSelfTest(o), compare: async (a) => { const r = await compareRuns(comparisonParams(a.cells, a.reynolds, a.alphaDeg, a.warmup, a.average)); if (!r) return null; const pick = (x) => ({ cd: x.forces.dragCoeff.mean, cl: x.forces.liftCoeff.mean, status: x.integrity.status, maxMach: x.integrity.maxMach, flux: x.integrity.fluxImbalance, drift: x.integrity.densityDrift, rhoInf: x.rhoInf, engine: x.engine, sepU: x.separation.upper.note, steps: x.steps, shed: x.shedding && { amp: x.shedding.amplitude, mean: x.shedding.meanLift, st: x.shedding.strouhal, cycles: x.shedding.cycles, note: x.shedding.note } }); return { cpu: pick(r.cpu), gpu: pick(r.gpu), dragDiff: r.dragDiff, liftDiff: r.liftDiff, speedDiff: r.speedDiff, cpuSeconds: r.cpuSeconds, gpuSeconds: r.gpuSeconds }; } };
+  document.getElementById('out').textContent = 'ready: window.__gpuTest.run(options)';
+</script></body></html>

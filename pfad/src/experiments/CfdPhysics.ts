@@ -284,6 +284,25 @@ export function resultPhysics(sheet: PhysicsSheet, res: CfdResult): ResultPhysic
   rows.push({ id: 'cp0', name: 'Where Bernoulli’s equation holds', symbol: '|C_p0| < 0.02', value: `${(100 * f.bernoulliShare).toFixed(0)} % of the fluid`, formula: 'C_p0 = C_p + |u|²/U² − 1', meaning: `in this share of the flow p + ½ρ|u|² equals its free-stream value to within 2 % of q; in the rest (boundary layers, the wake, the plate’s own disturbance) viscosity has taken total pressure out of the flow, as low as C_p0 = ${f.totalPressureMin.toFixed(2)}. Choose the “total pressure” view to see where. The solver does not use Bernoulli’s equation: this is a check of its result against it.`, level: 'ok' });
   if (f.totalPressureMax > 0.1) warnings.push(`The total pressure rises to C_p0 = ${f.totalPressureMax.toFixed(2)} somewhere in the flow, which a viscous steady flow cannot do: this is the unsteady, block-averaged field or a sign that the run is not converged.`);
 
+  // vortex shedding: the frequency of the lift oscillation of this run, and what the same Strouhal number would mean in the fluid and for the plate described
+  const sh = res.shedding;
+  if (sh) {
+    if (sh.strouhal !== null) {
+      const hz = (sh.strouhal * sheet.windMs) / sheet.chordM;
+      rows.push({
+        id: 'strouhal',
+        name: 'Vortex shedding (Strouhal number)',
+        symbol: 'St',
+        value: sh.strouhal.toFixed(3),
+        formula: 'f L / U from the period of the lift (based on the height across the stream: ' + (sh.strouhalHeight ?? 0).toFixed(3) + ')',
+        meaning: `${sh.note}. With the same Strouhal number your plate (${(sheet.chordM * 100).toFixed(0)} cm, ${sheet.windMs.toFixed(1)} m/s, ${sheet.fluid.label.toLowerCase()}) would shed vortices at about ${sci(hz)} Hz — a carry-over that holds only if the Strouhal number does not change between this run's Reynolds number (${Math.round(res.params.reynolds)}) and yours (${sci(sheet.reynoldsChord)}), which it generally does.`,
+        level: 'ok',
+      });
+    } else {
+      rows.push({ id: 'strouhal', name: 'Vortex shedding (Strouhal number)', symbol: 'St', value: '—', formula: 'f L / U from the period of the lift', meaning: `${sh.note}.`, level: 'ok' });
+    }
+  }
+
   let localMach: number | null = null;
   const gas = sheet.fluid.kind === 'gas' && sheet.fluid.gamma !== null;
   if (gas) {

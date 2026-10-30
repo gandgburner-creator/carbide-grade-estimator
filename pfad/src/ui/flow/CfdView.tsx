@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { CFD_FIELD_LABEL, robustRange } from '../../cfd/CfdFields';
 import type { CfdViewKind } from '../../workers/cfdProtocol';
-import { fieldScale } from '../colors';
+import { cfdScale } from './cfdPalette';
+import type { GridField } from '../../measurements/Streamlines';
+import { FieldGL } from './FieldGL';
+import { Tracers } from './Tracers';
 import { transformOf, type Camera, type ViewHandle } from '../ParticleView';
 
 type T = ReturnType<typeof transformOf>;
@@ -20,6 +23,7 @@ export function CfdView({
   caption,
   handles,
   onHandleDrag,
+  tracers,
 }: {
   field: { nx: number; ny: number; values: ArrayLike<number> } | null;
   kind: CfdViewKind;
@@ -31,9 +35,12 @@ export function CfdView({
   /** points the person can pick up and drag (plate units in the domain); a drag reports where the point was dropped to, and the view does not pan meanwhile */
   handles?: ViewHandle[];
   onHandleDrag?: (id: string, x: number, y: number) => void;
+  /** a velocity field (units of the free-stream speed) to carry animated tracer points, or null for none */
+  tracers?: GridField | null;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const off = useRef<HTMLCanvasElement | null>(null);
+  const gpuField = useRef<FieldGL | null>(null);
   const drag = useRef<{ x: number; y: number; cam: Camera } | null>(null);
   const handleDrag = useRef<string | null>(null);
   const at = (e: { clientX: number; clientY: number }) => {
@@ -45,6 +52,8 @@ export function CfdView({
     const py = e.clientY - rect.top;
     return { T, px, py, x: T.invX(px), y: T.invY(py) };
   };
+  const trRef = useRef<HTMLCanvasElement>(null);
+  const tracerSys = useRef<Tracers | null>(null);
   const [size, setSize] = useState(0);
   useEffect(() => {
     const c = ref.current;
@@ -54,7 +63,7 @@ export function CfdView({
     return () => ro.disconnect();
   }, []);
   const range = field ? robustRange(field.values, kind) : { lo: 0, hi: 1, signed: false };
-  const sc = fieldScale(range.signed ? 'ux' : 'speed', range.lo, range.hi);
+  const sc = cfdScale(range.lo, range.hi, range.signed);
 
   useEffect(() => {
     const canvas = ref.current;
@@ -75,32 +84,41 @@ export function CfdView({
     g.fillStyle = '#10151b';
     g.fillRect(T.X(0), T.Y(domain.h), domain.w * T.s, domain.h * T.s);
     if (field) {
-      let o = off.current;
-      if (!o) o = off.current = document.createElement('canvas');
-      o.width = field.nx;
-      o.height = field.ny;
-      const og = o.getContext('2d')!;
-      const img = og.createImageData(field.nx, field.ny);
-      for (let j = 0; j < field.ny; j++)
-        for (let i = 0; i < field.nx; i++) {
-          const v = field.values[j * field.nx + i];
-          const p = ((field.ny - 1 - j) * field.nx + i) * 4;
-          if (!Number.isFinite(v)) {
-            img.data[p] = 40;
-            img.data[p + 1] = 44;
-            img.data[p + 2] = 50;
+      // the field is drawn by the graphics card (cubic interpolation, colour scale, relief); the 2-D canvas draws it itself where there is no WebGL2
+      let drawn = false;
+      if (!gpuField.current) gpuField.current = new FieldGL();
+      if (gpuField.current.ok) {
+        drawn = gpuField.current.render({ nx: field.nx, ny: field.ny, values: field.values, lut: sc.lut, lo: sc.lo, hi: sc.hi, domain, x0: T.X(0), y0: T.Y(domain.h), scale: T.s, cssW: w, cssH: h, dpr, shade: kind === 'speed' ? 0.12 : 0.28 });
+        if (drawn) g.drawImage(gpuField.current.canvas, 0, 0, w, h);
+      }
+      if (!drawn) {
+        let o = off.current;
+        if (!o) o = off.current = document.createElement('canvas');
+        o.width = field.nx;
+        o.height = field.ny;
+        const og = o.getContext('2d')!;
+        const img = og.createImageData(field.nx, field.ny);
+        for (let j = 0; j < field.ny; j++)
+          for (let i = 0; i < field.nx; i++) {
+            const v = field.values[j * field.nx + i];
+            const p = ((field.ny - 1 - j) * field.nx + i) * 4;
+            if (!Number.isFinite(v)) {
+              img.data[p] = 40;
+              img.data[p + 1] = 44;
+              img.data[p + 2] = 50;
+              img.data[p + 3] = 255;
+              continue;
+            }
+            const [r, gg, b] = sc.color(v);
+            img.data[p] = r;
+            img.data[p + 1] = gg;
+            img.data[p + 2] = b;
             img.data[p + 3] = 255;
-            continue;
           }
-          const [r, gg, b] = sc.color(v);
-          img.data[p] = r;
-          img.data[p + 1] = gg;
-          img.data[p + 2] = b;
-          img.data[p + 3] = 255;
-        }
-      og.putImageData(img, 0, 0);
-      g.imageSmoothingEnabled = true;
-      g.drawImage(o, T.X(0), T.Y(domain.h), domain.w * T.s, domain.h * T.s);
+        og.putImageData(img, 0, 0);
+        g.imageSmoothingEnabled = true;
+        g.drawImage(o, T.X(0), T.Y(domain.h), domain.w * T.s, domain.h * T.s);
+      }
     }
     g.strokeStyle = '#2a333d';
     g.lineWidth = 1;
@@ -108,6 +126,45 @@ export function CfdView({
     overlay(g, T);
   });
   void size;
+
+  const haveTracers = !!tracers;
+  // the animated tracers live on a canvas of their own over the field: a frame fades the trails a little and adds this frame's steps
+  useEffect(() => {
+    const c = trRef.current;
+    if (!c) return;
+    const g = c.getContext('2d')!;
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.clearRect(0, 0, c.width, c.height);
+    if (!haveTracers || (typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+    if (!tracerSys.current) tracerSys.current = new Tracers();
+    let raf = 0;
+    const frame = () => {
+      const dpr = window.devicePixelRatio || 1;
+      const w = c.clientWidth;
+      const h = c.clientHeight;
+      if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) {
+        c.width = Math.round(w * dpr);
+        c.height = Math.round(h * dpr);
+      }
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const T = transformOf({ xmin: 0, xmax: domain.w, ymin: 0, ymax: domain.h } as Parameters<typeof transformOf>[0], w, h, camera);
+      g.globalCompositeOperation = 'destination-out';
+      g.fillStyle = 'rgba(0,0,0,0.09)';
+      g.fillRect(0, 0, w, h);
+      g.globalCompositeOperation = 'source-over';
+      tracerSys.current!.tick();
+      tracerSys.current!.draw(g, (x) => T.X(x), (y) => T.Y(y));
+      raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(raf);
+  }, [haveTracers, domain.w, domain.h, camera?.zoom, camera?.cx, camera?.cy, size]);
+  // a new velocity field (a frame of a run in progress) replaces the one the tracers ride on; the tracers and their trails stay
+  useEffect(() => {
+    if (!tracerSys.current) tracerSys.current = new Tracers();
+    tracerSys.current.setField(tracers ?? null, domain);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tracers, domain.w, domain.h]);
 
   const info = CFD_FIELD_LABEL[kind];
   return (
@@ -159,6 +216,7 @@ export function CfdView({
           drag.current = null;
         }}
       />
+      <canvas ref={trRef} aria-hidden="true" style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />
       <div className="legend" style={{ maxWidth: 'min(660px, 82%)' }}>
         <div>{caption}</div>
         <div className="legend-scale" style={{ marginTop: 4 }}>
