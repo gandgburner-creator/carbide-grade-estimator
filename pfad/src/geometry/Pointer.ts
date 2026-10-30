@@ -132,6 +132,8 @@ export function tailPoint(s: PlateSpec, anchor: Pt): Pt {
   const rt = trailingRadiusOf(s);
   const d0 = defaultAnchor(s);
   if (Math.abs(anchor.x - d0.x) < 1e-9 && Math.abs(anchor.y - d0.y) < 1e-9) return d0;
+  // on the trailing circle itself (beyond its top) the anchor is the point where the straight line would touch it
+  if (anchor.x > d0.x + 1e-9) return { x: anchor.x, y: anchor.y };
   const vx = anchor.x - D;
   const vy = anchor.y;
   const dist = Math.hypot(vx, vy);
@@ -225,11 +227,10 @@ function segmentHeight(seg: CubicSegment, x: number): number {
  * than the plate's own surface.
  */
 export function outwardHeight(s: PlateSpec, path: Pt[], x: number, segs?: CubicSegment[], anchor: Pt = anchorOf(s)): number {
-  const r = radiusOf(s);
   const rt = trailingRadiusOf(s);
-  const a0 = startOf(s);
   const tail = tailPoint(s, anchor);
-  if (x <= a0.x) return Math.sqrt(Math.max(0, r * r - x * x));
+  // left of the first placed point the surface is the plate's own wall
+  if (x <= path[0].x) return baseHeight(s, x);
   if (x >= tail.x) {
     const dx = x - centreDistance(s);
     return Math.sqrt(Math.max(0, rt * rt - dx * dx));
@@ -241,7 +242,8 @@ export function outwardHeight(s: PlateSpec, path: Pt[], x: number, segs?: CubicS
   const last = path[path.length - 1];
   if (x >= last.x) {
     const f = anchor.x - last.x < 1e-12 ? 1 : (x - last.x) / (anchor.x - last.x);
-    return last.y + f * (anchor.y - last.y);
+    // a rope never goes through the plate: where the straight line would, it lies on the wall instead
+    return Math.max(baseHeight(s, x), last.y + f * (anchor.y - last.y));
   }
   const sg = segs ?? drawnSegments(s, path, anchor);
   let k = 0;
@@ -345,10 +347,12 @@ export function addPointerPoint(s: PlateSpec, paths: PointerPaths, side: Side, t
 
 /**
  * Everything a person can adjust about the three points and the arc, in one change (applied in this order):
- *   anchor  move the green dot of the side (null: put it back at the trailing circle's top);
- *   red     put the red dot (the last placed point) somewhere else, or change the direction the curve has there (at the very start
- *           only the direction can change: the start sits where the straight edge leaves the leading circle);
- *   to      place the pointer (the arc from the red dot to it is drawn; the rope runs from it to the green dot).
+ *   red     slide the red dot along the wall (the surface as it is now: the drawn curve, then the rope; its height is that of the
+ *           surface where it is, so only its x matters) and/or set the direction the curve has there. Going back along the drawn
+ *           curve drops what was drawn beyond the red dot (the earlier version stays in the history);
+ *   anchor  slide the green dot along the plate's own wall (only its x matters; the height is the wall's), forward of the red dot;
+ *           null puts it back at the trailing circle's top;
+ *   to      place the pointer, which is free above the wall (the arc from the red dot to it is drawn; the rope runs from it to the green dot).
  * A `to` of its own is optional: with none, the rope simply runs from the red dot.
  */
 export interface PointerEdit {
@@ -359,6 +363,28 @@ export interface PointerEdit {
 
 export function applyPointerEdit(s: PlateSpec, paths: PointerPaths, side: Side, edit: PointerEdit, limits: PointerLimits = DEFAULT_POINTER_LIMITS): AddResult {
   let next = clonePaths(paths);
+  const rt = trailingRadiusOf(s);
+  const xEnd = centreDistance(s) + rt;
+  // the red dot slides along the surface as it is now (the drawn curve, then the rope); its height is that of the surface where it is
+  if (edit.red) {
+    const path = pathOf(next, side);
+    const anchor = anchorOf(s, next, side);
+    const r = edit.red;
+    if (!Number.isFinite(r.x)) return { ok: false, reason: 'the red dot position is not a number' };
+    const why = checkAngle(r.angle, limits);
+    if (why) return { ok: false, reason: why };
+    const xMin = -0.9 * radiusOf(s);
+    if (r.x < xMin - 1e-9) return { ok: false, reason: `the red dot cannot go back past ${(xMin).toFixed(2)} d along the nose of the leading circle` };
+    if (!(r.x < anchor.x - 1e-6)) return { ok: false, reason: `the red dot must lie before the green dot (x < ${anchor.x.toFixed(2)} d)` };
+    const y = outwardHeight(s, path, r.x, undefined, anchor);
+    // going back along the drawn curve drops what was drawn beyond it (the version before it is kept in the history)
+    const kept = path.filter((q) => q.x < r.x - 1e-9);
+    const same = path.find((q) => Math.abs(q.x - r.x) < 1e-9);
+    kept.push({ x: r.x, y: same ? same.y : y, ...(r.angle !== undefined ? { angle: r.angle } : {}) });
+    path.length = 0;
+    path.push(...kept);
+  }
+  // the green dot slides along the plate's own wall, from the red dot to the trailing tip; the surface beyond it is the wall
   if (edit.anchor !== undefined) {
     if (edit.anchor === null) {
       if (next.anchor) {
@@ -369,32 +395,10 @@ export function applyPointerEdit(s: PlateSpec, paths: PointerPaths, side: Side, 
       const a = edit.anchor;
       const path = pathOf(next, side);
       const last = path[path.length - 1];
-      const d = defaultAnchor(s);
-      if (!Number.isFinite(a.x) || !Number.isFinite(a.y)) return { ok: false, reason: 'the anchor position is not a number' };
-      if (!(a.x > last.x + 1e-9)) return { ok: false, reason: `the anchor must lie beyond the red dot (x > ${last.x.toFixed(2)} d)` };
-      if (a.x > d.x + 1e-9) return { ok: false, reason: `the anchor cannot lie beyond the top of the trailing circle (x = ${d.x.toFixed(2)} d)` };
-      const base = baseHeight(s, a.x);
-      if (a.y < base - 1e-9) return { ok: false, reason: `the anchor cannot lie below the plate’s own surface (y = ${base.toFixed(2)} d here)` };
-      if (a.y > base + limits.maxRise + 1e-9) return { ok: false, reason: `the anchor is more than ${limits.maxRise} d above the plate` };
-      next.anchor = { ...(next.anchor ?? {}), [side]: { x: a.x, y: Math.max(base, a.y) } };
-    }
-  }
-  if (edit.red) {
-    const path = pathOf(next, side);
-    const n = path.length;
-    const r = edit.red;
-    const anchor = anchorOf(s, next, side);
-    const why = checkAngle(r.angle, limits);
-    if (why) return { ok: false, reason: why };
-    if (n === 1) {
-      const start = startOf(s);
-      if (Math.abs(r.x - start.x) > 1e-9 || Math.abs(r.y - start.y) > 1e-9) return { ok: false, reason: 'the first red dot sits where the straight edge leaves the leading circle and cannot be moved: place the pointer further on and move that one instead (only the direction of the curve can be changed at the start)' };
-      path[0] = { ...start, ...(r.angle !== undefined ? { angle: r.angle } : {}) };
-    } else {
-      const before = path[n - 2];
-      const bad = checkPoint(s, r, before, anchor, limits);
-      if (bad) return { ok: false, reason: `the red dot cannot go there: ${bad}` };
-      path[n - 1] = { x: r.x, y: Math.max(baseHeight(s, r.x), r.y), ...(r.angle !== undefined ? { angle: r.angle } : {}) };
+      if (!Number.isFinite(a.x)) return { ok: false, reason: 'the green dot position is not a number' };
+      if (!(a.x > last.x + 1e-9)) return { ok: false, reason: `the green dot must lie beyond the red dot (x > ${last.x.toFixed(2)} d)` };
+      if (a.x > xEnd - 1e-6) return { ok: false, reason: `the green dot cannot lie beyond the end of the trailing circle (x = ${xEnd.toFixed(2)} d)` };
+      next.anchor = { ...(next.anchor ?? {}), [side]: { x: a.x, y: baseHeight(s, a.x) } };
     }
   }
   if (edit.to) {

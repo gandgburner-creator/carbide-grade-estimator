@@ -437,19 +437,23 @@ saved projects are unchanged). The plate's own surface, below which material is 
 trailing end is drawn from one particle diameter across (a note says when it had to be changed); in the CFD it is at least
 a few lattice cells across.
 
-**Three dots and two arcs.** On each side there are three points: the **red dot** is where the drawn curve now ends (the last
-place the pointer was put), the **pointer** is where it goes next, and the **green dot** is the anchor the tether (a rope) is
-tied to. All three can be changed, by typing (in centimetres) or by **dragging them on the picture** (a drag fills in the same
-boxes, with the same preview and checks):
-- the **pointer**: where the arc from the red dot ends and the rope begins;
-- the **red dot**: re-places the last placed point (the first red dot sits where the straight edge leaves the leading circle and
-  cannot be moved, but its direction can be set);
-- the **green dot**: anywhere above the plate from the red dot to the top of the trailing circle; the surface runs to it along the
-  rope and then along a straight line that touches the trailing circle (a small corner at the green dot is possible: it is a pin);
-  one button puts it back;
-- the **arc**: between consecutive points it is a cubic whose direction at each end is set by the person (degrees from the plate
-  axis, positive outward, at most 80° so the surface stays a graph over the plate) or, when left empty, along the rope. A point
-  has one direction, shared by the arc arriving at it and the arc leaving it, so there is no corner at a placed point.
+**Three dots and two arcs.** On each side there are three points: the **red dot** is where the next arc starts, the **pointer** is
+where the arc ends (and where you put it next), and the **green dot** is the anchor the tether (a rope) is tied to.
+- The **red and the green dot stay on the wall and slide along it**; the pointer is free above it. Drag a dot on the picture (the
+  view projects the mouse onto the wall, so the dot follows the edge under your finger) or type where along the plate it is
+  (cm); their heights are not typed, they are the wall's. The boxes, the preview and the checks are the same whichever you use.
+- The **red dot** slides along the wall *as it is now*: the plate, then what has been drawn, then the rope, from the nose of the
+  leading circle to just before the green dot. At the start there is nothing drawn, so the wall is the plate's own and the red
+  dot can be put anywhere on it (a bump can start anywhere). After building it is on the built surface; sliding it back along the
+  drawn curve drops what was drawn beyond it (the version before it stays in the history); sliding it forward along the rope just
+  adds a waypoint on the rope (the surface does not change). Dragged past the pointer, it carries the pointer along.
+- The **green dot** slides along the plate's own wall, in front of the red dot and the pointer, to any point up to the trailing
+  tip; the rope comes down to it and behind it the surface is the plate's wall again (a small corner at the green dot is
+  possible: it is a pin). One button puts it back at the top of the trailing circle. A rope that a straight line would send through
+  the plate lies on the wall instead.
+- The **arc** between consecutive points is a cubic whose direction at each end can be set (degrees from the plate axis, positive
+  outward, at most 80° so the surface stays a graph over the plate); empty means along the rope. A point has one direction, shared
+  by the arc arriving at it and the arc leaving it, so there is no corner at a placed point.
 Every change is a new version with its own words in the history (undo goes back; nothing is deleted). The anchor and the
 directions are construction choices, not flow laws; nothing about the flow decides them.
 

@@ -662,7 +662,7 @@ export function FlowGeometry() {
   const onDotDrag = (id: string, sx: number, sy: number) => {
     if (!shape) return;
     const [bx, by] = unplace([sx, sy], handlePlacement);
-    setPTexts((t) => dragToTexts(shape.plate, id, bx - radiusOf(shape.plate), (pSide === 'upper' ? 1 : -1) * by, cmPerUnit, t));
+    setPTexts((t) => dragToTexts(shape.plate, shape.paths, pSide, id, bx - radiusOf(shape.plate), (pSide === 'upper' ? 1 : -1) * by, cmPerUnit, t));
   };
   const afterPointerVersion = (v: { id: string; parent: string | null }, text: string) => {
     setViewId(v.id);
@@ -876,8 +876,10 @@ export function FlowGeometry() {
         head.shape && !liveShape
           ? (() => {
               const r0 = radiusOf(head.shape.plate);
-              const at = pointerTarget.ok ? pointerTarget.redAt : pointerOf(head.shape.paths, pSide);
-              const a = pointerTarget.ok ? pointerTarget.anchorAt : anchorOf(head.shape.plate, head.shape.paths, pSide);
+              // the dots as typed or dragged: they follow the wall, also while a value is refused
+              const dd = dotsFromTexts(head.shape.plate, head.shape.paths, pSide, pTexts, cmPerUnit);
+              const at = dd.red;
+              const a = dd.green;
               const pa = pointerTarget.ok ? pointerTarget.pointerAt : null;
               return { side: pSide, at: { x: at.x + r0, y: at.y }, anchor: { x: a.x + r0, y: a.y }, preview: pointerTarget.ok ? pointerTarget.geometry : null, previewAt: pa ? { x: pa.x + r0, y: pa.y } : null };
             })()

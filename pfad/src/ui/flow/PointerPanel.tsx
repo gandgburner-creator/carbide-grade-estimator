@@ -1,5 +1,5 @@
 import { anchorMoved, anchorOf, baseHeight, defaultAnchor, pointerOf, trailingRadiusOf, type PlateSpec, type PointerPaths, type PointerStepConfig } from '../../geometry/Pointer';
-import type { PointerTexts } from '../../geometry/PointerInput';
+import { dotsFromTexts, type PointerTexts } from '../../geometry/PointerInput';
 import type { Side } from '../../geometry/SurfaceGeometry';
 
 export interface PointerLogLine {
@@ -72,11 +72,13 @@ export function PointerPanel(p: {
     const d = defaultAnchor(plate);
     p.onTexts({ ...p.texts, anchorX: cm(d.x), anchorRise: cm(d.y - baseHeight(plate, d.x)) });
   };
+  // where the two dots are on the wall for the typed positions (they follow the wall: only where along it is typed)
+  const dots = dotsFromTexts(plate, paths, p.side, p.texts, p.cmPerUnit);
   const hasPointerBox = p.texts.x.trim() !== '' || p.texts.rise.trim() !== '';
   return (
     <div>
       <div className="note">
-        The plate is a slot shape: both ends are half-circles (leading end {cm(plate.thickness)} cm across{thin ? `, trailing end ${cm(2 * trailingRadiusOf(plate))} cm across, joined by the straight edges that touch both` : ', and the trailing end the same'}). There are three points on a side. The <b>red dot</b> is where the drawn curve now ends (it starts on top of the leading circle). The <b>pointer</b> is where you put it next: an <b>arc</b> (a smooth curve) is drawn from the red dot to it. From the pointer a straight <b>tether</b>, a rope, runs to the <b>green dot</b>, the anchor tied at the trailing end (the green dashed line). All three can be moved, and the direction the curve has at the red dot and at the pointer can be set.
+        The plate is a slot shape: both ends are half-circles (leading end {cm(plate.thickness)} cm across{thin ? `, trailing end ${cm(2 * trailingRadiusOf(plate))} cm across, joined by the straight edges that touch both` : ', and the trailing end the same'}). There are three points on a side. The <b>red dot</b> is where the drawn curve now ends (it starts on top of the leading circle). The <b>pointer</b> is where you put it next: an <b>arc</b> (a smooth curve) is drawn from the red dot to it. From the pointer a straight <b>tether</b>, a rope, runs to the <b>green dot</b>, the anchor tied at the trailing end (the green dashed line). The red and the green dot <b>stay on the wall</b> and slide along it (drag them on the picture, or type where along the plate); the pointer is free above it. The direction the curve has at the red dot and at the pointer can be set.
         Where the pointer has been, the surface is a smooth curve through its positions; beyond it the surface is the tether. Material is only added: nothing goes below the plate. {p.caveat}
       </div>
       <div className="params" style={{ margin: '6px 0' }}>
@@ -134,30 +136,27 @@ export function PointerPanel(p: {
       </div>
       <details className="effective" open>
         <summary>Red dot, green dot and the arc between them</summary>
-        <div className="note">Red dot: where the arc starts. Move it to re-place the last point you put down (the first red dot stays on the leading circle; its direction can still be set). A direction is in degrees from the plate axis, positive outward; empty means along the rope.</div>
+        <div className="note">
+          <b>Red dot</b>: where the arc starts. It sits <b>on the wall</b> (the surface as it is now: the plate, the curve you have drawn, then the rope) and slides along it to any point from the nose of the leading circle to just before the green dot; its height is the wall’s. Drag it on the picture or type where along the plate it is. Sliding it back along what you have drawn drops what was drawn beyond it (the version before stays in the history). A direction is in degrees from the plate axis, positive outward; empty means along the rope.
+        </div>
         <div className="params" style={{ margin: '4px 0' }}>
           <label>
             red dot along [cm]
             <input inputMode="decimal" value={p.texts.redX} disabled={p.sweep.active} onChange={(e) => set('redX', e.target.value)} aria-label="red dot position along the plate in cm" />
           </label>
           <label>
-            red dot above [cm]
-            <input inputMode="decimal" value={p.texts.redRise} disabled={p.sweep.active} onChange={(e) => set('redRise', e.target.value)} aria-label="red dot height above the plate in cm" />
-          </label>
-          <label>
             curve leaves it at [°]
             <input inputMode="decimal" placeholder="along the rope" value={p.texts.redAngle} disabled={p.sweep.active} onChange={(e) => set('redAngle', e.target.value)} aria-label="direction of the curve at the red dot in degrees" />
           </label>
         </div>
-        <div className="note">Green dot: where the rope is tied. It can sit anywhere above the plate from the red dot to the top of the trailing circle; the surface runs from it along a straight line to the trailing circle.</div>
+        <div className="note" aria-label="red dot height">on the wall there: {cm(dots.red.y - baseHeight(plate, dots.red.x))} cm above the plate</div>
+        <div className="note">
+          <b>Green dot</b>: where the rope is tied. It sits on the <b>plate’s own wall</b> and slides along it, in front of the red dot, to any point up to the trailing tip; behind it the surface is the plate’s wall again. Drag it or type where along the plate it is.
+        </div>
         <div className="params" style={{ margin: '4px 0' }}>
           <label>
             green dot along [cm]
             <input inputMode="decimal" value={p.texts.anchorX} disabled={p.sweep.active} onChange={(e) => set('anchorX', e.target.value)} aria-label="green dot position along the plate in cm" />
-          </label>
-          <label>
-            green dot above [cm]
-            <input inputMode="decimal" value={p.texts.anchorRise} disabled={p.sweep.active} onChange={(e) => set('anchorRise', e.target.value)} aria-label="green dot height above the plate in cm" />
           </label>
         </div>
         <div className="seg">

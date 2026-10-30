@@ -53,77 +53,86 @@ async function dots(label, tab, canvasLabel) {
   step(`${label}: a plate with a 2 cm leading and a 1 cm trailing end is drawn`);
   await shot(`${label}-1-two-diameters`);
 
-  // the red dot, the pointer, the green dot, and the arc directions
-  await vis.getByText('Red dot, green dot and the arc between them').waitFor();
-  await field('green dot position along the plate in cm').fill('12');
-  await field('green dot height above the plate in cm').fill('0.6');
+  // find a marker on the canvas (the densest cluster of its colour)
+  const c = vis.locator(`canvas[aria-label*="${canvasLabel}"]`).first();
+  const box = await c.boundingBox();
+  const find = (rgb) =>
+    c.evaluate((cv, want) => {
+      const g = cv.getContext('2d');
+      const w = cv.width;
+      const h = cv.height;
+      const d = g.getImageData(0, 0, w, h).data;
+      const near = (i) => Math.abs(d[i] - want[0]) < 30 && Math.abs(d[i + 1] - want[1]) < 30 && Math.abs(d[i + 2] - want[2]) < 30;
+      let best = 0;
+      let at = null;
+      const S = 6;
+      for (let y = S; y < h - S; y += 2) {
+        for (let x = S; x < w - S; x += 2) {
+          let n = 0;
+          for (let dy = -S; dy <= S; dy += 2) for (let dx = -S; dx <= S; dx += 2) if (near(4 * ((y + dy) * w + x + dx))) n++;
+          if (n > best) {
+            best = n;
+            at = [x, y];
+          }
+        }
+      }
+      return at ? { x: at[0] / (w / cv.clientWidth), y: at[1] / (h / cv.clientHeight), n: best } : null;
+    }, rgb);
+  const drag = async (rgb, dx, dy, name) => {
+    const pos = await find(rgb);
+    if (!pos) throw new Error(`${label}: could not find the ${name} on the canvas`);
+    await page.mouse.move(box.x + pos.x, box.y + pos.y);
+    await page.mouse.down();
+    await page.mouse.move(box.x + pos.x + dx, box.y + pos.y + dy, { steps: 8 });
+    await page.mouse.up();
+  };
+
+  // the red dot starts on the leading circle: it can be pulled along the wall (the box follows; its height is the wall's)
+  const redBox = field('red dot position along the plate in cm');
+  const redBefore = await redBox.inputValue();
+  await drag([255, 77, 77], 70, 38, 'red dot');
+  const redAfter = await redBox.inputValue();
+  if (redBefore === redAfter) throw new Error(`${label}: dragging the red dot did not move it along the wall (${redBefore})`);
+  await expectText('on the wall there:');
+  await shot(`${label}-2-red-dragged`);
+  step(`${label}: the red dot slid along the wall under the mouse (${redBefore} → ${redAfter} cm)`);
+
+  // the green dot slides along the plate's own wall
+  const greenBox = field('green dot position along the plate in cm');
+  const greenBefore = await greenBox.inputValue();
+  await drag([126, 231, 135], -40, -22, 'green dot');
+  const greenAfter = await greenBox.inputValue();
+  if (greenBefore === greenAfter) throw new Error(`${label}: dragging the green dot did not change its box (${greenBefore})`);
+  step(`${label}: the green dot slid along the wall (${greenBefore} → ${greenAfter} cm)`);
+
+  // an arc from the red dot to a pointer above the wall, with a direction, and the rope down to the green dot
+  const r = Number(await redBox.inputValue());
+  await field('pointer position along the plate in cm').fill(String(r + 3));
+  await field('pointer height above the plate in cm').fill('0.5');
   await field('direction of the curve at the pointer in degrees').fill('20');
-  await field('pointer position along the plate in cm').fill('6');
-  await field('pointer height above the plate in cm').fill('0.4');
   await expectText('Applying this:');
-  await expectText('the green dot (anchor) moves');
+  await expectText('red dot slides along the wall');
   if (!(await button('PLACE POINTER').isEnabled())) throw new Error(`${label}: PLACE POINTER should be enabled for these values`);
   await field('direction of the curve at the pointer in degrees').fill('85');
   await expectText('80°');
   if (await button('PLACE POINTER').isEnabled()) throw new Error(`${label}: a direction beyond 80° must be refused`);
   await field('direction of the curve at the pointer in degrees').fill('20');
-  await shot(`${label}-2-preview`);
-  step(`${label}: green dot, pointer and arc direction are read together, previewed and checked`);
-
-  // drag the green dot: find its marker on the canvas (the densest cluster of its colour) and pull it
-  const c = vis.locator(`canvas[aria-label*="${canvasLabel}"]`).first();
-  const box = await c.boundingBox();
-  const pos = await c.evaluate((cv) => {
-    const g = cv.getContext('2d');
-    const w = cv.width;
-    const h = cv.height;
-    const d = g.getImageData(0, 0, w, h).data;
-    const near = (i) => Math.abs(d[i] - 126) < 30 && Math.abs(d[i + 1] - 231) < 30 && Math.abs(d[i + 2] - 135) < 30;
-    let best = 0;
-    let at = null;
-    const S = 6;
-    for (let y = S; y < h - S; y += 2) {
-      for (let x = S; x < w - S; x += 2) {
-        let n = 0;
-        for (let dy = -S; dy <= S; dy += 2) for (let dx = -S; dx <= S; dx += 2) if (near(4 * ((y + dy) * w + x + dx))) n++;
-        if (n > best) {
-          best = n;
-          at = [x, y];
-        }
-      }
-    }
-    return at ? { x: at[0] / (w / cv.clientWidth), y: at[1] / (h / cv.clientHeight), n: best } : null;
-  });
-  if (!pos) throw new Error(`${label}: could not find the green dot on the canvas`);
-  const before = await field('green dot position along the plate in cm').inputValue();
-  await page.mouse.move(box.x + pos.x, box.y + pos.y);
-  await page.mouse.down();
-  await page.mouse.move(box.x + pos.x - 40, box.y + pos.y - 20, { steps: 6 });
-  await page.mouse.up();
-  const after = await field('green dot position along the plate in cm').inputValue();
-  if (before === after) throw new Error(`${label}: dragging the green dot did not change its box (${before})`);
-  step(`${label}: dragging the green dot on the picture changed its box (${before} → ${after} cm)`);
-  await shot(`${label}-3-dragged`);
-
-  // put the typed values back to something valid and place it
-  await field('green dot position along the plate in cm').fill('12');
-  await field('green dot height above the plate in cm').fill('0.6');
-  await field('pointer position along the plate in cm').fill('6');
-  await field('pointer height above the plate in cm').fill('0.4');
+  await shot(`${label}-3-preview`);
   await button('PLACE POINTER').click();
   await expectText('v1 has the new surface');
-  step(`${label}: placing it made version v1`);
+  step(`${label}: red dot on the wall, an arc to the pointer, the rope to the green dot: version v1`);
   await shot(`${label}-4-placed`);
 
-  // the red dot is now the last placed point: it can be moved, and a direction set, as another version
-  await field('red dot height above the plate in cm').fill('0.5');
+  // as it is built: the red dot is now on the built surface; slide it back along what was drawn and set a direction
+  const built = Number(await redBox.inputValue());
+  await redBox.fill(String(Math.max(0.5, built - 1.0)));
   await field('direction of the curve at the red dot in degrees').fill('10');
   await field('pointer position along the plate in cm').fill('');
   await field('pointer height above the plate in cm').fill('');
-  await expectText('the red dot moves');
+  await expectText('the red dot slides along the wall');
   await button('APPLY CHANGES').click();
   await expectText('v2 has the new surface');
-  step(`${label}: moving the red dot and setting its direction made version v2`);
+  step(`${label}: after building, the red dot slid along the built surface and a direction was set: version v2`);
 }
 
 await dots('particles', /FLOW-GUIDED GEOMETRY A/, 'Particle view');

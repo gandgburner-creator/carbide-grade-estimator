@@ -210,7 +210,7 @@ export function CfdGeometry() {
   }, [shape, side, pTexts, cmPerUnit, params, head.geometry]);
   const onDotDrag = (id: string, sx: number, sy: number) => {
     const [bx, by] = unplace([sx, sy], dotPlacement);
-    setPTexts((t) => dragToTexts(shape.plate, id, bx - radiusOf(shape.plate), (side === 'upper' ? 1 : -1) * by, cmPerUnit, t));
+    setPTexts((t) => dragToTexts(shape.plate, shape.paths, side, id, bx - radiusOf(shape.plate), (side === 'upper' ? 1 : -1) * by, cmPerUnit, t));
   };
   const afterMove = (v: CfdVersion, text: string) => {
     setViewId(v.id);
@@ -339,9 +339,10 @@ export function CfdGeometry() {
     const pl = cfdPlacement(params, head.geometry);
     const pointer = (() => {
       const r0 = radiusOf(shape.plate);
-      const at = live?.fill?.pointer ?? (pointerTarget.ok ? pointerTarget.redAt : pointerOf(shape.paths, side));
+      const dd = dotsFromTexts(shape.plate, shape.paths, side, pTexts, cmPerUnit);
+      const at = live?.fill?.pointer ?? dd.red;
       const showPreview = pointerTarget.ok && !live?.fill;
-      const a = showPreview && pointerTarget.ok ? pointerTarget.anchorAt : anchorOf(shape.plate, shape.paths, side);
+      const a = live?.fill ? anchorOf(shape.plate, shape.paths, side) : dd.green;
       const pa = showPreview && pointerTarget.ok ? pointerTarget.pointerAt : null;
       return { side, at: { x: at.x + r0, y: at.y }, anchor: { x: a.x + r0, y: a.y }, preview: showPreview && pointerTarget.ok ? pointerTarget.geometry : null, previewAt: pa ? { x: pa.x + r0, y: pa.y } : null };
     })();
