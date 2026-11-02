@@ -767,6 +767,42 @@ points can be read off it, or it can follow the wind. On light paper the constru
 filter, cross-faded in as the paper thickens), a **blueprint** (dark blue) paper keeps the pale colours, and the tracers fade as the paper comes in.
 The setting is remembered in the browser. The pad is a picture only: nothing in a run or in the geometry depends on it.
 
+## Reference airfoils and the airfoil study (CFD workspace)
+
+A well-known section can be the **body** of a CFD project instead of the rounded plate (`src/reference/Airfoils.ts`, the list "1b · Reference
+airfoils"). They are starting shapes that a person chooses: the solver and every decision of the workspace never see where a body came from, and
+nothing outside the user interface imports the library (`tests/reference.guards.test.ts`). No section is called best here, and no performance
+number is stored: the numbers on a card (thickness and where it is, camber and where it is, nose radius) are **measured from the section's own
+coordinates**, and what the flow does around it is computed.
+
+- **Where the shapes come from.** The numbered sections are generated from their published formulas (the four- and five-digit families of
+  Abbott and von Doenhoff, trailing edge closed to a point): NACA 0006, 0009, 0012, 0015 (symmetric references), 2409, 2412, 2415, 4409, 4412
+  (moderate camber), 6409, 6412, 9412 (strong camber, high lift at low speed), 23012, 23015 (five-digit, far-forward camber). Any other four- or
+  five-digit code can be added. The formulas are checked in `tests/reference.airfoils.test.ts` against properties that do not depend on them
+  being coded right: the 0012's half thickness of 0.0600 at 30 % chord and its cross-section of 0.0822 c², and the positions of maximum camber of the
+  five-digit mean lines (5, 10, 15, 20, 25 %).
+- **Sections that are only tables** (Eppler E387, Selig S1223 and SD7037, Wortmann FX 63-137, Clark Y, …) are **not carried**: their coordinates
+  cannot be reproduced from a formula, and this program does not invent them. Their coordinate file (Selig or Lednicer `.dat`, from the UIUC airfoil
+  database or airfoiltools.com) is read as given — pasted or chosen as a file — and becomes a section on the list. (The development environment
+  could not reach those sites, so none of their files was fetched or shipped.)
+- **A fixed body.** The outline is turned and scaled so that its leading point is the origin and its trailing point lies on the chord line (so the
+  angle of attack is that of the chord line), and is stored as two surfaces with cosine-spaced stations and pointed ends. The red dot, pointer,
+  green dot, camber and auto fill build on the rounded plate and do not apply to it; the project says so. Angle, speed, fluid, resolution and
+  engine act as for a plate, and so do the physics sheet, the forces, the comparison of versions and the drawing pad.
+- **The airfoil study.** Sections ticked "in the study" are computed at every angle of a typed list, one run after the other, with the open
+  project's conditions: a table of C_l, C_d and L/D with the uncertainty of each run, the integrity of each run, the highest L/D of each section among
+  the angles run, and a CSV. Nothing is ranked for the person.
+- **What the resolution does to a section.** A card says, for the chosen resolution, how many lattice cells thick the section is and how many cells
+  its nose radius spans: the nose of a 12 % section (radius 1.6 % of the chord) is under one cell at 48 cells, and 2 cells at 128. The nose, where the
+  stagnation point and the first suction lie, is only roughly right below about 1.5 cells.
+- **The Reynolds number limits what this shows.** The lattice runs Reynolds numbers up to 8 × the cells (2048 at 256 cells), a very low Reynolds
+  number for a wing. There the boundary layers are thick compared with the section (the laminar thickness 5 / √Re is 35 % of the chord at Re = 200),
+  so camber and thickness matter little and drag is large. A real run (32 cells, Re = 200, two-dimensional, slip-wall channel) gave for the 0012
+  C_l = 0.000 at 0° and ±0.309 at ±6° (the symmetry is exact), C_d ≈ 0.28–0.30, so L/D ≈ 1, and for the 4412 (4 % camber) only C_l = 0.013 at 0°
+  and 0.327 at 6°, where inviscid theory gives about 0.5 more. **The lift-to-drag ratios of real wings (tens to over a hundred, at Reynolds numbers of
+  10⁵ – 10⁶) are not reachable by this solver and must not be read off this table**; the table shows how the computed flow at the run's Reynolds
+  number treats each shape. For the L/D of a real section use measured or published polars at the wing's Reynolds number, or a method made for it.
+
 ## Computing on the graphics card (WebGPU)
 
 The CFD can be computed on **this computer's graphics card** instead of the processor (`src/cfd/gpu/`): the same lattice Boltzmann

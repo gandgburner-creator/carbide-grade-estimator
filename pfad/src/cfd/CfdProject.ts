@@ -44,6 +44,23 @@ export interface CfdFillInfo {
   hypothesis: string;
 }
 
+/**
+ * A body that was chosen from a library, or read from a coordinate file, instead of being drawn: a FIXED body. The pointer, the dots, the
+ * camber and the auto fill build on the rounded plate and do not apply to it. Plain data: where it came from and what it measures.
+ */
+export interface CfdLibraryBody {
+  id: string;
+  name: string;
+  family: string;
+  /** where the coordinates come from, in words */
+  source: string;
+  /** what the section is known for (a reputation, not a result of this program) */
+  known: string;
+  /** measured from the coordinates, fractions of the chord */
+  metrics: { thickness: number; thicknessAt: number; camber: number; camberAt: number; noseRadius: number; trailingGap: number };
+  notes: string[];
+}
+
 export interface CfdVersion {
   id: string;
   parent: string | null;
@@ -56,6 +73,8 @@ export interface CfdVersion {
   move?: PointerMove & { step: number; reason: string; hypothesis: string };
   /** the auto fill that made this version (absent for the starting plate and for hand or measured pointer moves) */
   fill?: CfdFillInfo;
+  /** a fixed body from a library or a file (then `shape` is only a stand-in plate and is not used) */
+  library?: CfdLibraryBody;
   run: CfdRunSummary | null;
   undone: { at: string } | null;
 }
@@ -94,6 +113,23 @@ export function newCfdProject(name: string, conditions: CfdConditions, shape: Pl
   };
 }
 
+/**
+ * A project that starts from a fixed body (a reference airfoil or a body read from a file). `stand` is the rounded plate that stands in
+ * for the pointer machinery's shape; nothing is built on it.
+ */
+export function newCfdLibraryProject(name: string, conditions: CfdConditions, geometry: SurfaceGeometry, body: CfdLibraryBody, stand: PlateShape, at = now()): CfdProject {
+  return {
+    format: 'pfad-cfd-geometry/1',
+    id: `cfd-${at.replace(/[:.]/g, '-')}`,
+    name,
+    createdAt: at,
+    conditions,
+    versions: [{ id: 'v0', parent: null, origin: 'initial', label: `${body.name} (fixed body, ${body.source.startsWith('a file') ? 'from a file' : 'from a published formula'})`, createdAt: at, geometry, shape: stand, library: body, run: null, undone: null }],
+    head: 'v0',
+    log: [{ t: at, type: 'created', version: 'v0', detail: `project created with the fixed body ${body.name}` }],
+  };
+}
+
 export const cfdVersion = (p: CfdProject, id: string): CfdVersion => {
   const v = p.versions.find((x) => x.id === id);
   if (!v) throw new Error(`no version ${id}`);
@@ -116,6 +152,7 @@ export type CfdDecision = { kind: 'hand' } | { kind: 'measurement'; step: Pointe
 /** Move the pointer of the head version: a new version, with no run yet. Throws with the reason if the move is not allowed. */
 export function addCfdPointerMove(p: CfdProject, req: { side: Side; to?: Pt; edit?: { anchor?: Pt | null; red?: Pt }; camber?: CamberSpec | null; limits?: PointerLimits; decision: CfdDecision }, at = now()): { project: CfdProject; version: CfdVersion } {
   const parent = cfdHead(p);
+  if (parent.library) throw new Error(`${parent.library.name} is a fixed body: the pointer, the dots and the camber build on the rounded plate. Start a plate project to use them.`);
   const limits = req.limits ?? DEFAULT_POINTER_LIMITS;
   const sh = parent.shape;
   const from = pointerOf(sh.paths, req.side);
@@ -171,6 +208,7 @@ export function addCfdPointerMove(p: CfdProject, req: { side: Side; to?: Pt; edi
  */
 export function addCfdFillVersion(p: CfdProject, fill: CfdFillResult, at = now()): { project: CfdProject; version: CfdVersion } {
   const parent = cfdHead(p);
+  if (parent.library) throw new Error(`${parent.library.name} is a fixed body: the auto fill builds on the rounded plate.`);
   if (JSON.stringify(fill.startPaths) !== JSON.stringify(parent.shape.paths) || JSON.stringify(fill.plate) !== JSON.stringify(parent.shape.plate)) throw new Error(`the fill started from a different shape than the head ${parent.id}`);
   if (fill.moves.length === 0 || fill.totalRise < 1e-9) throw new Error(fill.stop.kind === 'nothing-measured' ? fill.stop.reason : 'the fill added no material');
   const id = `v${p.versions.length}`;

@@ -1382,3 +1382,39 @@ details.physics-sheet > summary {
 .physics-list .pmeaning {
   margin-top: 2px;
 }
+
+/* reference airfoils and the airfoil study */
+.airfoil-list {
+  display: grid;
+  gap: 6px;
+  max-height: 440px;
+  overflow: auto;
+  margin: 6px 0;
+  padding-right: 2px;
+}
+
+.airfoil-card {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-size: 11px;
+}
+
+.airfoil-card.open {
+  border-color: #58a6ff;
+  background: rgba(88, 166, 255, 0.07);
+}
+
+.airfoil-head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.airfoil-card summary {
+  cursor: pointer;
+}
+
+table.compare tr.row-top td {
+  background: rgba(88, 166, 255, 0.14);
+}

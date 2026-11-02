@@ -5,9 +5,9 @@ import { CODE_VERSION } from '../app/provenance';
 import { CFD_FIELD_LABEL, fieldFromResult, streamField } from '../cfd/CfdFields';
 import { DEFAULT_CFD_FILL, type CfdFillResult } from '../cfd/CfdFill';
 import { cfdForceMeasure } from '../cfd/CfdForces';
-import { addCfdFillVersion, addCfdPointerMove, attachCfdRun, cfdHead, cfdProjectToJSON, cfdVersion, logCfdEnd, newCfdProject, parseCfdProject, setCfdWingDepth, undoCfd, type CfdPreset, type CfdProject, type CfdVersion } from '../cfd/CfdProject';
+import { addCfdFillVersion, addCfdPointerMove, attachCfdRun, cfdHead, cfdProjectToJSON, cfdVersion, logCfdEnd, newCfdLibraryProject, newCfdProject, parseCfdProject, setCfdWingDepth, undoCfd, type CfdLibraryBody, type CfdPreset, type CfdProject, type CfdVersion } from '../cfd/CfdProject';
 import { CFD_BASE, CFD_PRESETS, GPU_PRESETS, cfdPlacement, type CfdParams, type CfdResult } from '../cfd/CfdRun';
-import { cfdSetup } from '../experiments/CfdScenario';
+import { CFD_PLATE_LENGTH, cfdSetup } from '../experiments/CfdScenario';
 import type { PhysicalInputs } from '../experiments/FlowGeometryExperiment';
 import { DEFAULT_DEPTH_CM, DEFAULT_SCENARIO, newtonsAndKgf, parseDepth, wingForces } from '../experiments/PhysicalScenario';
 import { DEFAULT_FLUID_TEXTS, fluidTextsOf, parseCfdInputs, type FluidTexts } from '../experiments/FluidScenario';
@@ -28,6 +28,9 @@ import { defaultPointerTexts, dotsFromTexts, dragToTexts, EMPTY_POINTER_TEXTS, r
 import { EMPTY_SWEEP, PointerPanel, type PointerSweep } from './flow/PointerPanel';
 import { scenarioText, type ScenarioText } from './flow/ScenarioPanel';
 import { GpuPanel, type Engine } from './flow/GpuPanel';
+import { AirfoilPanel, AirfoilStudy } from './reference/AirfoilPanel';
+import { AIRFOIL_PRESETS, airfoilBody, type AirfoilBody, type AirfoilProfile } from '../reference/Airfoils';
+import { jobsFor, parseAngles, resolutionAdvice, rowOf, type StudyJob, type StudyRow } from '../reference/Study';
 import { PAD_OFF, type PadFrame, type PadSettings, type PadStyle } from './flow/DrawingPad';
 import { probeGpu, type GpuInfo } from '../cfd/gpu/LbmGpu';
 import { StationChart } from './flow/StationChart';
@@ -62,6 +65,16 @@ export function CfdGeometry() {
   const [kind, setKind] = useState<CfdViewKind>('speed');
   const [showStreams, setShowStreams] = useState(false);
   const [showTracers, setShowTracers] = useState(false);
+  // reference airfoils: the sections added from a code or a file, the ones ticked for the study, and the study's runs and table
+  const [extraAirfoils, setExtraAirfoils] = useState<AirfoilProfile[]>([]);
+  const [picked, setPicked] = useState<string[]>([]);
+  const [anglesText, setAnglesText] = useState('0, 4, 8, 12');
+  const [studyRows, setStudyRows] = useState<StudyRow[]>([]);
+  const [studyRun, setStudyRun] = useState<{ done: number; total: number; label: string; job: StudyJob } | null>(null);
+  const [studyMessage, setStudyMessage] = useState<string | null>(null);
+  const studyRef = useRef<{ jobs: StudyJob[]; i: number } | null>(null);
+  const studyResultRef = useRef<((r: CfdResult) => boolean) | null>(null);
+  const studyEndRef = useRef<((kind: 'stopped' | 'failed', text: string) => boolean) | null>(null);
   // the drawing pad (paper with a cm grid, faded over the flow): remembered between visits
   const [pad, setPadState] = useState<PadSettings>(() => {
     try {
@@ -157,6 +170,7 @@ export function CfdGeometry() {
 
   // ---- the simulation
   const onResult = useCallback((result: CfdResult, activeMs: number) => {
+    if (studyResultRef.current?.(result)) return;
     const v = runningVersion.current;
     runningVersion.current = null;
     if (!v) return;
@@ -181,6 +195,7 @@ export function CfdGeometry() {
     }
   }, []);
   const onEnd = useCallback((kindEnd: 'stopped' | 'failed', text: string) => {
+    if (studyEndRef.current?.(kindEnd, text)) return;
     if (fillingRef.current) {
       fillingRef.current = false;
       setFillActive(false);
@@ -198,6 +213,7 @@ export function CfdGeometry() {
   const viewed = project.versions.some((v) => v.id === viewId) ? cfdVersion(project, viewId) : head;
   const parentOfViewed = viewed.parent ? cfdVersion(project, viewed.parent) : null;
   const params = project.conditions.params;
+  const library = head.library ?? null;
   const scenario = project.conditions.scenario;
   const cond = project.conditions;
   const chord = head.geometry.chord;
@@ -216,6 +232,104 @@ export function CfdGeometry() {
     setMessage(null);
     runningVersion.current = head.id;
     sim.start({ ...params, geometry: head.geometry }, kind, showStreams || showTracers, engine === 'gpu' && gpuInfo ? 'gpu' : 'cpu');
+  };
+
+  // ---- reference airfoils: a fixed body from a library or a file, and the study of several of them
+  const engineArg: 'gpu' | 'cpu' = engine === 'gpu' && gpuInfo ? 'gpu' : 'cpu';
+  const loadAirfoil = (profile: AirfoilProfile, body: AirfoilBody) => {
+    if (busy) return;
+    if (!sCheck.ok) return setMessage(`Inputs: ${sCheck.errors.join('; ')}`);
+    if (!depthCheck.ok) return setMessage(depthCheck.error);
+    if (project.versions.length > 1 || project.versions.some((v) => v.run)) {
+      if (!window.confirm(`Start a new project with ${profile.name}? “${project.name}” stays in the saved projects of this browser.`)) return;
+    }
+    const { trailingThicknessCm: dropped, ...rest } = sCheck.input;
+    void dropped;
+    const input: PhysicalInputs = { ...rest, thicknessCm: Math.max(0.01, Math.round(body.metrics.thickness * rest.lengthCm * 100) / 100) };
+    const setup = cfdSetup(input, preset);
+    const c = CFD_PRESETS[preset];
+    const params: Omit<CfdParams, 'geometry'> = { alphaDeg: input.alphaDeg, cells: c.cells, reynolds: setup.reynolds, ...CFD_BASE, warmup: c.warmup, average: c.average };
+    const notes = [...body.notes, ...resolutionAdvice(body.metrics.thickness, body.metrics.noseRadius, c.cells)];
+    const lib: CfdLibraryBody = { id: profile.id, name: profile.name, family: profile.family, source: profile.source.text, known: profile.known, metrics: { thickness: body.metrics.thickness, thicknessAt: body.metrics.thicknessAt, camber: body.metrics.camber, camberAt: body.metrics.camberAt, noseRadius: body.metrics.noseRadius, trailingGap: body.metrics.trailingGap }, notes };
+    const plate = { length: CFD_PLATE_LENGTH, thickness: Math.max(0.5, body.metrics.thickness * CFD_PLATE_LENGTH) };
+    const p = setCfdWingDepth(newCfdLibraryProject(`${profile.name} study`, { scenario: input, preset, params, realReynolds: setup.real.reynolds }, body.geometry, lib, { plate, paths: initialPaths(plate), spacing: 1 }), depthCheck.depthCm);
+    sim.unload();
+    setProject(p);
+    setViewId('v0');
+    setCmp(['v0', 'v0']);
+    setCamera(null);
+    setMessage(`${profile.name} is now the body (a fixed body: the pointer does not apply to it). It has not been computed: press SIMULATE.`);
+  };
+  const allAirfoils = [...AIRFOIL_PRESETS, ...extraAirfoils];
+  const startStudyJob = (job: StudyJob) => {
+    runningVersion.current = null;
+    sim.start({ ...params, alphaDeg: job.alphaDeg, geometry: job.geometry }, kind, false, engineArg);
+  };
+  const runStudy = () => {
+    if (busy) return;
+    const ang = parseAngles(anglesText);
+    if (!ang.ok) return setStudyMessage(ang.error);
+    const bodies: { id: string; name: string; geometry: StudyJob['geometry']; thickness: number; noseRadius: number }[] = [];
+    for (const id of picked) {
+      const a = allAirfoils.find((x) => x.id === id);
+      if (!a) continue;
+      try {
+        const b = airfoilBody(a.contour, CFD_PLATE_LENGTH);
+        bodies.push({ id: a.id, name: a.name, geometry: b.geometry, thickness: b.metrics.thickness, noseRadius: b.metrics.noseRadius });
+      } catch (e) {
+        return setStudyMessage(`${a.name}: ${(e as Error).message}`);
+      }
+    }
+    if (!bodies.length) return setStudyMessage('tick “in the study” on at least one section');
+    const jobs = jobsFor(bodies, ang.angles);
+    setStudyRows([]);
+    setStudyMessage(null);
+    studyRef.current = { jobs, i: 0 };
+    setStudyRun({ done: 0, total: jobs.length, label: `${jobs[0].name} at ${jobs[0].alphaDeg}°`, job: jobs[0] });
+    startStudyJob(jobs[0]);
+  };
+  const nextStudyJob = (note: string | null) => {
+    const st = studyRef.current;
+    if (!st) return;
+    st.i++;
+    if (note) setStudyMessage(note);
+    if (st.i >= st.jobs.length) {
+      studyRef.current = null;
+      setStudyRun(null);
+      setMessage('The airfoil study finished: the table is under the list of sections.');
+      return;
+    }
+    const job = st.jobs[st.i];
+    setStudyRun({ done: st.i, total: st.jobs.length, label: `${job.name} at ${job.alphaDeg}°`, job });
+    startStudyJob(job);
+  };
+  studyResultRef.current = (result) => {
+    const st = studyRef.current;
+    if (!st) return false;
+    // the row is made now, from the job that was run: the counter moves on right after
+    const row = rowOf(st.jobs[st.i], result);
+    setStudyRows((r) => [...r, row]);
+    nextStudyJob(null);
+    return true;
+  };
+  studyEndRef.current = (endKind, text) => {
+    const st = studyRef.current;
+    if (!st) return false;
+    if (endKind === 'stopped') {
+      studyRef.current = null;
+      setStudyRun(null);
+      setStudyMessage('The study was stopped; the rows computed so far are kept.');
+      return true;
+    }
+    const job = st.jobs[st.i];
+    nextStudyJob(`${job.name} at ${job.alphaDeg}° failed (${text}) and was skipped.`);
+    return true;
+  };
+  const stopStudy = () => {
+    studyRef.current = null;
+    setStudyRun(null);
+    setStudyMessage('The study was stopped; the rows computed so far are kept.');
+    sim.stop();
   };
 
   // ---- project
@@ -273,6 +387,7 @@ export function CfdGeometry() {
   // the red dot, the pointer and the green dot can be picked up and dragged on the picture: a drag fills in the same boxes
   const dotPlacement = cfdPlacement(params, head.geometry);
   const dotHandles = useMemo((): ViewHandle[] => {
+    if (library) return [];
     const sgn = side === 'upper' ? 1 : -1;
     const r0 = radiusOf(shape.plate);
     const d = dotsFromTexts(shape.plate, shape.paths, side, pTexts, cmPerUnit);
@@ -286,7 +401,7 @@ export function CfdGeometry() {
     });
     return [...cam, { id: 'green', ...toSim(d.green) }, ...(d.pointer ? [{ id: 'pointer', ...toSim(d.pointer) }] : []), { id: 'red', ...toSim(d.red) }];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shape, side, pTexts, camberTexts, cmPerUnit, params, head.geometry]);
+  }, [shape, side, pTexts, camberTexts, cmPerUnit, params, head.geometry, library]);
   const onDotDrag = (id: string, sx: number, sy: number) => {
     const [bx, by] = unplace([sx, sy], dotPlacement);
     if (id.startsWith('camber:')) return setCamberTexts((t) => dragCamberPoint(shape.plate, t, Number(id.slice(7)), bx, by, cmPerUnit));
@@ -422,14 +537,20 @@ export function CfdGeometry() {
     return viewed.run ? streamField(viewed.run.result) : null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showTracers, busy, flow, viewed.run]);
-  const caption = live
+  const caption = studyRun && live
+    ? `${CFD_FIELD_LABEL[live.field.kind].label} at this instant — airfoil study, run ${studyRun.done + 1} of ${studyRun.total}: ${studyRun.label}, ${(100 * live.progress).toFixed(0)} %`
+    : live
     ? `${CFD_FIELD_LABEL[live.field.kind].label} at this instant — the run of ${head.id}, ${(100 * live.progress).toFixed(0)} %, ${live.phase}`
     : viewed.run
       ? `${CFD_FIELD_LABEL[kind].label}: mean over the window of ${viewed.id} (Re ${Math.round(viewed.run.result.params.reynolds)}, ${viewed.run.result.params.cells} cells along the plate)`
       : `${viewed.id} has not been computed`;
   const overlay = useMemo(() => {
-    const pl = cfdPlacement(params, head.geometry);
-    const pointer = (() => {
+    // during an airfoil study the body of the run in progress is drawn (at its angle); a fixed body has no pointer, dots or camber
+    const sj = studyRun?.job ?? null;
+    const pNow = sj ? { ...params, alphaDeg: sj.alphaDeg } : params;
+    const pl = cfdPlacement(pNow, sj ? sj.geometry : head.geometry);
+    const fixed = !!library || !!sj;
+    const pointer = fixed ? null : (() => {
       const r0 = radiusOf(shape.plate);
       const dd = dotsFromTexts(shape.plate, shape.paths, side, pTexts, cmPerUnit);
       const at = live?.fill?.pointer ?? dd.red;
@@ -440,12 +561,12 @@ export function CfdGeometry() {
       const body = (q: { x: number; y: number }) => ({ x: q.x + r0, y: sg * q.y + camberShift(shape.plate, q.x) });
       return { side, at: body(at), anchor: body(a), preview: showPreview && pointerTarget.ok ? pointerTarget.geometry : null, previewAt: pa ? body(pa) : null };
     })();
-    const st = { placement: pl, geometry: live?.fill?.geometry ?? head.geometry, previous: null, proposal: null, pointIdx: -1, region: null, dividing: null, replay: null, viewed: null, showStations, alphaDeg: params.alphaDeg, references: [], streams: shownStreams, pointer, camber: camberInput.ok ? { controls: camberInput.controls, line: camberInput.line, preview: camberInput.unchanged ? null : camberInput.geometry } : null };
+    const st = { placement: pl, geometry: sj ? sj.geometry : live?.fill?.geometry ?? head.geometry, previous: null, proposal: null, pointIdx: -1, region: null, dividing: null, replay: null, viewed: null, showStations, alphaDeg: pNow.alphaDeg, references: [], streams: shownStreams, pointer, camber: !fixed && camberInput.ok ? { controls: camberInput.controls, line: camberInput.line, preview: camberInput.unchanged ? null : camberInput.geometry } : null };
     const draw = makeOverlay(st);
     return (g: CanvasRenderingContext2D, T: Parameters<typeof draw>[1]) => {
       // the body: drawn solid over the field
-      const bodyG = live?.fill?.geometry ?? viewed.geometry;
-      const poly = place(bodyPolygon(bodyG), cfdPlacement(params, bodyG));
+      const bodyG = sj ? sj.geometry : live?.fill?.geometry ?? viewed.geometry;
+      const poly = place(bodyPolygon(bodyG), cfdPlacement(pNow, bodyG));
       g.beginPath();
       for (let k = 0; k < poly.length; k += 2) {
         if (k === 0) g.moveTo(T.X(poly[k]), T.Y(poly[k + 1]));
@@ -498,7 +619,7 @@ export function CfdGeometry() {
       }
       draw(g, T);
     };
-  }, [params, head, viewed, shape, side, pointerTarget, camberInput, pTexts, showStations, shownStreams, showHeight, live, domain.w, domain.h, chord]);
+  }, [params, head, viewed, shape, side, pointerTarget, camberInput, pTexts, showStations, shownStreams, showHeight, live, domain.w, domain.h, chord, library, studyRun]);
 
   // ---- charts
   const stationsOf = (v: CfdVersion | null) => (v?.run ? v.run.result.stations[side] : null);
@@ -556,7 +677,7 @@ export function CfdGeometry() {
 
   const f = sim.frame;
   const eta = live && live.progress > 0.03 ? (live.activeMs * (1 - live.progress)) / live.progress / 1000 : null;
-  const stage = !head.run ? 'compute the starting plate' : 'move the pointer (by hand, one automatic step, or a sweep) and compute again';
+  const stage = !head.run ? (library ? `compute ${library.name}` : 'compute the starting plate') : library ? 'change the angle, the speed or the fluid and compute again, or run the airfoil study' : 'move the pointer (by hand, one automatic step, or a sweep) and compute again';
   return (
     <div className="lab flow">
       <header className="topbar">
@@ -597,8 +718,36 @@ export function CfdGeometry() {
               </button>
             </div>
             <div className="note">
-              Open project: <b>{project.name}</b> · {project.versions.length} version{project.versions.length === 1 ? '' : 's'} · Re {Math.round(params.reynolds)} · {params.cells} cells along the plate · domain {params.widthL} × {params.heightL} plate lengths with slip walls at the top and bottom (blockage {head.run ? `${(100 * head.run.result.blockage).toFixed(0)} %` : 'shown after the first run'}). No airfoil profile is built in.
+              Open project: <b>{project.name}</b> · {project.versions.length} version{project.versions.length === 1 ? '' : 's'} · Re {Math.round(params.reynolds)} · {params.cells} cells along the plate · domain {params.widthL} × {params.heightL} plate lengths with slip walls at the top and bottom (blockage {head.run ? `${(100 * head.run.result.blockage).toFixed(0)} %` : 'shown after the first run'}). {library ? <>The body is <b>{library.name}</b>, a fixed body ({library.source}).</> : 'The body is the rounded plate you draw on.'} The solver knows no airfoil: a section from the library or a file is only the starting shape that was chosen.
             </div>
+          </div>
+
+          <div className="section">
+            <h2>1b · Reference airfoils</h2>
+            <AirfoilPanel cells={CFD_PRESETS[preset].cells} disabled={locked} onLoad={loadAirfoil} extra={extraAirfoils} onExtra={setExtraAirfoils} picked={picked} onPicked={setPicked} openName={library?.name ?? null} />
+            <h3 className="h3">Airfoil study: lift, drag and L/D</h3>
+            <AirfoilStudy
+              picked={picked}
+              anglesText={anglesText}
+              onAngles={setAnglesText}
+              anglesError={(() => {
+                const a = parseAngles(anglesText);
+                return a.ok ? null : a.error;
+              })()}
+              rows={studyRows}
+              running={studyRun}
+              message={studyMessage}
+              disabled={busy && !studyRun}
+              onRun={runStudy}
+              onStop={stopStudy}
+              onClear={() => {
+                setStudyRows([]);
+                setStudyMessage(null);
+              }}
+              cells={params.cells}
+              reynolds={params.reynolds}
+              engine={engineArg === 'gpu' ? 'on the graphics card' : 'on the CPU'}
+            />
           </div>
 
           <div className="section run-section">
@@ -639,6 +788,15 @@ export function CfdGeometry() {
 
           <div className="section">
             <h2>3 · Draw with the pointer (experimental)</h2>
+            {library ? (
+              <div className="note" data-testid="fixed-body-note">
+                <b>{library.name}</b> is a fixed body: the red dot, the pointer, the green dot, the camber and the auto fill build on the rounded plate, and do not apply to a section taken from the library or a file. To draw with the pointer, press START NEW PROJECT (the plate project), or choose another section above.
+                {library.notes.map((n, i) => (
+                  <div key={i} className="warn">{n}.</div>
+                ))}
+              </div>
+            ) : (
+              <>
             <PointerPanel
               plate={shape.plate}
               paths={shape.paths}
@@ -679,6 +837,8 @@ export function CfdGeometry() {
               blocked={busy ? 'A simulation is running: wait for it to finish, or stop it.' : sweep.active ? 'The pointer sweep is running.' : pointerOf(shape.paths, side).x >= anchorOf(shape.plate, shape.paths, side).x - 1e-9 ? 'The pointer of this side is already at the anchor: nothing left to draw.' : null}
               lastResult={fillResult}
             />
+              </>
+            )}
           </div>
         </div>
 
