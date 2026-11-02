@@ -41,7 +41,7 @@ await page.getByRole('button', { name: /FLOW-GUIDED GEOMETRY B/ }).click();
 const panel = vis.getByTestId('airfoil-panel');
 await panel.waitFor();
 const cards = await panel.locator('.airfoil-card').count();
-if (cards < 12) fail(`expected the preset list, found ${cards} cards`);
+if (cards < 15) fail(`expected the preset list, found ${cards} cards`);
 const card4412 = panel.locator('[data-airfoil="NACA 4412"]');
 const text4412 = await card4412.textContent();
 if (!/12\.0 % thick at 30 % of the chord, 3\.\d % camber at 4\d %/.test(text4412)) fail(`the NACA 4412 card should show its measured numbers: ${text4412}`);
@@ -51,11 +51,22 @@ step(`${cards} sections; 4412: ${text4412.match(/\d+\.\d % thick[^.]*/)?.[0]}`);
 await vis.getByLabel('airfoil list filter').selectOption('symmetric');
 const sym = await panel.locator('.airfoil-card').count();
 if (sym !== 4) fail(`the symmetric filter should show 4 sections, not ${sym}`);
+await vis.getByLabel('airfoil list filter').selectOption('designed');
+const designed = await panel.locator('.airfoil-card').allTextContents();
+if (designed.length !== 3 || !designed.every((t, i) => t.includes(`Claude airfoil ${'ABC'[i]}`) && /HYPOTHESIS/.test(t) && /Drawn for an angle of attack of 18° and a flow of 350 km\/h/.test(t))) fail(`the designed filter should show Claude airfoil A, B and C with their conditions: ${designed.map((t) => t.slice(0, 60)).join(' | ')}`);
 await vis.getByLabel('airfoil list filter').selectOption('all');
-step('the list filters by aim');
+step('the list filters by aim; Claude airfoil A, B and C show their design condition');
 
-// a coarse resolution, a modest angle, then use the section
+// a coarse resolution; a designed section sets the condition it was drawn for
 await button('resolution draft').click();
+await vis.getByLabel('angle of attack in °', { exact: true }).fill('6');
+await button('use Claude airfoil A').click();
+await vis.getByTestId('fixed-body-note').waitFor();
+const angleNow = await vis.getByLabel('angle of attack in °', { exact: true }).inputValue();
+if (angleNow !== '18') fail(`using a designed section should set the angle to 18°, not ${angleNow}`);
+const speedNow = await vis.getByLabel('wind speed in km/h', { exact: true }).inputValue();
+if (speedNow !== '350') fail(`using a designed section should set the speed to 350 km/h, not ${speedNow}`);
+step('Claude airfoil A is the body at 18° and 350 km/h');
 await vis.getByLabel('angle of attack in °', { exact: true }).fill('6');
 await button('use NACA 4412').click();
 await vis.getByTestId('fixed-body-note').waitFor();

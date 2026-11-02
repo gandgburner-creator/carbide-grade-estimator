@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CfdResult } from '../src/cfd/CfdRun';
 import { bodyPolygon } from '../src/geometry/SurfaceGeometry';
-import { AIRFOIL_PRESETS, airfoilBody, describeMetrics, fiveDigit, fourDigit, parseAirfoilDat, sectionFromCode } from '../src/reference/Airfoils';
+import { AIRFOIL_PRESETS, CLAUDE_AIRFOILS, CLAUDE_CONDITION, CLAUDE_DESIGNS, airfoilBody, describeMetrics, designReading, designedContour, fiveDigit, fourDigit, parseAirfoilDat, sectionFromCode } from '../src/reference/Airfoils';
 import { highestLd, jobsFor, parseAngles, ratio, resolutionAdvice, rowOf, studyCsv } from '../src/reference/Study';
 
 const area = (v: number[]) => {
@@ -58,7 +58,7 @@ describe('airfoils from their published formulas', () => {
   });
 
   it('every preset is a valid body: surfaces do not cross, both ends are points, the numbers on its card come from its coordinates', () => {
-    expect(AIRFOIL_PRESETS.length).toBeGreaterThanOrEqual(12);
+    expect(AIRFOIL_PRESETS.length).toBeGreaterThanOrEqual(15);
     const names = new Set<string>();
     for (const p of AIRFOIL_PRESETS) {
       expect(names.has(p.name)).toBe(false);
@@ -75,7 +75,7 @@ describe('airfoils from their published formulas', () => {
       for (let i = 0; i <= g.stations; i++) expect(g.upper[i] - g.lower[i], `${p.name} ${i}`).toBeGreaterThanOrEqual(-1e-9);
       for (let i = 1; i <= g.stations; i++) expect(g.xs![i]).toBeGreaterThan(g.xs![i - 1]);
       expect(describeMetrics(b.metrics)).toMatch(/thick at/);
-      expect(p.source.kind).toBe('formula');
+      expect(p.source.kind).toBe(p.id.startsWith('claude-') ? 'designed' : 'formula');
       expect(p.known.length).toBeGreaterThan(30);
       expect(p.aims.length).toBeGreaterThan(0);
     }
@@ -89,6 +89,65 @@ describe('airfoils from their published formulas', () => {
     expect(() => sectionFromCode('13012')).toThrow(/starts with 2/);
     expect(sectionFromCode('NACA 4412').name).toBe('NACA 4412');
     expect(sectionFromCode(' 0012 ').aims).toContain('symmetric');
+  });
+});
+
+describe('Claude’s three designed sections', () => {
+  it('are named A, B and C, come first in the list, and say what they are and are not', () => {
+    expect(CLAUDE_AIRFOILS.map((a) => a.name)).toEqual(['Claude airfoil A', 'Claude airfoil B', 'Claude airfoil C']);
+    expect(AIRFOIL_PRESETS.slice(0, 3).map((a) => a.id)).toEqual(['claude-a', 'claude-b', 'claude-c']);
+    for (const a of CLAUDE_AIRFOILS) {
+      expect(a.source.kind).toBe('designed');
+      expect(a.aims).toEqual(['designed']);
+      expect(a.designedFor).toMatchObject({ alphaDeg: 18, speedKmh: 350 });
+      expect(a.known).toMatch(/HYPOTHESIS/);
+      expect(a.known).toMatch(/not shown to be the best/);
+      expect(a.known).toMatch(/no solver was run at 350 km\/h/);
+    }
+    expect(CLAUDE_CONDITION).toEqual({ alphaDeg: 18, speedKmh: 350 });
+  });
+
+  it('are closed, simple outlines of different thickness, whose card numbers come from their own coordinates', () => {
+    const th = CLAUDE_AIRFOILS.map((a) => airfoilBody(a.contour).metrics.thickness);
+    expect(th[1]).toBeLessThan(th[0]);
+    expect(th[0]).toBeLessThan(th[2]);
+    expect(th[0]).toBeCloseTo(0.09, 2);
+    expect(th[1]).toBeCloseTo(0.065, 2);
+    expect(th[2]).toBeCloseTo(0.12, 2);
+    for (const a of CLAUDE_AIRFOILS) {
+      const b = airfoilBody(a.contour);
+      expect(b.notes).toEqual([]);
+      expect(b.metrics.trailingGap).toBeLessThan(1e-9);
+      expect(b.metrics.camber).toBeGreaterThan(0.02);
+      expect(b.metrics.noseRadius).toBeGreaterThan(0.004);
+    }
+  });
+
+  it('the mean line is turned down at the nose by about the design angle, whatever the chord tilt of the finished body', () => {
+    for (const c of CLAUDE_DESIGNS) {
+      const r = designReading(c.params, 18);
+      expect(r.noseSlopeDeg, c.letter).toBeGreaterThan(c.params.noseDeg - 4);
+      expect(r.noseSlopeDeg, c.letter).toBeLessThan(c.params.noseDeg + 3);
+      expect(Math.abs(r.chordTiltDeg), c.letter).toBeLessThan(1);
+      // the tail leaves at most a few degrees downward: nothing here is reflexed or steeply aft-loaded
+      expect(r.tailSlopeDeg, c.letter).toBeGreaterThan(-8);
+      expect(r.tailSlopeDeg, c.letter).toBeLessThan(2);
+      expect(r.maxCamberAt, c.letter).toBeGreaterThan(0.2);
+      expect(r.maxCamberAt, c.letter).toBeLessThan(0.45);
+      // the linear figure is positive and, as the card says, an upper figure only
+      expect(r.linearLift, c.letter).toBeGreaterThan(1.9);
+    }
+  });
+
+  it('closes the trailing edge for every nose factor and rejects values it cannot draw', () => {
+    for (const nose of [0.6, 1, 1.5, 2]) {
+      const c = designedContour({ camber: 0.04, b: 2, noseDeg: 18, droopLen: 0.1, thickness: 0.1, nose });
+      const n = c.length / 2;
+      expect(Math.hypot(c[0] - c[2 * n - 2], c[1] - c[2 * n - 1])).toBeLessThan(1e-9);
+    }
+    expect(() => designedContour({ camber: -1, b: 2, noseDeg: 18, droopLen: 0.1, thickness: 0.1, nose: 1 })).toThrow(/designed section/);
+    expect(() => designedContour({ camber: 0.04, b: 0.5, noseDeg: 18, droopLen: 0.1, thickness: 0.1, nose: 1 })).toThrow(/exponent/);
+    expect(() => designedContour({ camber: 0.04, b: 2, noseDeg: 70, droopLen: 0.1, thickness: 0.1, nose: 1 })).toThrow(/slope/);
   });
 });
 

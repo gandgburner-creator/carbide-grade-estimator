@@ -245,7 +245,10 @@ export function CfdGeometry() {
     }
     const { trailingThicknessCm: dropped, ...rest } = sCheck.input;
     void dropped;
-    const input: PhysicalInputs = { ...rest, thicknessCm: Math.max(0.01, Math.round(body.metrics.thickness * rest.lengthCm * 100) / 100) };
+    // a section drawn for a condition (Claude's designs) starts at that condition: the person can change either value afterwards
+    const cond = profile.designedFor;
+    const input: PhysicalInputs = { ...rest, thicknessCm: Math.max(0.01, Math.round(body.metrics.thickness * rest.lengthCm * 100) / 100), ...(cond ? { alphaDeg: cond.alphaDeg, speedKmh: cond.speedKmh } : {}) };
+    if (cond) setSText((t) => ({ ...t, alphaDeg: String(cond.alphaDeg), speedKmh: String(cond.speedKmh) }));
     const setup = cfdSetup(input, preset);
     const c = CFD_PRESETS[preset];
     const params: Omit<CfdParams, 'geometry'> = { alphaDeg: input.alphaDeg, cells: c.cells, reynolds: setup.reynolds, ...CFD_BASE, warmup: c.warmup, average: c.average };
@@ -258,7 +261,7 @@ export function CfdGeometry() {
     setViewId('v0');
     setCmp(['v0', 'v0']);
     setCamera(null);
-    setMessage(`${profile.name} is now the body (a fixed body: the pointer does not apply to it). It has not been computed: press SIMULATE.`);
+    setMessage(`${profile.name} is now the body (a fixed body: the pointer does not apply to it).${cond ? ` The angle was set to ${cond.alphaDeg}° and the speed to ${cond.speedKmh} km/h, the condition it was drawn for; the lattice cannot reach the Reynolds number of that flow, so the run is a low-speed picture, not a test of the design (see the notes).` : ''} It has not been computed: press SIMULATE.`);
   };
   const allAirfoils = [...AIRFOIL_PRESETS, ...extraAirfoils];
   const startStudyJob = (job: StudyJob) => {

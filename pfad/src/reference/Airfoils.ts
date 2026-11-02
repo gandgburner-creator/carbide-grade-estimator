@@ -22,7 +22,7 @@ import type { SurfaceGeometry } from '../geometry/SurfaceGeometry';
  * database or airfoiltools.com) with the import, and it is used exactly as given.
  */
 export interface AirfoilSource {
-  kind: 'formula' | 'imported';
+  kind: 'formula' | 'imported' | 'designed';
   /** where the shape comes from, in words */
   text: string;
 }
@@ -36,11 +36,13 @@ export interface AirfoilProfile {
   /** which of the person's aims it is usually chosen for */
   aims: AirfoilAim[];
   source: AirfoilSource;
+  /** the conditions a designed section was drawn for (the screen offers to set them) */
+  designedFor?: { alphaDeg: number; speedKmh: number; text: string };
   /** closed outline, chord normalised to 1 (x from the leading tip to the trailing tip), trailing edge → upper → leading edge → lower → trailing edge, interleaved x, y */
   contour: number[];
 }
 
-export type AirfoilAim = 'high-lift' | 'efficiency' | 'symmetric' | 'reference';
+export type AirfoilAim = 'high-lift' | 'efficiency' | 'symmetric' | 'reference' | 'designed';
 
 // ---- the formulas
 
@@ -62,6 +64,142 @@ function outline(c: Camber, t: number, n = 120): number[] {
     lo.push(x + yt * Math.sin(th), yc - yt * Math.cos(th));
   }
   // trailing edge → upper surface → leading edge → lower surface → trailing edge (the shared leading point once)
+  const v: number[] = [];
+  for (let k = n; k >= 0; k--) v.push(up[2 * k], up[2 * k + 1]);
+  for (let k = 1; k <= n; k++) v.push(lo[2 * k], lo[2 * k + 1]);
+  return v;
+}
+
+/**
+ * The parameters of a DESIGNED section (not a published one), written for a flow that meets the chord line at a large angle. Its mean line is
+ * the sum of two smooth pieces, both leaving the chord line at the leading tip and returning to it at the trailing tip:
+ *
+ *   - a CAMBER arch  m · x (1 − x)^b, scaled so that its height is `camber` at x = 1 / (1 + b) (a larger b puts the maximum camber further
+ *     forward and ends the arch with a gentler slope at the tail);
+ *   - a NOSE DROOP  D · x (1 − x / L)³ for x < L (and nothing behind it), whose slope D at the tip is set so that the mean line's TOTAL slope
+ *     at the leading tip is `noseDeg` degrees, and which dies out smoothly (slope and curvature) at x = L = `droopLen`.
+ *
+ * The thickness is the distribution of the four-digit family scaled to the maximum thickness `thickness` (fraction of the chord), with a
+ * factor `nose` on its nose coefficient (the nose radius grows with the square of it), and the trailing edge closed to a point.
+ */
+export interface DesignParams {
+  camber: number;
+  b: number;
+  noseDeg: number;
+  droopLen: number;
+  thickness: number;
+  nose: number;
+}
+
+interface MeanLine {
+  z: (x: number) => number;
+  slope: (x: number) => number;
+}
+
+function meanLineOf(d: DesignParams): MeanLine {
+  if (!(d.camber >= 0 && d.b > 1 && d.noseDeg >= 0 && d.noseDeg < 60 && d.droopLen > 0.02 && d.droopLen <= 0.4 && d.thickness > 0.02 && d.nose > 0.5)) {
+    throw new Error('designed section: camber ≥ 0, camber exponent above 1, a nose slope between 0° and 60°, a droop length of 2 % … 40 % of the chord, thickness above 2 % and a nose factor above 0.5');
+  }
+  const xm = 1 / (1 + d.b);
+  const norm = xm * Math.pow(1 - xm, d.b);
+  const k = d.camber / norm;
+  const baseSlope0 = k; // slope of m · x (1 − x)^b at x = 0
+  const D = Math.max(0, Math.tan((d.noseDeg * Math.PI) / 180) - baseSlope0);
+  const L = d.droopLen;
+  const z = (x: number) => k * x * Math.pow(1 - x, d.b) + (x < L ? D * x * Math.pow(1 - x / L, 3) : 0);
+  const slope = (x: number) => k * (Math.pow(1 - x, d.b) - d.b * x * Math.pow(1 - x, d.b - 1)) + (x < L ? D * (Math.pow(1 - x / L, 3) - (3 * x * Math.pow(1 - x / L, 2)) / L) : 0);
+  return { z, slope };
+}
+
+/** The shape of a designed section as it is when the body is made of it (chord line from the farthest point to the trailing tip), as angles in degrees. */
+export interface DesignReading {
+  /** how far the chord line of the finished body is turned from the x axis the mean line was written on (the rounded nose sets its foremost point a little off the axis) */
+  chordTiltDeg: number;
+  /** the slope of the mean line 0.25 % behind the leading tip, and 95 % along the chord, relative to the finished chord line */
+  noseSlopeDeg: number;
+  tailSlopeDeg: number;
+  /** where the mean line is highest (fraction of the chord) and how high (fraction of the chord, relative to the finished chord line) */
+  maxCamberAt: number;
+  maxCamber: number;
+  /** the angle of zero lift and the lift at `alphaDeg` that the linear thin-section functional gives for this mean line (2π (α − α₀)): a figure for comparing shapes, valid only while the flow stays attached and well above what a real section reaches */
+  zeroLiftDeg: number;
+  linearLift: number;
+}
+
+/**
+ * What the mean line of a designed section does in the linear thin-section theory (Glauert; Abbott and von Doenhoff), used ONLY to describe
+ * the shapes offered here: it is neither part of the solver nor of any decision of the workspace, and nothing it gives is a result of a run.
+ * With x = (1 − cos θ)/2 the first Fourier coefficient of the slope is A₁ = (2/π) ∫ z′ cos θ dθ, the zero-lift angle is the mean slope
+ * (1/π) ∫ z′ dθ minus A₁/2, and the lift at an angle α is 2π (α − zero-lift angle).
+ */
+export function designReading(d: DesignParams, alphaDeg = 18): DesignReading {
+  const deg = 180 / Math.PI;
+  const ml = meanLineOf(d);
+  const c = designedContour(d);
+  const n = c.length / 2;
+  const te = [(c[0] + c[2 * n - 2]) / 2, (c[1] + c[2 * n - 1]) / 2];
+  let le = 0;
+  let far = -1;
+  for (let i = 0; i < n; i++) {
+    const dd = Math.hypot(c[2 * i] - te[0], c[2 * i + 1] - te[1]);
+    if (dd > far) {
+      far = dd;
+      le = i;
+    }
+  }
+  const tilt = Math.atan2(te[1] - c[2 * le + 1], te[0] - c[2 * le]);
+  const N = 4000;
+  let s0 = 0;
+  let s1 = 0;
+  let zmax = 0;
+  let zAt = 0;
+  for (let i = 0; i < N; i++) {
+    const th = ((i + 0.5) * Math.PI) / N;
+    const x = (1 - Math.cos(th)) / 2;
+    const v = Math.atan(ml.slope(x)) - tilt;
+    s0 += v;
+    s1 += v * Math.cos(th);
+    const zz = ml.z(x) - x * Math.tan(tilt); // height above the finished chord line (the line through the leading tip at the tilt)
+    if (zz > zmax) {
+      zmax = zz;
+      zAt = x;
+    }
+  }
+  const alphaI = s0 / N;
+  const A1 = (2 * s1) / N;
+  const zero = alphaI - A1 / 2;
+  return {
+    chordTiltDeg: tilt * deg,
+    noseSlopeDeg: (Math.atan(ml.slope(0.0025)) - tilt) * deg,
+    tailSlopeDeg: (Math.atan(ml.slope(0.95)) - tilt) * deg,
+    maxCamberAt: zAt,
+    maxCamber: zmax,
+    zeroLiftDeg: zero * deg,
+    linearLift: 2 * Math.PI * (alphaDeg / deg - zero),
+  };
+}
+
+export function designedContour(d: DesignParams, n = 140): number[] {
+  const ml = meanLineOf(d);
+  const yc = ml.z;
+  const dyc = ml.slope;
+  // the thickness distribution with a modified nose coefficient, rescaled so that its maximum is exactly the thickness asked for
+  // (the extra nose term vanishes with its slope at the trailing edge, so the trailing edge stays closed)
+  const raw = (x: number) => 0.2969 * Math.sqrt(x) - 0.126 * x - 0.3516 * x * x + 0.2843 * x * x * x - 0.1036 * x * x * x * x + (d.nose - 1) * 0.2969 * Math.sqrt(x) * (1 - x) * (1 - x);
+  let peak = 0;
+  for (let i = 1; i < 2000; i++) peak = Math.max(peak, raw(i / 2000));
+  const scale = d.thickness / (2 * peak);
+  const yt = (x: number) => scale * raw(x);
+  const up: number[] = [];
+  const lo: number[] = [];
+  for (let k = 0; k <= n; k++) {
+    const x = (1 - Math.cos((Math.PI * k) / n)) / 2;
+    const h = yt(x);
+    const th = Math.atan(dyc(x));
+    const c = yc(x);
+    up.push(x - h * Math.sin(th), c + h * Math.cos(th));
+    lo.push(x + h * Math.sin(th), c - h * Math.cos(th));
+  }
   const v: number[] = [];
   for (let k = n; k >= 0; k--) v.push(up[2 * k], up[2 * k + 1]);
   for (let k = 1; k <= n; k++) v.push(lo[2 * k], lo[2 * k + 1]);
@@ -134,8 +272,55 @@ function aimsOf(m: number, t: number): AirfoilAim[] {
 
 const preset = (code: string, extra?: Partial<Pick<AirfoilProfile, 'known' | 'aims'>>): AirfoilProfile => ({ ...sectionFromCode(code), ...extra });
 
-/** The sections offered as presets: all from published formulas. Which is "best" is not decided here: a run computes it. */
+// ---- Claude's designs for 18° at 350 km/h
+
+/** The condition the three designed sections were drawn for: an angle of attack of 18° in a flow of 350 km/h (97.2 m/s; Mach 0.29 in air at 15 °C at sea level; Reynolds number 1.3 million on a 20 cm chord). */
+export const CLAUDE_CONDITION = { alphaDeg: 18, speedKmh: 350 } as const;
+
+/** The parameters of the three designed sections, in the order of their names. */
+export const CLAUDE_DESIGNS: { letter: 'A' | 'B' | 'C'; params: DesignParams; idea: string; risk: string }[] = [
+  {
+    letter: 'A',
+    params: { camber: 0.045, b: 2.3, noseDeg: 22, droopLen: 0.1, thickness: 0.09, nose: 1.3 },
+    idea: 'the balanced attempt: moderate thickness, a camber arch with its maximum about a third back, and a nose turned down so that it points roughly along the flow that arrives at 18°',
+    risk: 'at this angle the upper surface still has a long pressure recovery behind the maximum camber, and the flow may separate from the rear of it before the nose does',
+  },
+  {
+    letter: 'B',
+    params: { camber: 0.035, b: 2.8, noseDeg: 20, droopLen: 0.08, thickness: 0.065, nose: 1.5 },
+    idea: 'the lean attempt: thin, less camber, almost flat tail, the same turned-down nose; the least drag of the three if the flow stays attached, because the section is thin and the tail has little curvature',
+    risk: 'a thin nose with a small radius is the first to separate when the flow angle is a little off, and its lift is the lowest of the three; the lattice of the workspace resolves a nose radius this small only at its finest settings (the card says how many cells it takes)',
+  },
+  {
+    letter: 'C',
+    params: { camber: 0.05, b: 1.5, noseDeg: 18, droopLen: 0.14, thickness: 0.12, nose: 1.25 },
+    idea: 'the tolerant attempt: thick, with a large nose radius, the most camber with its maximum 41 % back and a tail that falls away at about 4°; the most lift of the three for the same angle, and the most forgiving of an angle that is not the design angle',
+    risk: 'its thickness and its camber cost drag, and the long way the tail has to turn the flow back is where it is most likely to separate',
+  },
+];
+
+function claudeSection(c: (typeof CLAUDE_DESIGNS)[number]): AirfoilProfile {
+  const r = designReading(c.params, CLAUDE_CONDITION.alphaDeg);
+  const p = c.params;
+  const pc = (v: number) => (100 * v).toFixed(1);
+  return {
+    id: `claude-${c.letter.toLowerCase()}`,
+    name: `Claude airfoil ${c.letter}`,
+    family: 'designed for 18° at 350 km/h',
+    known: `a section drawn by Claude for this program, for an angle of attack of 18° in a flow of 350 km/h: ${c.idea}. Its mean line leaves the chord line at ${r.noseSlopeDeg.toFixed(0)}° at the nose and ${r.tailSlopeDeg < -0.5 ? `leaves the tail at ${Math.abs(r.tailSlopeDeg).toFixed(1)}° downward` : 'ends almost flat'}; its maximum camber is ${pc(r.maxCamber)} % at ${Math.round(100 * r.maxCamberAt)} % of the chord. THIS IS A HYPOTHESIS, not a result: the shape was chosen by reasoning about the nose and the pressure recovery (and the linear thin-section figures of the mean line: zero-lift angle ${r.zeroLiftDeg.toFixed(1)}°, so a lift coefficient of ${r.linearLift.toFixed(1)} at 18° if the flow stayed attached, which no real section reaches), no solver was run at 350 km/h, no section was compared with others over a range of conditions, so it is not shown to be the best for 18° and may well be beaten by a section from the list. The risk of this one: ${c.risk}`,
+    aims: ['designed'],
+    source: { kind: 'designed', text: `designed here, not published: the mean line m·x(1−x)^b (m = ${pc(p.camber)} %, b = ${p.b}) plus a nose droop that makes its slope ${p.noseDeg}° at the tip and dies out over ${Math.round(100 * p.droopLen)} % of the chord, with the four-digit thickness distribution scaled to ${pc(p.thickness)} % and its nose coefficient multiplied by ${p.nose}; trailing edge closed to a point; computed, not copied` },
+    designedFor: { ...CLAUDE_CONDITION, text: 'an angle of attack of 18° and a flow of 350 km/h (97.2 m/s, Mach 0.29 in air at 15 °C at sea level, Reynolds number about 1.3 million on a 20 cm chord)' },
+    contour: designedContour(p),
+  };
+}
+
+/** Claude's three designed sections, named "Claude airfoil A", "B" and "C". */
+export const CLAUDE_AIRFOILS: AirfoilProfile[] = CLAUDE_DESIGNS.map(claudeSection);
+
+/** The sections offered as presets: Claude's three designs, then sections from published formulas. Which is "best" is not decided here: a run computes it. */
 export const AIRFOIL_PRESETS: AirfoilProfile[] = [
+  ...CLAUDE_AIRFOILS,
   preset('4412'),
   preset('6409', { aims: ['high-lift', 'efficiency'] }),
   preset('6412'),

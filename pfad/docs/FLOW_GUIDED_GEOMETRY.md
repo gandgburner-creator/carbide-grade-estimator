@@ -777,7 +777,7 @@ coordinates**, and what the flow does around it is computed.
 
 - **Where the shapes come from.** The numbered sections are generated from their published formulas (the four- and five-digit families of
   Abbott and von Doenhoff, trailing edge closed to a point): NACA 0006, 0009, 0012, 0015 (symmetric references), 2409, 2412, 2415, 4409, 4412
-  (moderate camber), 6409, 6412, 9412 (strong camber, high lift at low speed), 23012, 23015 (five-digit, far-forward camber). Any other four- or
+  (moderate camber), 6409, 6412, 9412 (strong camber, high lift at low speed), 23012, 23015 (five-digit, far-forward camber); Claude's three designed sections come before them (below). Any other four- or
   five-digit code can be added. The formulas are checked in `tests/reference.airfoils.test.ts` against properties that do not depend on them
   being coded right: the 0012's half thickness of 0.0600 at 30 % chord and its cross-section of 0.0822 c², and the positions of maximum camber of the
   five-digit mean lines (5, 10, 15, 20, 25 %).
@@ -802,6 +802,47 @@ coordinates**, and what the flow does around it is computed.
   and 0.327 at 6°, where inviscid theory gives about 0.5 more. **The lift-to-drag ratios of real wings (tens to over a hundred, at Reynolds numbers of
   10⁵ – 10⁶) are not reachable by this solver and must not be read off this table**; the table shows how the computed flow at the run's Reynolds
   number treats each shape. For the L/D of a real section use measured or published polars at the wing's Reynolds number, or a method made for it.
+
+### Claude airfoil A, B and C: three designs for 18° at 350 km/h (hypotheses, not results)
+
+The list begins with three sections drawn by Claude on request ("your own best attempt at a wing for 18° angle of attack, 350 km/h flow, best lift
+to drag ratio"). They are **designed here, not published**, are marked `designed` (`source.kind`, the filter "Claude's designs") and come with the
+condition they were drawn for: choosing one sets the angle to 18° and the speed to 350 km/h (97.2 m/s: Mach 0.29 in air at 15 °C at sea level;
+Reynolds number about 1.3 million on a 20 cm chord, 6.7 million on 1 m). Their coordinates are computed from `DesignParams` (`designedContour`) and
+the three parameter sets are in `CLAUDE_DESIGNS`; nothing else in the program knows them.
+
+**What was and was not done.** A section for the largest lift-to-drag ratio at a given angle and Reynolds number is a design problem that needs an
+evaluator for that flow (a viscous-inviscid code such as XFOIL or NeuralFoil, or a wind tunnel). This environment has none: the lattice solver
+of this workspace reaches Reynolds numbers of at most 8 × the cells (2048), three decades below the flight condition, and the installation of
+NeuralFoil was not permitted in the session. So **no evaluator was run at 350 km/h, nothing was optimised, and none of the three is shown to be the
+best section for 18°** — they are three reasoned hypotheses, different in what they bet on, so that a person with a better evaluator, or a measured
+polar, can compare them:
+
+- **A · balanced**: 9 % thick, camber 4.5 % with its maximum about 31 % back, nose radius about 1 % of the chord.
+- **B · lean**: 6.5 % thick, camber 3.5 % at about 27 %, almost flat tail, nose radius 0.5 %. Least drag if the flow stays attached; the first to
+  separate if the angle is off; its nose is resolved by the lattice only at its finest settings.
+- **C · tolerant**: 12 % thick, camber 5 % with its maximum 41 % back, nose radius about 1.7 %, the tail leaving about 4° downward. The most lift of the
+  three for a given angle and the most forgiving of an angle that is not 18°; costs drag.
+
+**The reasoning behind the shape** (it is judgement, informed by what is known of sections that are flown at high angles — the stall of a
+section at a large angle starts at the nose, and a nose that is turned down toward the oncoming flow, with a large enough radius, keeps the
+stagnation point near the nose tip and spreads the suction peak). The mean line of each section is the sum of an arch `m·x(1−x)^b` and a nose droop
+that makes the slope at the tip 18–22° and dies out smoothly over 8–14 % of the chord; the thickness is the four-digit thickness distribution scaled
+to the stated thickness with a modified nose coefficient. The chord line of the finished body is the line from its foremost point to the trailing tip
+(0.1°–0.4° from the line the mean line was written on, accounted for in the figures on the card).
+
+**Linear figures, and why they are only description.** For each mean line the program also computes the quantities of linear thin-section theory
+(zero-lift angle −1° to −3°; a lift coefficient of 2.1 – 2.3 at 18° *if the flow stayed attached*, which no real section reaches at that angle; the
+real maximum lift coefficient of a section of this thickness is about 1.5 – 2). They sit in `designReading` for the card and the tests, and are
+neither used by the solver nor by any decision of the workspace. (An earlier attempt to *choose* the shape so that linear theory's "ideal angle"
+equalled 18° was dropped: the figure it gives is dominated by the slope singularity at the nose of the mean-line family used, depends on how finely
+it is integrated, and means nothing there.)
+
+**What the workspace can show of them.** A run on the lattice (Re ≤ 2048) shows how the computed flow around each shape behaves at 18° at that low
+Reynolds number — where the boundary layers are thick, separation is laminar and lift-to-drag ratios of about 1 – 5 are what the lattice gives for
+any section — and **says nothing about whether a section is good at 350 km/h**. To test the designs properly: load their coordinates (the card's
+shape, or `designedContour(CLAUDE_DESIGNS[i].params)`) into XFOIL or NeuralFoil at Re 1.3 × 10⁶ and Mach 0.29, or compare them with the sections of
+the list (and with E387, S1223, SD7037, FX 63-137, E423 once their `.dat` files are imported) over several angles.
 
 ## Computing on the graphics card (WebGPU)
 

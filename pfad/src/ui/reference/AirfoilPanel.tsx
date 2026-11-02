@@ -7,6 +7,7 @@ const AIMS: { id: AirfoilAim | 'all'; label: string }[] = [
   { id: 'high-lift', label: 'high lift' },
   { id: 'efficiency', label: 'efficiency (lift-to-drag)' },
   { id: 'symmetric', label: 'symmetric references' },
+  { id: 'designed', label: 'Claude’s designs (18°, 350 km/h)' },
 ];
 
 /** a small picture of the outline */
@@ -135,8 +136,13 @@ export function AirfoilPanel(p: {
                   <div className="note">{ok ? describeMetrics(b.metrics) : b}</div>
                 </div>
               </div>
+              {a.designedFor && (
+                <div className="note" style={{ color: 'var(--warn, #d29922)' }} data-testid="designed-note">
+                  Drawn for {a.designedFor.text}. A hypothesis chosen by reasoning, not an optimised or validated section: nothing here shows it is the best for that condition, and this workspace cannot reach that Reynolds number to test it. USE sets {a.designedFor.alphaDeg}° and {a.designedFor.speedKmh} km/h.
+                </div>
+              )}
               <details>
-                <summary className="note">known for · source</summary>
+                <summary className="note">{a.designedFor ? 'the design · source' : 'known for · source'}</summary>
                 <div className="note">{a.known}.</div>
                 <div className="note">Shape: {a.source.text}.</div>
               </details>
