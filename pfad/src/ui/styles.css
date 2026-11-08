@@ -1507,3 +1507,37 @@ table.compare tr.row-top td {
   padding: 10px 16px;
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
 }
+
+/* the CFD picture: a box with a height of its own, so that the canvas never collapses (a canvas whose height is a percentage of an auto height has none) */
+.cfd-box {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 420px;
+  min-width: 0;
+}
+.cfd-box > canvas.particle-canvas {
+  position: absolute;
+  inset: 0;
+}
+.cfd-touch {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  font-size: 10.5px;
+  background: rgba(15, 18, 22, 0.88);
+}
+.gpu-fold > summary {
+  cursor: pointer;
+  padding: 2px 0;
+}
+@media (max-width: 1100px) {
+  .cfd-box {
+    flex: none;
+    height: min(120vw, 64vh);
+    min-height: 320px;
+  }
+  .flow .view-wrap {
+    min-height: 0;
+  }
+}

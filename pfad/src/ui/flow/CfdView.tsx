@@ -59,6 +59,10 @@ export function CfdView({
   };
   const trRef = useRef<HTMLCanvasElement>(null);
   const tracerSys = useRef<Tracers | null>(null);
+  // on a touch screen the picture would trap the finger that is meant to scroll the page: by default a vertical swipe scrolls the page (a
+  // sideways drag still moves the picture), and a button switches to moving the picture and dragging the dots in every direction
+  const coarse = typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+  const [touchMoves, setTouchMoves] = useState(false);
   const [size, setSize] = useState(0);
   useEffect(() => {
     const c = ref.current;
@@ -205,11 +209,12 @@ export function CfdView({
   const info = CFD_FIELD_LABEL[kind];
   return (
     <div className="view-wrap" style={{ position: 'relative' }}>
+      <div className="cfd-box" data-testid="cfd-box">
       <canvas
         ref={ref}
         className="particle-canvas"
         aria-label="CFD field view"
-        style={{ width: '100%', height: '100%', display: 'block', cursor: 'grab', touchAction: 'none' }}
+        style={{ width: '100%', height: '100%', display: 'block', cursor: 'grab', touchAction: coarse && !touchMoves ? 'pan-y pinch-zoom' : 'none' }}
         onWheel={(e) => {
           e.preventDefault();
           const cur = camera ?? { zoom: 1, cx: domain.w / 2, cy: domain.h / 2 };
@@ -253,6 +258,12 @@ export function CfdView({
         }}
       />
       <canvas ref={trRef} aria-hidden="true" style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%', pointerEvents: 'none', opacity: 1 - 0.95 * Math.min(1, pad?.settings.opacity ?? 0) }} />
+      {coarse && (
+        <button className="ctl cfd-touch" onClick={() => setTouchMoves((m) => !m)} aria-pressed={touchMoves} aria-label={touchMoves ? 'touch scrolls the page' : 'touch moves the picture and the dots'} title={touchMoves ? 'a swipe on the picture scrolls the page again' : 'a drag on the picture moves it, and drags the red dot, the pointer and the green dot'}>
+          {touchMoves ? 'SCROLL THE PAGE' : 'MOVE THE PICTURE'}
+        </button>
+      )}
+      </div>
       <div className="legend" style={{ maxWidth: 'min(660px, 82%)' }}>
         <div>{caption}</div>
         <div className="legend-scale" style={{ marginTop: 4 }}>

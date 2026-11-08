@@ -76,6 +76,8 @@ export function CfdGeometry() {
   const [studyRows, setStudyRows] = useState<StudyRow[]>([]);
   const [studyRun, setStudyRun] = useState<{ done: number; total: number; label: string; job: StudyJob } | null>(null);
   const [studyMessage, setStudyMessage] = useState<string | null>(null);
+  // on a phone the graphics-card panel starts folded, so that the bar pinned to the bottom of the screen stays low
+  const [narrow] = useState(() => typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 1100px)').matches);
   const [dimpleTexts, setDimpleTexts] = useState<DimpleTexts>(DEFAULT_DIMPLE_TEXTS);
   const [savedStudies, setSavedStudies] = useState<SavedStudy[]>(() => loadSavedStudies());
   const [storageMessage, setStorageMessage] = useState<string | null>(null);
@@ -816,7 +818,10 @@ export function CfdGeometry() {
 
           <div className="section run-section">
             <h2>2 · Compute {head.id}</h2>
-            <GpuPanel engine={engine} onEngine={setEngine} info={gpuInfo} disabled={locked} />
+            <details className="gpu-fold" open={!narrow} data-testid="gpu-fold">
+              <summary className="note">Graphics card · computing {engine === 'gpu' && gpuInfo ? 'on the GPU' : 'on the CPU'}</summary>
+              <GpuPanel engine={engine} onEngine={setEngine} info={gpuInfo} disabled={locked} />
+            </details>
             <div className="controls">
               <button className="ctl primary" disabled={locked} onClick={run} title="run the CFD of the current geometry">
                 SIMULATE

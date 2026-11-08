@@ -880,6 +880,13 @@ value of each series among the angles run, and a CSV. Series can be hidden from 
 Reynolds number, resolution or engine, the comparison says so in words (the differences are then not like for like). Saved studies can be renamed, deleted, exported to a JSON
 file and imported again (a study already present is not added twice). Nothing is recomputed or ranked; the comparison is arithmetic on the rows that the runs gave.
 
+### On a phone
+
+The CFD picture sits in a box with a height of its own (`.cfd-box`: the width of the screen times 1.2, at most 64 % of its height). Before this it was a canvas
+whose height was a percentage of an automatic height, which collapses to nothing on a narrow screen: the picture was an empty dark area. On a touch screen a vertical swipe on the picture
+scrolls the page (a sideways drag still moves the picture); the button **MOVE THE PICTURE** switches to moving the picture and dragging the red dot, the pointer and the green dot in
+every direction, and back. The graphics-card panel starts folded on a narrow screen so that the bar pinned to the bottom stays low (`scripts/smoke-phone.mjs`).
+
 ## Computing on the graphics card (WebGPU)
 
 The CFD can be computed on **this computer's graphics card** instead of the processor (`src/cfd/gpu/`): the same lattice Boltzmann
