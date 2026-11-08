@@ -10,7 +10,7 @@ import { CFD_BASE, CFD_PRESETS, GPU_PRESETS, cfdPlacement, type CfdParams, type 
 import { CFD_PLATE_LENGTH, cfdSetup } from '../experiments/CfdScenario';
 import type { PhysicalInputs } from '../experiments/FlowGeometryExperiment';
 import { DEFAULT_DEPTH_CM, DEFAULT_SCENARIO, newtonsAndKgf, parseDepth, wingForces } from '../experiments/PhysicalScenario';
-import { DEFAULT_FLUID_TEXTS, fluidTextsOf, parseCfdInputs, type FluidTexts } from '../experiments/FluidScenario';
+import { DEFAULT_FLUID_TEXTS, fluidInfo, fluidTextsOf, parseCfdInputs, type FluidTexts } from '../experiments/FluidScenario';
 import { anchorOf, camberShift, DEFAULT_POINTER_STEP, initialPaths, pointerOf, radiusOf, type PointerStepConfig } from '../geometry/Pointer';
 import { measuredCfdStep } from '../geometry/PointerMeasure';
 import { bodyPolygon, place, unplace, type Side } from '../geometry/SurfaceGeometry';
@@ -28,9 +28,13 @@ import { defaultPointerTexts, dotsFromTexts, dragToTexts, EMPTY_POINTER_TEXTS, r
 import { EMPTY_SWEEP, PointerPanel, type PointerSweep } from './flow/PointerPanel';
 import { scenarioText, type ScenarioText } from './flow/ScenarioPanel';
 import { GpuPanel, type Engine } from './flow/GpuPanel';
-import { AirfoilPanel, AirfoilStudy } from './reference/AirfoilPanel';
+import { AirfoilPanel, AirfoilStudy, DIMPLED_SUFFIX, dimpledProfile } from './reference/AirfoilPanel';
+import { SavedStudiesPanel } from './reference/SavedStudiesPanel';
+import { loadSavedStudies, storeSavedStudies } from './reference/savedStudiesStore';
 import { AIRFOIL_PRESETS, airfoilBody, type AirfoilBody, type AirfoilProfile } from '../reference/Airfoils';
-import { jobsFor, parseAngles, resolutionAdvice, rowOf, type StudyJob, type StudyRow } from '../reference/Study';
+import { DEFAULT_DIMPLE_TEXTS, dimpleAdvice, dimpledBody, parseDimples, type DimpleRecord, type DimpleTexts } from '../reference/Dimples';
+import { defaultStudyName, mergeStudies, newSavedStudy, parseStudies, uniqueName, type SavedStudy } from '../reference/SavedStudies';
+import { jobsFor, parseAngles, resolutionAdvice, rowOf, type StudyBody, type StudyJob, type StudyRow } from '../reference/Study';
 import { PAD_OFF, type PadFrame, type PadSettings, type PadStyle } from './flow/DrawingPad';
 import { probeGpu, type GpuInfo } from '../cfd/gpu/LbmGpu';
 import { StationChart } from './flow/StationChart';
@@ -72,6 +76,9 @@ export function CfdGeometry() {
   const [studyRows, setStudyRows] = useState<StudyRow[]>([]);
   const [studyRun, setStudyRun] = useState<{ done: number; total: number; label: string; job: StudyJob } | null>(null);
   const [studyMessage, setStudyMessage] = useState<string | null>(null);
+  const [dimpleTexts, setDimpleTexts] = useState<DimpleTexts>(DEFAULT_DIMPLE_TEXTS);
+  const [savedStudies, setSavedStudies] = useState<SavedStudy[]>(() => loadSavedStudies());
+  const [storageMessage, setStorageMessage] = useState<string | null>(null);
   const studyRef = useRef<{ jobs: StudyJob[]; i: number } | null>(null);
   const studyResultRef = useRef<((r: CfdResult) => boolean) | null>(null);
   const studyEndRef = useRef<((kind: 'stopped' | 'failed', text: string) => boolean) | null>(null);
@@ -236,7 +243,7 @@ export function CfdGeometry() {
 
   // ---- reference airfoils: a fixed body from a library or a file, and the study of several of them
   const engineArg: 'gpu' | 'cpu' = engine === 'gpu' && gpuInfo ? 'gpu' : 'cpu';
-  const loadAirfoil = (profile: AirfoilProfile, body: AirfoilBody) => {
+  const loadAirfoil = (profile: AirfoilProfile, body: AirfoilBody, dimples?: DimpleRecord) => {
     if (busy) return;
     if (!sCheck.ok) return setMessage(`Inputs: ${sCheck.errors.join('; ')}`);
     if (!depthCheck.ok) return setMessage(depthCheck.error);
@@ -252,8 +259,17 @@ export function CfdGeometry() {
     const setup = cfdSetup(input, preset);
     const c = CFD_PRESETS[preset];
     const params: Omit<CfdParams, 'geometry'> = { alphaDeg: input.alphaDeg, cells: c.cells, reynolds: setup.reynolds, ...CFD_BASE, warmup: c.warmup, average: c.average };
-    const notes = [...body.notes, ...resolutionAdvice(body.metrics.thickness, body.metrics.noseRadius, c.cells)];
-    const lib: CfdLibraryBody = { id: profile.id, name: profile.name, family: profile.family, source: profile.source.text, known: profile.known, metrics: { thickness: body.metrics.thickness, thicknessAt: body.metrics.thicknessAt, camber: body.metrics.camber, camberAt: body.metrics.camberAt, noseRadius: body.metrics.noseRadius, trailingGap: body.metrics.trailingGap }, notes };
+    const notes = [...body.notes, ...resolutionAdvice(body.metrics.thickness, body.metrics.noseRadius, c.cells), ...(dimples ? dimpleAdvice(dimples.spec, c.cells) : [])];
+    const lib: CfdLibraryBody = {
+      id: profile.id,
+      name: profile.name,
+      family: profile.family,
+      source: profile.source.text,
+      known: profile.known,
+      metrics: { thickness: body.metrics.thickness, thicknessAt: body.metrics.thicknessAt, camber: body.metrics.camber, camberAt: body.metrics.camberAt, noseRadius: body.metrics.noseRadius, trailingGap: body.metrics.trailingGap },
+      notes,
+      ...(dimples ? { dimples: { label: dimples.label, surface: dimples.spec.surface, diameter: dimples.spec.diameter, depthRatio: dimples.spec.depthRatio, coverage: dimples.spec.coverage, from: dimples.spec.from, to: dimples.spec.to, count: dimples.count, pitch: dimples.pitch, stations: dimples.stations, surfaceGain: dimples.surfaceGain, thinned: dimples.thinned } } : {}),
+    };
     const plate = { length: CFD_PLATE_LENGTH, thickness: Math.max(0.5, body.metrics.thickness * CFD_PLATE_LENGTH) };
     const p = setCfdWingDepth(newCfdLibraryProject(`${profile.name} study`, { scenario: input, preset, params, realReynolds: setup.real.reynolds }, body.geometry, lib, { plate, paths: initialPaths(plate), spacing: 1 }), depthCheck.depthCm);
     sim.unload();
@@ -272,13 +288,22 @@ export function CfdGeometry() {
     if (busy) return;
     const ang = parseAngles(anglesText);
     if (!ang.ok) return setStudyMessage(ang.error);
-    const bodies: { id: string; name: string; geometry: StudyJob['geometry']; thickness: number; noseRadius: number }[] = [];
+    const bodies: StudyBody[] = [];
+    const dimpleCheck = parseDimples(dimpleTexts);
     for (const id of picked) {
-      const a = allAirfoils.find((x) => x.id === id);
+      const dimpled = id.endsWith(DIMPLED_SUFFIX);
+      const a = allAirfoils.find((x) => x.id === (dimpled ? id.slice(0, -DIMPLED_SUFFIX.length) : id));
       if (!a) continue;
       try {
-        const b = airfoilBody(a.contour, CFD_PLATE_LENGTH);
-        bodies.push({ id: a.id, name: a.name, geometry: b.geometry, thickness: b.metrics.thickness, noseRadius: b.metrics.noseRadius });
+        if (dimpled) {
+          if (!dimpleCheck.ok) return setStudyMessage(`the dimple settings are not valid: ${dimpleCheck.errors.join('; ')}`);
+          const d = dimpledBody(a.contour, dimpleCheck.spec, CFD_PLATE_LENGTH);
+          const prof = dimpledProfile(a, d.record);
+          bodies.push({ id: prof.id, name: prof.name, geometry: d.body.geometry, thickness: d.body.metrics.thickness, noseRadius: d.body.metrics.noseRadius, baseId: a.id, baseName: a.name, dimples: d.record });
+        } else {
+          const b = airfoilBody(a.contour, CFD_PLATE_LENGTH);
+          bodies.push({ id: a.id, name: a.name, geometry: b.geometry, thickness: b.metrics.thickness, noseRadius: b.metrics.noseRadius });
+        }
       } catch (e) {
         return setStudyMessage(`${a.name}: ${(e as Error).message}`);
       }
@@ -333,6 +358,32 @@ export function CfdGeometry() {
     setStudyRun(null);
     setStudyMessage('The study was stopped; the rows computed so far are kept.');
     sim.stop();
+  };
+
+  // ---- saved studies
+  const keepStudies = (list: SavedStudy[]) => {
+    setSavedStudies(list);
+    setStorageMessage(storeSavedStudies(list));
+  };
+  const flowText = () => {
+    const i = sCheck.ok ? sCheck.input : project.conditions.scenario;
+    return `${fluidInfo(i.fluid?.id ?? 'air').label} at ${i.tempC} °C, ${i.speedKmh} km/h, ${i.lengthCm} cm chord`;
+  };
+  const saveStudy = (name: string): string => {
+    if (!studyRows.length) return 'There is no study to save: run one first.';
+    const nm = uniqueName(name.trim() || defaultStudyName(studyRows), savedStudies.map((x) => x.name));
+    const st = newSavedStudy(nm, studyRows, flowText());
+    keepStudies([...savedStudies, st]);
+    return `Saved as “${st.name}” (${st.rows.length} runs). Tick it in the list below to compare it with other saved studies.`;
+  };
+  const importStudies = (text: string): string => {
+    const r = parseStudies(text);
+    if (r.error) return r.error;
+    if (!r.studies.length) return 'The file has no valid saved study.';
+    const merged = mergeStudies(savedStudies, r.studies);
+    const added = merged.length - savedStudies.length;
+    keepStudies(merged);
+    return `${added} saved ${added === 1 ? 'study was' : 'studies were'} added${r.studies.length - added ? `, ${r.studies.length - added} already there` : ''}${r.skipped ? `, ${r.skipped} entries were not valid and were skipped` : ''}.`;
   };
 
   // ---- project
@@ -727,7 +778,7 @@ export function CfdGeometry() {
 
           <div className="section">
             <h2>1b · Reference airfoils</h2>
-            <AirfoilPanel cells={CFD_PRESETS[preset].cells} disabled={locked} onLoad={loadAirfoil} extra={extraAirfoils} onExtra={setExtraAirfoils} picked={picked} onPicked={setPicked} openName={library?.name ?? null} />
+            <AirfoilPanel cells={CFD_PRESETS[preset].cells} disabled={locked} onLoad={loadAirfoil} dimples={dimpleTexts} onDimples={setDimpleTexts} extra={extraAirfoils} onExtra={setExtraAirfoils} picked={picked} onPicked={setPicked} openName={library?.name ?? null} />
             <h3 className="h3">Airfoil study: lift, drag and L/D</h3>
             <AirfoilStudy
               picked={picked}
@@ -750,6 +801,16 @@ export function CfdGeometry() {
               cells={params.cells}
               reynolds={params.reynolds}
               engine={engineArg === 'gpu' ? 'on the graphics card' : 'on the CPU'}
+            />
+            <SavedStudiesPanel
+              rows={studyRows}
+              running={!!studyRun}
+              saved={savedStudies}
+              onSave={saveStudy}
+              onDelete={(id) => keepStudies(savedStudies.filter((x) => x.id !== id))}
+              onRename={(id, name) => keepStudies(savedStudies.map((x) => (x.id === id ? { ...x, name: uniqueName(name, savedStudies.filter((y) => y.id !== id).map((y) => y.name)) } : x)))}
+              onImport={importStudies}
+              storageMessage={storageMessage}
             />
           </div>
 
@@ -794,6 +855,11 @@ export function CfdGeometry() {
             {library ? (
               <div className="note" data-testid="fixed-body-note">
                 <b>{library.name}</b> is a fixed body: the red dot, the pointer, the green dot, the camber and the auto fill build on the rounded plate, and do not apply to a section taken from the library or a file. To draw with the pointer, press START NEW PROJECT (the plate project), or choose another section above.
+                {library.dimples && (
+                  <div className="note" data-testid="dimple-note">
+                    Dimpled version: {library.dimples.count} dimples, {library.dimples.label}; {(100 * library.dimples.surfaceGain).toFixed(1)} % more surface length on the dimpled surface. In this two-dimensional computation a dimple is a groove across the whole wing, not a round dent (see the dimple box in 1b).
+                  </div>
+                )}
                 {library.notes.map((n, i) => (
                   <div key={i} className="warn">{n}.</div>
                 ))}

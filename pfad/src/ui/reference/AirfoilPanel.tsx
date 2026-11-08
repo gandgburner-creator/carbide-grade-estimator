@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { AIRFOIL_PRESETS, airfoilBody, describeMetrics, parseAirfoilDat, sectionFromCode, type AirfoilAim, type AirfoilBody, type AirfoilProfile } from '../../reference/Airfoils';
+import { DIMPLES_2D_NOTE, DIMPLE_LIMITS, DIMPLE_PRESETS, dimpleAdvice, dimpleCentres, dimpleShort, dimpleTextsOf, dimpledBody, parseDimples, type DimpleRecord, type DimpleSpec, type DimpleTexts } from '../../reference/Dimples';
 import { highestLd, resolutionAdvice, studyCsv, type StudyRow } from '../../reference/Study';
+import { DimplePreview } from './DimplePreview';
 
 const AIMS: { id: AirfoilAim | 'all'; label: string }[] = [
   { id: 'all', label: 'all sections' },
@@ -35,6 +37,35 @@ function Outline({ contour }: { contour: number[] }) {
   );
 }
 
+/** A dimple setting: a box to type in and a slider for the same value. */
+function DimpleField(p: { label: string; aria: string; value: string; onChange: (v: string) => void; min: number; max: number; step: number }) {
+  const v = Number(p.value.replace(',', '.'));
+  return (
+    <label>
+      {p.label}
+      <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        <input inputMode="decimal" value={p.value} onChange={(e) => p.onChange(e.target.value)} aria-label={p.aria} style={{ width: 64 }} />
+        <input type="range" min={p.min} max={p.max} step={p.step} value={Number.isFinite(v) ? Math.min(p.max, Math.max(p.min, v)) : p.min} onChange={(e) => p.onChange(e.target.value)} aria-label={`${p.aria}, slider`} style={{ flex: 1, minWidth: 0 }} />
+      </span>
+    </label>
+  );
+}
+
+/** The id of a section's dimpled version in the study list. */
+export const DIMPLED_SUFFIX = '+dimples';
+
+/** A section's dimpled version as a profile: the same coordinates, a name and a source that say what was pressed into it. */
+export function dimpledProfile(a: AirfoilProfile, r: DimpleRecord): AirfoilProfile {
+  return {
+    ...a,
+    id: `${a.id}${DIMPLED_SUFFIX}`,
+    name: `${a.name} + dimples (${dimpleShort(r.spec)})`,
+    family: `${a.family}, dimpled`,
+    known: `${a.known}. Dimpled version: ${r.count} dimples ${r.spec.surface === 'both' ? 'on each surface' : `on the ${r.spec.surface} surface`}, ${r.label}, ${(100 * r.surfaceGain).toFixed(1)} % more surface length on the dimpled surface${r.spec.surface === 'both' ? 's' : ''}; the numbers of the card are those of the section before its dimples. Nothing shows that these dimples help this section`,
+    source: { ...a.source, text: `${a.source.text}; then ${r.count} dimples pressed into it (${r.label})` },
+  };
+}
+
 /**
  * The reference airfoils: sections whose shape comes from a published formula, any other four- or five-digit code, and any section from
  * a coordinate file. Choosing one starts a project with it as a FIXED body (the solver does not know where a body came from); ticking
@@ -44,7 +75,10 @@ export function AirfoilPanel(p: {
   /** lattice cells along the chord at the chosen resolution (for the resolution advice) */
   cells: number;
   disabled: boolean;
-  onLoad: (profile: AirfoilProfile, body: AirfoilBody) => void;
+  onLoad: (profile: AirfoilProfile, body: AirfoilBody, dimples?: DimpleRecord) => void;
+  /** the dimple settings (text boxes) and their change */
+  dimples: DimpleTexts;
+  onDimples: (t: DimpleTexts) => void;
   extra: AirfoilProfile[];
   onExtra: (list: AirfoilProfile[]) => void;
   picked: string[];
@@ -56,7 +90,26 @@ export function AirfoilPanel(p: {
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [previewId, setPreviewId] = useState('4-4412');
   const all = [...AIRFOIL_PRESETS, ...p.extra];
+  const dimpleCheck = useMemo(() => parseDimples(p.dimples), [p.dimples]);
+  const spec: DimpleSpec | null = dimpleCheck.ok ? dimpleCheck.spec : null;
+  const previewAirfoil = all.find((a) => a.id === previewId) ?? all[0];
+  const centres = spec ? dimpleCentres(spec) : [];
+  const advice = spec ? dimpleAdvice(spec, p.cells) : [];
+  const useDimpled = (a: AirfoilProfile) => {
+    if (!spec) return;
+    try {
+      const d = dimpledBody(a.contour, spec);
+      p.onLoad(dimpledProfile(a, d.record), d.body, d.record);
+      setError(null);
+    } catch (e) {
+      setInfo(null);
+      setError(`${a.name}: ${(e as Error).message}`);
+    }
+  };
+  const setField = (k: keyof DimpleTexts, v: string) => p.onDimples({ ...p.dimples, [k]: v });
+  const presetValue = DIMPLE_PRESETS.find((d) => JSON.stringify(dimpleTextsOf(d.spec)) === JSON.stringify(p.dimples))?.id ?? 'custom';
   const shown = all.filter((a) => aim === 'all' || a.source.kind === 'imported' || a.aims.includes(aim));
   const bodies = useMemo(() => {
     const m = new Map<string, AirfoilBody | string>();
@@ -112,6 +165,81 @@ export function AirfoilPanel(p: {
       <div className="note">
         Start from a well-known section instead of the rounded plate. The shapes of the numbered sections are computed from their published formulas (four- and five-digit families, trailing edge closed to a point); other sections (Eppler, Selig, Wortmann, Clark Y …) exist only as coordinate tables, which this program does not carry: bring the section’s own <code>.dat</code> file (for example from the UIUC airfoil database or airfoiltools.com) below. A section is a <b>fixed body</b>: the pointer builds on the rounded plate and does not apply to it. What the flow does around it is computed, not looked up, and no section is called best here: the descriptions are the sections’ reputations.
       </div>
+      <details className="dimple-box" open data-testid="dimple-box">
+        <summary>
+          <b>Dimples</b> · a dimpled version of any section below
+        </summary>
+        <div className="note">
+          Like a golf ball: shallow round dents pressed into the surface of a section. Choose how <b>big</b> the dimples are (diameter along the chord and depth), how <b>dense</b> (the share of the stretch they cover: the closer, the more of them) and where, then press <b>USE WITH DIMPLES</b> on a section, or tick “dimpled version too” to put its dimpled twin in the study.
+        </div>
+        <details>
+          <summary className="note">what a dimple is in this computation</summary>
+          <div className="note">{DIMPLES_2D_NOTE}</div>
+        </details>
+        <label className="field-inline">
+          settings{' '}
+          <select
+            value={presetValue}
+            onChange={(e) => {
+              const d = DIMPLE_PRESETS.find((x) => x.id === e.target.value);
+              if (d) p.onDimples(dimpleTextsOf(d.spec));
+            }}
+            aria-label="dimple settings preset"
+          >
+            <option value="custom">your own values</option>
+            {DIMPLE_PRESETS.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="dimple-fields">
+          <label>
+            dimples on
+            <select value={p.dimples.surface} onChange={(e) => setField('surface', e.target.value)} aria-label="dimples on surface">
+              <option value="upper">the upper surface</option>
+              <option value="lower">the lower surface</option>
+              <option value="both">both surfaces</option>
+            </select>
+          </label>
+          <DimpleField label="size: diameter [% of chord]" aria="dimple diameter in % of the chord" value={p.dimples.diameterPct} onChange={(v) => setField('diameterPct', v)} min={100 * DIMPLE_LIMITS.diameter[0]} max={100 * DIMPLE_LIMITS.diameter[1]} step={0.5} />
+          <DimpleField label="size: depth [% of the diameter]" aria="dimple depth in % of the diameter" value={p.dimples.depthPct} onChange={(v) => setField('depthPct', v)} min={100 * DIMPLE_LIMITS.depthRatio[0]} max={100 * DIMPLE_LIMITS.depthRatio[1]} step={1} />
+          <DimpleField label="density: share of the stretch covered [%]" aria="dimple density in % covered" value={p.dimples.coveragePct} onChange={(v) => setField('coveragePct', v)} min={100 * DIMPLE_LIMITS.coverage[0]} max={100 * DIMPLE_LIMITS.coverage[1]} step={1} />
+          <DimpleField label="stretch starts at [% of chord]" aria="dimples start in % of the chord" value={p.dimples.fromPct} onChange={(v) => setField('fromPct', v)} min={100 * DIMPLE_LIMITS.from} max={98} step={1} />
+          <DimpleField label="stretch ends at [% of chord]" aria="dimples end in % of the chord" value={p.dimples.toPct} onChange={(v) => setField('toPct', v)} min={2} max={100 * DIMPLE_LIMITS.to} step={1} />
+        </div>
+        {!dimpleCheck.ok && (
+          <div className="error" data-testid="dimple-errors">
+            {dimpleCheck.errors.join('; ')}
+          </div>
+        )}
+        {spec && (
+          <div className="note" data-testid="dimple-readout">
+            {centres.length} dimples on {spec.surface === 'both' ? 'each surface' : `the ${spec.surface} surface`}, {(100 * (spec.diameter / spec.coverage)).toFixed(2)} % of the chord from centre to centre ({(100 * (spec.diameter / spec.coverage - spec.diameter)).toFixed(2)} % between neighbours). At {p.cells} cells along the chord a dimple is {(spec.diameter * p.cells).toFixed(1)} cells wide and {(spec.diameter * spec.depthRatio * p.cells).toFixed(2)} cells deep.
+          </div>
+        )}
+        {advice.map((t, i) => (
+          <div key={i} className="note" style={{ color: 'var(--warn, #d29922)' }}>
+            {t}.
+          </div>
+        ))}
+        {spec && previewAirfoil && (
+          <>
+            <label className="field-inline">
+              preview on{' '}
+              <select value={previewAirfoil.id} onChange={(e) => setPreviewId(e.target.value)} aria-label="dimple preview section">
+                {all.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <DimplePreview contour={previewAirfoil.contour} spec={spec} />
+          </>
+        )}
+      </details>
       <label className="field-inline">
         show{' '}
         <select value={aim} onChange={(e) => setAim(e.target.value as AirfoilAim | 'all')} aria-label="airfoil list filter">
@@ -151,12 +279,18 @@ export function AirfoilPanel(p: {
                   at {p.cells} cells: {t}.
                 </div>
               ))}
-              <div className="seg" style={{ margin: '4px 0' }}>
+              <div className="seg" style={{ margin: '4px 0', flexWrap: 'wrap' }}>
                 <button className="ctl" disabled={p.disabled || !ok} onClick={() => ok && p.onLoad(a, b)} aria-label={`use ${a.name}`} title="start a project with this section as the body (the open project stays in the saved projects)">
                   USE
                 </button>
+                <button className="ctl" disabled={p.disabled || !ok || !spec} onClick={() => useDimpled(a)} aria-label={`use ${a.name} with dimples`} title={spec ? 'start a project with the dimpled version of this section, with the dimple settings above' : 'the dimple settings above are not valid'}>
+                  USE WITH DIMPLES
+                </button>
                 <label className="field-inline" title="include this section in the airfoil study">
                   <input type="checkbox" checked={p.picked.includes(a.id)} disabled={!ok} onChange={() => toggle(a.id)} aria-label={`study ${a.name}`} /> in the study
+                </label>
+                <label className="field-inline" title="include the dimpled version of this section (with the dimple settings at the time of RUN STUDY) in the airfoil study">
+                  <input type="checkbox" checked={p.picked.includes(a.id + DIMPLED_SUFFIX)} disabled={!ok} onChange={() => toggle(a.id + DIMPLED_SUFFIX)} aria-label={`study ${a.name} with dimples`} /> dimpled version too
                 </label>
               </div>
             </div>

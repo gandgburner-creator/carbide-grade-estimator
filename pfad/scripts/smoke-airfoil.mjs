@@ -84,8 +84,8 @@ step('the section was computed');
 await shot('2-computed');
 
 // the study: two sections, two angles
-await panel.locator('[data-airfoil="NACA 4412"]').getByLabel('study NACA 4412').check();
-await panel.locator('[data-airfoil="NACA 0012"]').getByLabel('study NACA 0012').check();
+await panel.locator('[data-airfoil="NACA 4412"]').getByLabel('study NACA 4412', { exact: true }).check();
+await panel.locator('[data-airfoil="NACA 0012"]').getByLabel('study NACA 0012', { exact: true }).check();
 await vis.getByLabel('study angles').fill('0, 8');
 await button('run the airfoil study').click();
 await page.waitForFunction(() => document.querySelectorAll('[data-study-row]').length >= 4, null, { timeout: 600000 });

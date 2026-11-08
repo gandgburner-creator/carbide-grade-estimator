@@ -1418,3 +1418,92 @@ details.physics-sheet > summary {
 table.compare tr.row-top td {
   background: rgba(88, 166, 255, 0.14);
 }
+
+/* dimples, saved studies and their comparison */
+.dimple-box {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 8px;
+  margin: 6px 0;
+}
+.dimple-box > summary {
+  cursor: pointer;
+  font-size: 12px;
+}
+.dimple-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 6px 12px;
+  margin: 6px 0;
+}
+.dimple-fields label {
+  display: grid;
+  gap: 2px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.saved-list {
+  display: grid;
+  gap: 4px;
+  margin: 6px 0;
+}
+.saved-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: flex-start;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+}
+.compare-box {
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+  padding-top: 4px;
+}
+.cmp-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 4px 0;
+}
+.cmp-legend-item {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: inherit;
+  font-size: 11px;
+  padding: 1px 4px;
+  cursor: pointer;
+}
+.cmp-legend-item.off {
+  opacity: 0.4;
+  text-decoration: line-through;
+}
+.chart-tip {
+  background: rgba(11, 14, 18, 0.95);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  pointer-events: none;
+}
+.delta-clear {
+  color: #c9d1d9;
+}
+.delta-unclear {
+  opacity: 0.7;
+}
+
+.compare-overlay {
+  position: fixed;
+  inset: 2vh 2vw;
+  z-index: 50;
+  overflow: auto;
+  background: var(--panel);
+  border: 1px solid #58a6ff;
+  border-radius: 6px;
+  padding: 10px 16px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+}

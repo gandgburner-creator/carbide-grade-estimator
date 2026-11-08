@@ -73,7 +73,7 @@ step('the CFD workspace opens, labelled as conventional CFD, not the particle mo
 
 // 1. the plain inputs and what the run will be
 await expectText('What the simulation will run');
-await expectText('Reynolds number: your plate in your air has Re');
+await expectText('Reynolds number: your plate in your fluid has Re');
 await expectText('Navier–Stokes');
 await page.getByRole('button', { name: 'resolution quick', exact: true }).click();
 await field('wing depth in cm').fill('150');

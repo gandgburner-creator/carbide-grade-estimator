@@ -59,6 +59,22 @@ export interface CfdLibraryBody {
   /** measured from the coordinates, fractions of the chord */
   metrics: { thickness: number; thicknessAt: number; camber: number; camberAt: number; noseRadius: number; trailingGap: number };
   notes: string[];
+  /** a dimpled version: the dimples that were pressed into the section (plain data: what was asked for and what was made) */
+  dimples?: {
+    label: string;
+    surface: 'upper' | 'lower' | 'both';
+    /** fractions of the chord (depth as a fraction of the diameter) */
+    diameter: number;
+    depthRatio: number;
+    coverage: number;
+    from: number;
+    to: number;
+    count: number;
+    pitch: number;
+    stations: number;
+    surfaceGain: number;
+    thinned: number;
+  };
 }
 
 export interface CfdVersion {
@@ -124,7 +140,7 @@ export function newCfdLibraryProject(name: string, conditions: CfdConditions, ge
     name,
     createdAt: at,
     conditions,
-    versions: [{ id: 'v0', parent: null, origin: 'initial', label: `${body.name} (fixed body, ${body.source.startsWith('a file') ? 'from a file' : 'from a published formula'})`, createdAt: at, geometry, shape: stand, library: body, run: null, undone: null }],
+    versions: [{ id: 'v0', parent: null, origin: 'initial', label: `${body.name} (fixed body, ${body.source.startsWith('a file') ? 'from a file' : body.source.startsWith('designed') ? 'designed here' : 'from a published formula'}${body.dimples ? `, ${body.dimples.count} dimples` : ''})`, createdAt: at, geometry, shape: stand, library: body, run: null, undone: null }],
     head: 'v0',
     log: [{ t: at, type: 'created', version: 'v0', detail: `project created with the fixed body ${body.name}` }],
   };

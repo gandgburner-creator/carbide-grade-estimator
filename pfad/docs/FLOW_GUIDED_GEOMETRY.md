@@ -844,6 +844,42 @@ any section — and **says nothing about whether a section is good at 350 km/h**
 shape, or `designedContour(CLAUDE_DESIGNS[i].params)`) into XFOIL or NeuralFoil at Re 1.3 × 10⁶ and Mach 0.29, or compare them with the sections of
 the list (and with E387, S1223, SD7037, FX 63-137, E423 once their `.dat` files are imported) over several angles.
 
+### Dimpled sections (CFD workspace, `src/reference/Dimples.ts`)
+
+Every section of the list — the numbered ones, Claude's three designs, and any imported or typed section — has a **dimpled version**: the section with
+a row of shallow round dents pressed into its upper, its lower or both surfaces, like a golf ball. The dimple box in "1b · Reference airfoils" sets:
+
+- **size** — the diameter (the dimple's width along the chord, 1.5 – 20 % of the chord) and the depth (2 – 50 % of the diameter; a dimple is a circular segment,
+  so 50 % is a half circle; the depth is measured along the surface normal);
+- **density** — the share of the covered stretch that dimples occupy (10 – 100 %): the centre-to-centre distance is the diameter divided by it, so 100 %
+  is dimples that touch and 50 % gaps as wide as the dimples; the row is centred in the stretch;
+- **where** — the surface(s), and the stretch of the chord that carries dimples (default 8 – 92 %; the first and last 2 % of the chord are never touched).
+
+Four starting settings (golf-ball-like, fine and dense, coarse and sparse, medium on both surfaces) are offered; they are starting points and not recommendations —
+nothing here shows that any setting helps a wing. A preview (magnification ×1 – ×16, true to scale, the section without dimples dashed) shows what was made,
+and a readout gives the number of dimples, the pitch, and the dimple's size in lattice cells at the chosen resolution, with a warning in words when
+the lattice cannot resolve it (a dimple under 0.5 cell deep is a stair-step roughness, not a dimple; under 1.5 cells is barely resolved; under 4 cells wide has no shape).
+**USE WITH DIMPLES** starts a project with the dimpled version as a fixed body; **dimpled version too** puts a dimpled twin of a section in the study next to it.
+Where a section is too thin to hold a dimple the dimple is made shallower (a gap of 0.6 % of the chord is kept) and the project says so. The numbers on the card (thickness,
+camber, nose radius) are those of the section before its dimples; the project records the dimples and the surface length they add, measured from the finished coordinates.
+
+**What a dimple is in this computation — and is not.** The workspace is two-dimensional: a round dent, cut by the plane of the slice, is a notch in
+the outline, so the "dimple" is a **groove across the whole wing**. The flow in and around a round dimple (the vortices it throws off, the way it makes a
+boundary layer turbulent, the drag crisis of a sphere, which sets in at Reynolds numbers of tens of thousands to a few hundred thousand) is three-dimensional and
+lies beyond a lattice that runs below Reynolds number 2000. A run shows what the computed flow does with the grooved surface at its low Reynolds number — nothing more. The
+program does not claim that dimples lower the drag of a wing, and the study does not rank them.
+
+### Saved studies and comparing them
+
+Any airfoil study can be **saved** (name optional): the rows (C_l, C_d, L/D with their uncertainty, the integrity of each run, the engine) are kept in this
+browser's local storage together with the conditions they were computed at (Reynolds number, cells along the chord, engine, a line about the fluid and flow). The saved list
+has checkboxes: tick any saved studies and the **comparison** shows every section of them side by side — a chart of L/D (or C_l, C_d) against the angle with one
+standard error as a bar at every point, a table with one column per section and one row per angle, the **difference from a chosen reference series with its uncertainty**
+(the two standard errors added in quadrature; "≈" marks a difference that is not larger than twice that, which the runs cannot tell from no difference), the highest
+value of each series among the angles run, and a CSV. Series can be hidden from the legend; dimpled series are dashed lines. If the ticked studies were not run at the same
+Reynolds number, resolution or engine, the comparison says so in words (the differences are then not like for like). Saved studies can be renamed, deleted, exported to a JSON
+file and imported again (a study already present is not added twice). Nothing is recomputed or ranked; the comparison is arithmetic on the rows that the runs gave.
+
 ## Computing on the graphics card (WebGPU)
 
 The CFD can be computed on **this computer's graphics card** instead of the processor (`src/cfd/gpu/`): the same lattice Boltzmann

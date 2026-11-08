@@ -1,5 +1,6 @@
 import type { CfdResult, Est } from '../cfd/CfdRun';
 import type { SurfaceGeometry } from '../geometry/SurfaceGeometry';
+import type { DimpleRecord } from './Dimples';
 
 /**
  * AN AIRFOIL STUDY: a table of what the CFD computes for several bodies at several angles of attack, each one an ordinary run of the
@@ -17,6 +18,10 @@ export interface StudyJob {
   /** the body's maximum thickness and nose radius as fractions of the chord, for the resolution advisory */
   thickness: number;
   noseRadius: number;
+  /** the section the body was made from (its id and name), and the dimples pressed into it, if any */
+  baseId: string;
+  baseName: string;
+  dimples: DimpleRecord | null;
 }
 
 export interface StudyRow {
@@ -36,6 +41,9 @@ export interface StudyRow {
   /** thickness and nose radius in lattice cells at this resolution */
   thicknessCells: number;
   noseCells: number;
+  /** the section without its dimples, and the dimples (absent in a study saved before dimples existed) */
+  baseName?: string;
+  dimples?: DimpleRecord | null;
 }
 
 /** The ratio of two estimates with the standard error of the ratio by the delta method (their errors taken as independent: the lift and the drag come from the same blocks, so this is a cautious rather than a tight figure). */
@@ -64,6 +72,8 @@ export function rowOf(job: StudyJob, r: CfdResult): StudyRow {
     separationX: r.separation.upper.x,
     thicknessCells: job.thickness * cells,
     noseCells: job.noseRadius * cells,
+    baseName: job.baseName,
+    dimples: job.dimples,
   };
 }
 
@@ -82,9 +92,21 @@ export function parseAngles(text: string): { ok: true; angles: number[] } | { ok
   return { ok: true, angles: angles.sort((a, b) => a - b) };
 }
 
-export function jobsFor(bodies: { id: string; name: string; geometry: SurfaceGeometry; thickness: number; noseRadius: number }[], angles: number[]): StudyJob[] {
+export interface StudyBody {
+  id: string;
+  name: string;
+  geometry: SurfaceGeometry;
+  thickness: number;
+  noseRadius: number;
+  /** the section this body was made from, when it is not the section itself (a dimpled version) */
+  baseId?: string;
+  baseName?: string;
+  dimples?: DimpleRecord | null;
+}
+
+export function jobsFor(bodies: StudyBody[], angles: number[]): StudyJob[] {
   const out: StudyJob[] = [];
-  for (const b of bodies) for (const a of angles) out.push({ id: `${b.id}@${a}`, name: b.name, alphaDeg: a, geometry: b.geometry, thickness: b.thickness, noseRadius: b.noseRadius });
+  for (const b of bodies) for (const a of angles) out.push({ id: `${b.id}@${a}`, name: b.name, alphaDeg: a, geometry: b.geometry, thickness: b.thickness, noseRadius: b.noseRadius, baseId: b.baseId ?? b.id, baseName: b.baseName ?? b.name, dimples: b.dimples ?? null });
   return out;
 }
 
@@ -101,10 +123,10 @@ export function highestLd(rows: StudyRow[]): StudyRow[] {
 
 /** The table as CSV text (comma separated, one row per body and angle). */
 export function studyCsv(rows: StudyRow[]): string {
-  const head = 'body,alpha_deg,lift_coeff,lift_se,drag_coeff,drag_se,lift_over_drag,ld_se,reynolds,cells_along_chord,integrity,engine,separation_x_upper,thickness_cells,nose_radius_cells';
+  const head = 'body,alpha_deg,lift_coeff,lift_se,drag_coeff,drag_se,lift_over_drag,ld_se,reynolds,cells_along_chord,integrity,engine,separation_x_upper,thickness_cells,nose_radius_cells,section,dimples';
   const f = (v: number | null | undefined, d = 5) => (v === null || v === undefined || !Number.isFinite(v) ? '' : v.toFixed(d));
   const q = (s: string) => `"${s.replace(/"/g, '""')}"`;
-  return [head, ...rows.map((r) => [q(r.name), r.alphaDeg, f(r.lift.mean), f(r.lift.se), f(r.drag.mean), f(r.drag.se), f(r.ld?.mean, 3), f(r.ld?.se, 3), Math.round(r.reynolds), r.cells, r.integrity, q(r.engine), f(r.separationX, 2), f(r.thicknessCells, 2), f(r.noseCells, 2)].join(','))].join('\n');
+  return [head, ...rows.map((r) => [q(r.name), r.alphaDeg, f(r.lift.mean), f(r.lift.se), f(r.drag.mean), f(r.drag.se), f(r.ld?.mean, 3), f(r.ld?.se, 3), Math.round(r.reynolds), r.cells, r.integrity, q(r.engine), f(r.separationX, 2), f(r.thicknessCells, 2), f(r.noseCells, 2), q(r.baseName ?? r.name), q(r.dimples ? r.dimples.label : '')].join(','))].join('\n');
 }
 
 /** What the lattice can and cannot resolve of a body at a resolution, in words (empty when nothing needs saying). */
