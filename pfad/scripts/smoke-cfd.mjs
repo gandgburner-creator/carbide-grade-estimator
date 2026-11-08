@@ -138,7 +138,7 @@ await page.getByRole('button', { name: 'History', exact: true }).click();
 await page.getByRole('button', { name: 'COMPARE WITH PARENT' }).first().click();
 await expectText('Lift and drag (no composite score');
 await shot('7-cfd-compare');
-const cmpText = await page.locator('.shell-body:visible .section', { hasText: 'comparison' }).first().innerText();
+const cmpText = await page.locator('.shell-body:visible .section', { hasText: 'no composite score' }).first().innerText();
 if (!/no lift-to-drag ranking/i.test(cmpText)) throw new Error('the comparison does not say that it makes no lift-to-drag ranking');
 await page.getByRole('button', { name: 'History', exact: true }).click();
 const proj = await download('PROJECT JSON');
